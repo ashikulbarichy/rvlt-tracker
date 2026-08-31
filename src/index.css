@@ -1,0 +1,196 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg-base: #0A0A0A;
+  --color-bg-surface: #121212;
+  --color-bg-surface-raised: #1A1A1A;
+  --color-bg-surface-hover: #232323;
+  --color-border: #333333;
+  --color-border-strong: #454545;
+  --color-text-primary: #EDEDED;
+  --color-text-secondary: #A3A3A3;
+  --color-text-tertiary: #6B6B6B;
+  --color-accent-primary: #4C8DFF;
+  --color-accent-primary-hover: #699DFF;
+  --color-accent-muted: #233047;
+  --color-success: #4ADE9E;
+  --color-warning: #F0B84C;
+  --color-error: #F0654C;
+  --color-info: #4C8DFF;
+  
+  --color-button-primary: var(--color-accent-primary);
+  --color-button-primary-hover: var(--color-accent-primary-hover);
+  --color-button-text: #121212;
+  
+  --radius-sm: 6px;
+  --radius-md: 10px;
+}
+
+@layer base {
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color-scheme: dark;
+  }
+  body {
+    background-color: var(--color-bg-base);
+    color: var(--color-text-primary);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%235C6578'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 0.85rem 0.85rem;
+    padding-right: 1.85rem !important;
+    background-color: var(--color-bg-base);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out;
+  }
+
+  select:focus {
+    outline: none;
+    border-color: var(--color-accent-primary);
+    box-shadow: 0 0 0 1px var(--color-accent-primary);
+  }
+
+  select option {
+    background-color: var(--color-bg-surface-raised);
+    color: var(--color-text-primary);
+    padding: 6px 10px;
+  }
+
+  select option:checked {
+    background-color: var(--color-bg-surface-hover);
+    color: var(--color-text-primary);
+    font-weight: 500;
+  }
+}
+
+@layer components {
+  /* Universal Button Styles */
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-3.5 py-1.5 text-[14px] font-medium text-button-text bg-button-primary hover:bg-button-primary-hover rounded-[6px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed transform active:scale-[0.98];
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-3 py-1.5 text-[14px] font-medium text-text-primary bg-bg-surface-raised border border-border-strong hover:bg-bg-surface-hover rounded-[6px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed transform active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-2 py-1 text-[14px] font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover rounded-[6px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed border-none transform active:scale-[0.98];
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center px-3 py-1.5 text-[14px] font-medium text-accent-primary bg-transparent border border-accent-primary hover:bg-bg-surface-hover rounded-[6px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed transform active:scale-[0.98];
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center px-3.5 py-1.5 text-[14px] font-medium text-[#121212] bg-status-error hover:brightness-90 rounded-[6px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed border-none transform active:scale-[0.98];
+  }
+
+  /* Universal Input & Form Fields */
+  .input-field {
+    @apply w-full px-2.5 py-1.5 text-sm bg-bg-base border border-border rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent-primary transition-colors;
+  }
+  .select-field {
+    @apply px-2 py-1 text-sm bg-bg-base border border-border rounded-sm text-text-primary focus:outline-none focus:border-accent-primary cursor-pointer;
+  }
+
+  /* Universal Surfaces & Cards */
+  .card-base {
+    @apply bg-bg-surface border border-border rounded-md;
+  }
+
+  /* Universal Typography */
+  .heading-page {
+    @apply text-xl font-semibold text-text-primary mb-1;
+  }
+  .heading-section {
+    @apply text-lg font-medium text-text-primary mb-0.5 tracking-[0.02em];
+  }
+
+  /* Universal Badges */
+  .badge-neutral {
+    @apply inline-flex items-center px-1.5 py-0.5 text-[12px] font-sans bg-bg-surface text-text-secondary border border-border rounded-sm;
+  }
+  .badge-success {
+    @apply inline-flex items-center px-1.5 py-0.5 text-[12px] font-medium bg-status-success bg-opacity-20 text-status-success border border-status-success border-opacity-30 rounded-sm;
+  }
+  .badge-warning {
+    @apply inline-flex items-center px-1.5 py-0.5 text-[12px] font-medium bg-status-warning bg-opacity-20 text-status-warning border border-status-warning border-opacity-30 rounded-sm;
+  }
+  .badge-error {
+    @apply inline-flex items-center px-1.5 py-0.5 text-[12px] font-medium bg-status-error bg-opacity-20 text-status-error border border-status-error border-opacity-30 rounded-sm;
+  }
+}
+
+/* Custom scrollbars with dark neutral tones */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}
+
+/* Utility to hide scrollbars while preserving scroll functionality */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom Prose Styles for RichTextEditor since typography plugin is missing */
+.prose ul {
+  list-style-type: disc;
+  padding-left: 1.5em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+.prose ol {
+  list-style-type: decimal;
+  padding-left: 1.5em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+.prose li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+.prose p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+.prose strong {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.prose a {
+  color: var(--color-accent-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose a:hover {
+  color: var(--color-accent-primary-hover);
+}
