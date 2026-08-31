@@ -15,6 +15,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     category: 'General',
     items: [
       { description: 'Open search / Command menu', keys: ['⌘', 'K'] },
+      { description: 'Toggle left sidebar', keys: ['⌘', 'B'] },
       { description: 'Open keyboard shortcuts', keys: ['?'] },
       { description: 'Close active modal / drawer', keys: ['Esc'] },
       { description: 'Toggle notification drawer', keys: ['⌘', 'Shift', 'N'] },

@@ -24,7 +24,17 @@ import { useTeams } from '../../hooks/useTeams';
 import * as Icons from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
-  const { currentWorkspace, setCurrentWorkspace, currentUser, currentTeam, setCurrentTeam, isMobileSidebarOpen, setIsMobileSidebarOpen, setIsShortcutsModalOpen } = useApp();
+  const {
+    currentWorkspace,
+    setCurrentWorkspace,
+    currentUser,
+    currentTeam,
+    setCurrentTeam,
+    isMobileSidebarOpen,
+    setIsMobileSidebarOpen,
+    setIsShortcutsModalOpen,
+    isSidebarCollapsed
+  } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const path = location.pathname;
@@ -36,7 +46,6 @@ export const Sidebar: React.FC = () => {
   const { workspaces, createWorkspaceAsync } = useWorkspaces();
   const { teams } = useTeams(currentWorkspace?.id);
 
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(true);
   const [isTeamsSectionOpen, setIsTeamsSectionOpen] = useState(true);
@@ -134,22 +143,17 @@ export const Sidebar: React.FC = () => {
       />
 
       <aside
-        className={`bg-bg-surface border-border flex flex-col select-none shrink-0 font-sans z-50 lg:z-20 transition-all duration-300 shadow-2xl lg:shadow-sm
+        className={`bg-bg-surface border-border flex flex-col select-none shrink-0 font-sans z-50 lg:z-20 transition-[width,margin,padding,border-color] duration-200 ease-out overflow-hidden shadow-2xl lg:shadow-sm
           fixed inset-y-0 left-0 h-full border-r border-y-0 border-l-0 rounded-none
-          lg:static lg:h-[calc(100vh-24px)] lg:my-3 lg:ml-3 lg:mr-1.5 lg:rounded-[12px] lg:border
+          lg:static lg:h-[calc(100vh-24px)] lg:rounded-[12px]
           ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          ${isCollapsed ? 'lg:w-11 w-[260px]' : 'w-[260px] lg:w-[230px]'}
+          ${
+            isSidebarCollapsed
+              ? 'lg:w-0 lg:my-3 lg:ml-0 lg:mr-0 lg:p-0 lg:border-0 pointer-events-none'
+              : 'w-[260px] lg:w-[230px] lg:my-3 lg:ml-3 lg:mr-1.5 lg:border'
+          }
         `}
       >
-        {/* Collapse Toggle (Desktop only) */}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="hidden lg:flex absolute right-2 top-3.5 w-7 h-7 items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover z-50 transition-colors"
-          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {isCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
-        </button>
-
         {/* Mobile Close Button (Mobile only) */}
         <button
           onClick={() => setIsMobileSidebarOpen(false)}
@@ -160,8 +164,8 @@ export const Sidebar: React.FC = () => {
           <X className="w-4 h-4" />
         </button>
 
-        {/* Fading Contents Wrapper */}
-        <div className={`flex flex-col h-full w-full lg:w-[230px] transition-opacity duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:pointer-events-none' : 'opacity-100'}`}>
+        {/* Sliding Contents Wrapper (Slide animation without opacity fade) */}
+        <div className={`flex flex-col h-full w-[260px] lg:w-[230px] shrink-0 transition-transform duration-200 ease-out ${isSidebarCollapsed ? 'lg:-translate-x-full' : 'translate-x-0'}`}>
         
         {/* Workspace Selector */}
         <div className="h-14 pl-4 pr-11 flex items-center border-b border-white/10 relative shrink-0" ref={dropdownRef}>

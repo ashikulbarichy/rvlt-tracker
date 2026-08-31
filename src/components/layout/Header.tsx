@@ -1,18 +1,27 @@
 import React from 'react';
-import { Search, Bell, Menu } from 'lucide-react';
+import { Search, Bell, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useNotifications } from '../../hooks/useNotifications';
 
 export const Header: React.FC = () => {
-  const { currentUser, toggleNotifications, setIsSearchModalOpen, toggleMobileSidebar, currentWorkspace } = useApp();
+  const {
+    currentUser,
+    toggleNotifications,
+    setIsSearchModalOpen,
+    toggleMobileSidebar,
+    currentWorkspace,
+    isSidebarCollapsed,
+    toggleSidebar
+  } = useApp();
   const { notifications } = useNotifications();
 
   const unreadCount = notifications?.filter(n => !n.is_read).length || 0;
 
   return (
     <header className="h-14 px-3 sm:px-6 flex items-center justify-between shrink-0 bg-transparent border-b border-border/50 lg:border-none">
-      {/* Left: Mobile Hamburger & Search */}
-      <div className="flex items-center space-x-2">
+      {/* Left: Sidebar Collapse/Expand Toggle & Search */}
+      <div className="flex items-center space-x-2 sm:space-x-2.5">
+        {/* Mobile Hamburger Button */}
         <button
           onClick={toggleMobileSidebar}
           className="lg:hidden p-2 text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover rounded-md transition-colors"
@@ -20,6 +29,20 @@ export const Header: React.FC = () => {
           aria-label="Open menu"
         >
           <Menu className="w-4 h-4" />
+        </button>
+
+        {/* Desktop Sidebar Collapse/Expand Toggle Button (Left side of search bar) */}
+        <button
+          onClick={toggleSidebar}
+          className="hidden lg:flex p-1.5 text-text-secondary hover:text-text-primary bg-bg-surface hover:bg-bg-surface-hover rounded-md transition-colors border border-border hover:border-border-strong items-center justify-center"
+          title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isSidebarCollapsed ? (
+            <PanelLeftOpen className="w-4 h-4" />
+          ) : (
+            <PanelLeftClose className="w-4 h-4" />
+          )}
         </button>
 
         {/* Mobile Workspace / Brand indicator */}

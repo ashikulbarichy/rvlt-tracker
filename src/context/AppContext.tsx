@@ -33,6 +33,10 @@ interface AppContextType {
   setIsMobileSidebarOpen: (open: boolean) => void;
   toggleMobileSidebar: () => void;
   
+  isSidebarCollapsed: boolean;
+  setIsSidebarCollapsed: (collapsed: boolean) => void;
+  toggleSidebar: () => void;
+  
   isNotificationOpen: boolean;
   setIsNotificationOpen: (open: boolean) => void;
   toggleNotifications: () => void;
@@ -177,6 +181,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
   const toggleMobileSidebar = () => setIsMobileSidebarOpen(prev => !prev);
 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const toggleSidebar = () => {
+    // If mobile width, toggle mobile sidebar drawer; otherwise toggle desktop collapse
+    if (window.innerWidth < 1024) {
+      setIsMobileSidebarOpen(prev => !prev);
+    } else {
+      setIsSidebarCollapsed(prev => !prev);
+    }
+  };
+
   const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
   const toggleNotifications = () => setIsNotificationOpen(prev => !prev);
 
@@ -213,7 +227,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
         return;
       }
 
-      // 2. Open Shortcuts modal: '?'
+      // 2. Toggle Sidebar: Cmd+B / Ctrl+B
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleSidebar();
+        return;
+      }
+
+      // 3. Open Shortcuts modal: '?'
       if (e.key === '?') {
         e.preventDefault();
         setIsShortcutsModalOpen(prev => !prev);
@@ -293,6 +314,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
         isMobileSidebarOpen,
         setIsMobileSidebarOpen,
         toggleMobileSidebar,
+        isSidebarCollapsed,
+        setIsSidebarCollapsed,
+        toggleSidebar,
         isNotificationOpen,
         setIsNotificationOpen,
         toggleNotifications,

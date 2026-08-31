@@ -14,6 +14,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     category: 'General & Modal Controls',
     items: [
       { description: 'Open global search / Command menu', keys: ['⌘', 'K'] },
+      { description: 'Toggle left sidebar', keys: ['⌘', 'B'] },
       { description: 'Open keyboard shortcuts sheet', keys: ['?'] },
       { description: 'Close modal, drawer, or dropdown', keys: ['Esc'] },
       { description: 'Submit active form / modal', keys: ['⌘', 'Enter'] },

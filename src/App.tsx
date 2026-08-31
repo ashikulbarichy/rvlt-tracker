@@ -25,7 +25,7 @@ import { ProjectsView } from './components/projects/ProjectsView';
 import { MobileNav } from './components/layout/MobileNav';
 
 const MainLayout: React.FC = () => {
-  const { isNotificationOpen, setIsNotificationOpen } = useApp();
+  const { isNotificationOpen, setIsNotificationOpen, isSidebarCollapsed } = useApp();
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-bg-base text-text-primary font-sans antialiased">
@@ -33,7 +33,7 @@ const MainLayout: React.FC = () => {
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-bg-surface border-0 md:border border-border rounded-none md:rounded-[12px] m-0 md:my-3 md:mr-3 md:ml-1.5 shadow-none md:shadow-sm relative pb-14 lg:pb-0">
+      <div className={`flex-1 flex flex-col min-w-0 overflow-hidden bg-bg-surface border-0 md:border border-border rounded-none md:rounded-[12px] m-0 md:my-3 md:mr-3 shadow-none md:shadow-sm relative pb-14 lg:pb-0 transition-[margin] duration-200 ease-out ${isSidebarCollapsed ? 'md:ml-3' : 'md:ml-1.5'}`}>
         <Header />
 
         <main className="flex-1 flex min-w-0 overflow-hidden relative">
