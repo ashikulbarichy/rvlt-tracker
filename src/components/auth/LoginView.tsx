@@ -64,8 +64,8 @@ export const LoginView: React.FC<LoginViewProps> = () => {
     setIsLoading(true);
 
     try {
-      // Dynamic live origin: ensures live domain is used rather than localhost
-      const redirectUrl = `${window.location.origin}/reset-password`;
+      // Dynamic live origin: redirects to root domain where recovery hash is caught by App.tsx without 404s
+      const redirectUrl = window.location.origin;
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: redirectUrl,
