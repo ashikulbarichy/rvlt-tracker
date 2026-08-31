@@ -280,15 +280,15 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-transparent overflow-hidden px-6 py-4 font-sans">
+    <div className="flex-1 flex flex-col h-full bg-transparent overflow-hidden px-3 sm:px-6 py-3 sm:py-4 font-sans">
       
       {/* Header section */}
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div>
-          <h1 className="text-2xl font-karla font-semibold text-text-primary mb-1">
+          <h1 className="text-xl sm:text-2xl font-karla font-semibold text-text-primary mb-0.5 sm:mb-1">
             {onlyMine ? 'My Issues' : 'Issues'}
           </h1>
-          <p className="text-text-secondary text-sm">
+          <p className="hidden sm:block text-text-secondary text-xs sm:text-sm">
             {onlyMine
               ? 'Issues assigned to you in this workspace.'
               : 'Track, manage, and resolve project tasks.'}
@@ -296,7 +296,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
         </div>
         <button
           onClick={() => setIsNewIssueModalOpen(true)}
-          className="flex items-center space-x-2 px-3.5 py-2 rounded-md bg-accent-primary hover:bg-accent-primary-hover text-bg-base text-sm font-medium transition-colors shadow-sm"
+          className="flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-md bg-accent-primary hover:bg-accent-primary-hover text-bg-base text-xs sm:text-sm font-medium transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           <span>New Issue</span>
@@ -305,7 +305,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
 
       {/* Notice for non-admin members with no assigned teams */}
       {!isAdmin && userAssignedTeams.length === 0 && (
-        <div className="mb-4 p-3 bg-status-warning/10 border border-status-warning/30 rounded-md flex items-start space-x-2.5">
+        <div className="mb-3 p-3 bg-status-warning/10 border border-status-warning/30 rounded-md flex items-start space-x-2.5">
           <AlertCircle className="w-4 h-4 text-status-warning shrink-0 mt-0.5" />
           <div className="text-xs text-text-secondary">
             <span className="font-semibold text-text-primary">No team assigned:</span> You are currently not assigned to any team in this workspace. You will only be able to view and manage issues once a workspace admin assigns you to a team.
@@ -314,15 +314,15 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
       )}
 
       {/* Toolbar: Tabs, Left Icon Buttons (Sort, View Mode), Team Filter & Search */}
-      <div className="flex items-center justify-between mb-3.5 shrink-0 gap-3">
+      <div className="flex flex-wrap items-center justify-between mb-3.5 shrink-0 gap-2.5 sm:gap-3">
         {/* Left Side: Tabs + 2 Icon Buttons */}
-        <div className="flex items-center space-x-3 min-w-0">
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+          <div className="flex items-center space-x-3 sm:space-x-4 overflow-x-auto no-scrollbar scrollbar-none">
             {availableTabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
-                className={`text-xs font-medium transition-colors relative py-1 ${
+                className={`text-xs font-medium transition-colors relative py-1 shrink-0 ${
                   activeTab === tab
                     ? 'text-text-primary font-semibold'
                     : 'text-text-secondary hover:text-text-primary'

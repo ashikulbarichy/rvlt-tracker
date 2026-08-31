@@ -8,6 +8,7 @@ import {
   Layers,
   FileCheck2,
   FileText,
+  Keyboard,
   Settings,
   ChevronDown,
   Check,
@@ -23,10 +24,15 @@ import { useTeams } from '../../hooks/useTeams';
 import * as Icons from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
-  const { currentWorkspace, setCurrentWorkspace, currentUser, currentTeam, setCurrentTeam } = useApp();
+  const { currentWorkspace, setCurrentWorkspace, currentUser, currentTeam, setCurrentTeam, isMobileSidebarOpen, setIsMobileSidebarOpen, setIsShortcutsModalOpen } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const path = location.pathname;
+
+  const handleNav = (toPath: string) => {
+    navigate(toPath);
+    setIsMobileSidebarOpen(false);
+  };
   const { workspaces, createWorkspaceAsync } = useWorkspaces();
   const { teams } = useTeams(currentWorkspace?.id);
 
@@ -117,22 +123,48 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className={`bg-bg-surface border border-border flex flex-col select-none shrink-0 font-sans relative transition-all duration-300 my-3 ml-3 mr-1.5 rounded-[12px] h-[calc(100vh-24px)] z-20 shadow-sm ${isCollapsed ? 'w-11' : 'w-[230px]'}`}>
-      
-      {/* Collapse Toggle (Always visible) */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute right-2 top-3.5 w-7 h-7 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover z-50 transition-colors"
-        title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        {isCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
-      </button>
+    <>
+      {/* Mobile Drawer Backdrop */}
+      <div
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-200 ${
+          isMobileSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsMobileSidebarOpen(false)}
+        aria-hidden="true"
+      />
 
-      {/* Fading Contents Wrapper */}
-      <div className={`flex flex-col h-full w-[230px] transition-opacity duration-300 overflow-hidden ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-      
-      {/* Workspace Selector */}
-      <div className="h-14 pl-4 pr-11 flex items-center border-b border-white/10 relative shrink-0" ref={dropdownRef}>
+      <aside
+        className={`bg-bg-surface border-border flex flex-col select-none shrink-0 font-sans z-50 lg:z-20 transition-all duration-300 shadow-2xl lg:shadow-sm
+          fixed inset-y-0 left-0 h-full border-r border-y-0 border-l-0 rounded-none
+          lg:static lg:h-[calc(100vh-24px)] lg:my-3 lg:ml-3 lg:mr-1.5 lg:rounded-[12px] lg:border
+          ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${isCollapsed ? 'lg:w-11 w-[260px]' : 'w-[260px] lg:w-[230px]'}
+        `}
+      >
+        {/* Collapse Toggle (Desktop only) */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="hidden lg:flex absolute right-2 top-3.5 w-7 h-7 items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover z-50 transition-colors"
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
+        </button>
+
+        {/* Mobile Close Button (Mobile only) */}
+        <button
+          onClick={() => setIsMobileSidebarOpen(false)}
+          className="lg:hidden absolute right-2 top-3.5 w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover z-50 transition-colors"
+          title="Close menu"
+          aria-label="Close menu"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        {/* Fading Contents Wrapper */}
+        <div className={`flex flex-col h-full w-full lg:w-[230px] transition-opacity duration-300 overflow-hidden ${isCollapsed ? 'lg:opacity-0 lg:pointer-events-none' : 'opacity-100'}`}>
+        
+        {/* Workspace Selector */}
+        <div className="h-14 pl-4 pr-11 flex items-center border-b border-white/10 relative shrink-0" ref={dropdownRef}>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           className="w-full flex items-center p-1.5 -m-1.5 rounded-md hover:bg-bg-surface/70 transition-colors group text-left min-w-0"
@@ -284,7 +316,7 @@ export const Sidebar: React.FC = () => {
       {/* Primary Triage Navigation */}
       <div className="px-3 space-y-0.5 mt-4 shrink-0">
         <button
-          onClick={() => navigate(`/${currentWorkspace?.slug || ''}`)}
+          onClick={() => handleNav(`/${currentWorkspace?.slug || ''}`)}
           className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
             path === `/${currentWorkspace?.slug || ''}`
               ? 'bg-bg-surface-hover text-text-primary'
@@ -296,7 +328,7 @@ export const Sidebar: React.FC = () => {
         </button>
 
         <button
-          onClick={() => navigate(`/${currentWorkspace?.slug || ''}/my-issues`)}
+          onClick={() => handleNav(`/${currentWorkspace?.slug || ''}/my-issues`)}
           className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
             path.endsWith('/my-issues')
               ? 'bg-bg-surface-hover text-text-primary'
@@ -328,7 +360,7 @@ export const Sidebar: React.FC = () => {
             <button
               onClick={() => {
                 setCurrentTeam(null);
-                navigate(`/${currentWorkspace?.slug || ''}/projects`);
+                handleNav(`/${currentWorkspace?.slug || ''}/projects`);
               }}
               className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 path.endsWith('/projects') && !path.includes('/teams/')
@@ -343,7 +375,7 @@ export const Sidebar: React.FC = () => {
             <button
               onClick={() => {
                 setCurrentTeam(null);
-                navigate(`/${currentWorkspace?.slug || ''}/issues`);
+                handleNav(`/${currentWorkspace?.slug || ''}/issues`);
               }}
               className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 path.endsWith('/issues') && !path.includes('/teams/')
@@ -358,7 +390,7 @@ export const Sidebar: React.FC = () => {
             <button
               onClick={() => {
                 setCurrentTeam(null);
-                navigate(`/${currentWorkspace?.slug || ''}/testcases`);
+                handleNav(`/${currentWorkspace?.slug || ''}/testcases`);
               }}
               className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 path.endsWith('/testcases') && !path.includes('/teams/')
@@ -373,7 +405,7 @@ export const Sidebar: React.FC = () => {
             <button
               onClick={() => {
                 setCurrentTeam(null);
-                navigate(`/${currentWorkspace?.slug || ''}/members`);
+                handleNav(`/${currentWorkspace?.slug || ''}/members`);
               }}
               className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 path.endsWith('/members') && !path.includes('/teams/')
@@ -388,7 +420,7 @@ export const Sidebar: React.FC = () => {
             <button
               onClick={() => {
                 setCurrentTeam(null);
-                navigate(`/${currentWorkspace?.slug || ''}/teams`);
+                handleNav(`/${currentWorkspace?.slug || ''}/teams`);
               }}
               className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 path.endsWith('/teams')
@@ -444,7 +476,7 @@ export const Sidebar: React.FC = () => {
                     <button
                       onClick={() => {
                         setCurrentTeam(team);
-                        navigate(`/${currentWorkspace?.slug || ''}/teams/${team.id}/projects`);
+                        handleNav(`/${currentWorkspace?.slug || ''}/teams/${team.id}/projects`);
                       }}
                       className={`w-full flex items-center space-x-2 px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
                         path.endsWith('/projects') && currentTeam?.id === team.id
@@ -458,7 +490,7 @@ export const Sidebar: React.FC = () => {
                     <button
                       onClick={() => {
                         setCurrentTeam(team);
-                        navigate(`/${currentWorkspace?.slug || ''}/teams/${team.id}/issues`);
+                        handleNav(`/${currentWorkspace?.slug || ''}/teams/${team.id}/issues`);
                       }}
                       className={`w-full flex items-center space-x-2 px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
                         path.endsWith('/issues') && currentTeam?.id === team.id
@@ -472,7 +504,7 @@ export const Sidebar: React.FC = () => {
                     <button
                       onClick={() => {
                         setCurrentTeam(team);
-                        navigate(`/${currentWorkspace?.slug || ''}/teams/${team.id}/members`);
+                        handleNav(`/${currentWorkspace?.slug || ''}/teams/${team.id}/members`);
                       }}
                       className={`w-full flex items-center space-x-2 px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
                         path.endsWith('/members') && currentTeam?.id === team.id
@@ -490,7 +522,7 @@ export const Sidebar: React.FC = () => {
           })}
           
               <button
-                onClick={() => navigate(`/${currentWorkspace?.slug || ''}/teams`)}
+                onClick={() => handleNav(`/${currentWorkspace?.slug || ''}/teams`)}
                 className="w-full flex items-center space-x-2 px-2.5 py-1.5 mt-1 text-xs text-text-tertiary hover:text-text-primary font-normal transition-colors text-left"
               >
                 <Plus className="w-3.5 h-3.5 shrink-0" />
@@ -506,7 +538,7 @@ export const Sidebar: React.FC = () => {
             Docs
           </div>
           <button
-            onClick={() => navigate(`/${currentWorkspace?.slug || ''}/docs`)}
+            onClick={() => handleNav(`/${currentWorkspace?.slug || ''}/docs`)}
             className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
               path.endsWith('/docs')
                 ? 'bg-bg-surface-hover text-text-primary'
@@ -520,9 +552,24 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Footer Navigation */}
-      <div className="px-3 py-3 border-t border-white/10 space-y-1">
+      <div className="px-3 py-3 border-t border-border space-y-1">
         <button
-          onClick={() => navigate(`/${currentWorkspace?.slug || ''}/settings`)}
+          onClick={() => {
+            setIsShortcutsModalOpen(true);
+            setIsMobileSidebarOpen(false);
+          }}
+          className="w-full flex items-center justify-between px-3 py-1.5 rounded-md text-xs font-medium transition-colors text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary group"
+          title="Keyboard shortcuts (?)"
+        >
+          <div className="flex items-center space-x-2.5">
+            <Keyboard className="w-3.5 h-3.5 text-text-secondary group-hover:text-text-primary" />
+            <span>Shortcuts</span>
+          </div>
+          <kbd className="text-[10px] font-mono px-1.5 py-0.5 bg-bg-surface-raised border border-border rounded text-text-tertiary">?</kbd>
+        </button>
+
+        <button
+          onClick={() => handleNav(`/${currentWorkspace?.slug || ''}/settings`)}
           className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
             path.endsWith('/settings')
               ? 'bg-bg-surface-hover text-text-primary'
@@ -547,5 +594,6 @@ export const Sidebar: React.FC = () => {
       </div>
       </div>
     </aside>
+    </>
   );
 };

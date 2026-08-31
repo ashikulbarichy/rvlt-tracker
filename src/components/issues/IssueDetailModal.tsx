@@ -358,20 +358,20 @@ export const IssueDetailModal: React.FC = () => {
       className={`absolute inset-0 z-30 bg-bg-surface flex flex-col overflow-hidden transform transition-transform duration-200 ease-out font-sans ${isOpen ? 'translate-x-0 pointer-events-auto' : 'translate-x-full pointer-events-none'}`}
     >
       {/* Header */}
-      <div className="px-6 py-3.5 border-b border-border flex items-center justify-between shrink-0 bg-bg-surface">
-        <div className="flex items-center space-x-3 flex-1 min-w-0 mr-4">
+      <div className="px-3 sm:px-6 py-3 sm:py-3.5 border-b border-border flex items-center justify-between shrink-0 bg-bg-surface">
+        <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0 mr-2 sm:mr-4">
           <button
             onClick={handleClose}
             className="flex items-center space-x-1.5 px-2 py-1 -ml-1 rounded text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors shrink-0"
             title="Back to list (Esc)"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="text-xs font-medium">Back</span>
+            <span className="hidden sm:inline text-xs font-medium">Back</span>
           </button>
 
           <div className="w-px h-4 bg-border shrink-0" />
 
-          <span className="font-sans text-xs font-semibold px-2.5 py-1 rounded-sm bg-bg-surface border border-border text-text-secondary shrink-0">
+          <span className="font-sans text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-sm bg-bg-surface border border-border text-text-secondary shrink-0">
             {formatIssueIdentifier(activeIssue, currentWorkspace)}
           </span>
 
@@ -395,7 +395,7 @@ export const IssueDetailModal: React.FC = () => {
                       setIsEditingTitle(false);
                     }
                   }}
-                  className="w-full text-base font-semibold text-text-primary px-2.5 py-1 bg-bg-surface border border-border focus:border-text-secondary focus:ring-1 focus:ring-text-secondary rounded focus:outline-none transition-colors"
+                  className="w-full text-sm sm:text-base font-semibold text-text-primary px-2.5 py-1 bg-bg-surface border border-border focus:border-text-secondary focus:ring-1 focus:ring-text-secondary rounded focus:outline-none transition-colors"
                   placeholder="Issue title..."
                 />
               </form>
@@ -405,7 +405,7 @@ export const IssueDetailModal: React.FC = () => {
                 className="group/title flex items-center space-x-2 cursor-pointer py-1 px-1.5 -ml-1.5 rounded hover:bg-bg-surface/70 transition-colors flex-1 min-w-0"
                 title="Click to rename title"
               >
-                <h2 className="text-base font-semibold text-text-primary truncate">
+                <h2 className="text-sm sm:text-base font-semibold text-text-primary truncate">
                   {activeIssue.title}
                 </h2>
                 <Edit3 className="w-3.5 h-3.5 text-text-tertiary opacity-0 group-hover/title:opacity-100 transition-opacity shrink-0" />
@@ -413,7 +413,7 @@ export const IssueDetailModal: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2">
             {(userRole === 'admin' || activeIssue.reporter_id === currentUser?.id) && (
               <button
                 onClick={() => setShowDeleteIssueModal(true)}
@@ -434,11 +434,11 @@ export const IssueDetailModal: React.FC = () => {
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-border min-h-0 overflow-hidden">
+        <div className="flex-1 flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-border min-h-0 overflow-y-auto lg:overflow-hidden">
           {/* Left Column: Description & Comments (Expanded) */}
-          <div className="flex-1 min-w-0 p-6 md:p-8 space-y-6 overflow-y-auto no-scrollbar scrollbar-none">
+          <div className="flex-1 min-w-0 p-4 sm:p-6 md:p-8 space-y-6 overflow-y-auto no-scrollbar scrollbar-none">
             {/* Description Section - Full Length */}
-            <div className="space-y-3 min-h-[calc(100vh-220px)] flex flex-col">
+            <div className="space-y-3 min-h-[220px] lg:min-h-[calc(100vh-220px)] flex flex-col">
               <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider">
                 Description
               </h3>
@@ -447,7 +447,7 @@ export const IssueDetailModal: React.FC = () => {
                   content={descriptionText}
                   onChange={setDescriptionText}
                   placeholder="Add description... Formatting and image uploads supported."
-                  minHeight="calc(100vh - 310px)"
+                  minHeight="180px"
                 />
                 {hasDescriptionChanged && (
                   <div className="flex justify-end space-x-2 pt-1">
@@ -674,7 +674,7 @@ export const IssueDetailModal: React.FC = () => {
           </div>
 
           {/* Right Sidebar Column: Metadata & Multi-Assignees */}
-          <div className="w-full lg:w-80 shrink-0 p-6 space-y-5 bg-bg-surface overflow-y-auto no-scrollbar scrollbar-none">
+          <div className="w-full lg:w-80 shrink-0 p-4 sm:p-6 space-y-5 bg-bg-surface overflow-y-auto no-scrollbar scrollbar-none">
             {/* Status */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-text-secondary">

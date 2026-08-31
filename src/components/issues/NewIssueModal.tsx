@@ -170,10 +170,10 @@ export const NewIssueModal: React.FC = () => {
         if (e.target === e.currentTarget) handleClose();
       }}
     >
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10">
-        <div className={`w-screen max-w-2xl lg:max-w-3xl xl:max-w-4xl bg-bg-surface border-l border-border shadow-2xl flex flex-col h-full overflow-hidden transform transition-transform duration-200 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div className="absolute inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
+        <div className={`w-screen max-w-full sm:max-w-2xl lg:max-w-3xl xl:max-w-4xl bg-bg-surface border-l border-border shadow-2xl flex flex-col h-full overflow-hidden transform transition-transform duration-200 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           {/* Header */}
-          <div className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0 bg-bg-surface">
+          <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-border flex items-center justify-between shrink-0 bg-bg-surface">
             <h2 className="text-sm font-semibold text-text-primary">
               Create New Issue
             </h2>
@@ -187,7 +187,7 @@ export const NewIssueModal: React.FC = () => {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-bg-surface overflow-y-auto no-scrollbar scrollbar-none flex-1 flex flex-col justify-between">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 bg-bg-surface overflow-y-auto no-scrollbar scrollbar-none flex-1 flex flex-col justify-between">
             <div className="space-y-4">
           {errorMessage && (
             <div className="p-2.5 bg-status-error/10 border border-status-error/30 rounded text-xs text-status-error flex items-center space-x-2">

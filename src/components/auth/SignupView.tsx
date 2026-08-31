@@ -37,6 +37,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onSwitchToLogin }) => {
         email,
         password,
         options: {
+          emailRedirectTo: window.location.origin,
           data: {
             full_name: fullName.trim()
           }
@@ -57,11 +58,11 @@ export const SignupView: React.FC<SignupViewProps> = ({ onSwitchToLogin }) => {
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-4 font-sans">
-        <div className="w-full max-w-md bg-bg-surface p-8 rounded-xl border border-border shadow-sm text-center">
+        <div className="w-full max-w-md bg-bg-surface p-5 sm:p-8 rounded-xl border border-border shadow-sm text-center">
           <div className="w-12 h-12 bg-status-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-6 h-6 text-status-success" />
           </div>
-          <h2 className="text-2xl font-karla text-text-primary mb-2">Welcome to Fjord</h2>
+          <h2 className="text-2xl font-karla text-text-primary mb-2">Welcome to Reevolt Track</h2>
           <p className="text-sm text-text-secondary mb-8 leading-relaxed">
             Your account has been created successfully. You can now log in to access your workspace.
           </p>
@@ -84,11 +85,11 @@ export const SignupView: React.FC<SignupViewProps> = ({ onSwitchToLogin }) => {
         <div className="text-center mb-10">
           <img src="/favicon.svg" alt="Logo" className="w-16 h-16 rounded-xl mx-auto drop-shadow-sm mb-4" />
           <h1 className="text-3xl font-karla text-text-primary mb-2">Create an account</h1>
-          <p className="text-sm text-text-secondary">Join Fjord to start tracking issues.</p>
+          <p className="text-sm text-text-secondary">Join your workspace to start tracking issues.</p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-bg-surface p-8 rounded-xl border border-border shadow-sm">
+        <div className="bg-bg-surface p-5 sm:p-8 rounded-xl border border-border shadow-sm">
           <form onSubmit={handleSignup} className="space-y-5">
             {error && (
               <div className="p-3 bg-status-error/10 border border-status-error/20 text-status-error text-sm rounded-md">

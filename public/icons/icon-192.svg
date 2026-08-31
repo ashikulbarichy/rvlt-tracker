@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" fill="none">
+  <!-- Minimalist Background Tile -->
+  <rect width="192" height="192" rx="42" fill="#121212" />
+  <rect x="2" y="2" width="188" height="188" rx="40" stroke="#232323" stroke-width="3" fill="none" />
+  
+  <!-- Minimalist Box -->
+  <rect x="39" y="39" width="114" height="114" rx="24" fill="#1A1A1A" stroke="#333333" stroke-width="6" />
+  
+  <!-- Clean Tick / Checkmark in accent blue -->
+  <path d="M70 98 L88 116 L124 74" 
+        stroke="#4C8DFF" 
+        stroke-width="14" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+</svg>

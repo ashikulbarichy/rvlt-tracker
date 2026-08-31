@@ -100,7 +100,7 @@ export const NewTestCaseModal: React.FC = () => {
       className={`absolute inset-0 z-30 bg-bg-surface flex flex-col overflow-hidden transform transition-transform duration-200 ease-out font-sans ${isOpen ? 'translate-x-0 pointer-events-auto' : 'translate-x-full pointer-events-none'}`}
     >
       {/* Header */}
-      <div className="px-6 py-3.5 border-b border-border flex items-center justify-between shrink-0 bg-bg-surface">
+      <div className="px-4 sm:px-6 py-3.5 border-b border-border flex items-center justify-between shrink-0 bg-bg-surface">
         <div className="flex items-center space-x-3 flex-1 min-w-0 mr-4">
           <button
             onClick={handleClose}
@@ -135,7 +135,7 @@ export const NewTestCaseModal: React.FC = () => {
       {/* Form Body: 2 Columns */}
       <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-border min-h-0 no-scrollbar scrollbar-none">
         {/* Left Column: Form Fields */}
-        <div className="flex-1 min-w-0 p-6 md:p-8 space-y-6 overflow-y-auto no-scrollbar scrollbar-none">
+        <div className="flex-1 min-w-0 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6 overflow-y-auto no-scrollbar scrollbar-none">
           {errorMessage && (
             <div className="p-3 bg-status-error/10 border border-status-error/40 rounded flex items-center space-x-2.5 text-xs text-status-error">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -198,7 +198,7 @@ export const NewTestCaseModal: React.FC = () => {
         </div>
 
         {/* Right Sidebar Column: Metadata & Submit Action */}
-        <div className="w-full lg:w-80 shrink-0 p-6 space-y-5 bg-bg-surface overflow-y-auto no-scrollbar scrollbar-none flex flex-col justify-between">
+        <div className="w-full lg:w-80 shrink-0 p-4 sm:p-6 space-y-5 bg-bg-surface overflow-y-auto no-scrollbar scrollbar-none flex flex-col justify-between">
           <div className="space-y-5">
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-1.5">

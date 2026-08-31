@@ -456,7 +456,7 @@ export const MemberSettings: React.FC = () => {
               return (
                 <div
                   key={member.user_id}
-                  className="flex items-center justify-between px-3.5 py-3 hover:bg-bg-surface/30 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:px-3.5 sm:py-3 gap-2.5 sm:gap-3 hover:bg-bg-surface/30 transition-colors"
                 >
                   {/* Left: Avatar & Info */}
                   <div className="flex items-center space-x-3 min-w-0">
@@ -522,7 +522,7 @@ export const MemberSettings: React.FC = () => {
                   </div>
 
                   {/* Right: Role & Actions */}
-                  <div className="flex items-center space-x-3 shrink-0 pl-3">
+                  <div className="flex items-center space-x-3 shrink-0 self-end sm:self-center pl-11 sm:pl-3">
                     {/* Role display / selector */}
                     <div className="flex items-center space-x-1.5">
                       {member.status === 'pending' && (

@@ -6,6 +6,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { GlobalSearchModal } from './components/layout/GlobalSearchModal';
+import { KeyboardShortcutsModal } from './components/layout/KeyboardShortcutsModal';
 import { IssueListView } from './components/issues/IssueListView';
 import { IssueDetailModal } from './components/issues/IssueDetailModal';
 import { NewIssueModal } from './components/issues/NewIssueModal';
@@ -14,24 +15,25 @@ import { NewTestCaseModal } from './components/testcases/NewTestCaseModal';
 import { NotificationDrawer } from './components/notifications/NotificationDrawer';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { LoginView } from './components/auth/LoginView';
-import { SignupView } from './components/auth/SignupView';
+import { ResetPasswordView } from './components/auth/ResetPasswordView';
 import { SettingsView } from './components/settings/SettingsView';
 import { MemberSettings } from './components/settings/MemberSettings';
 import { TeamSettings } from './components/settings/TeamSettings';
 import { DocsView } from './components/docs/DocsView';
 import { HomeInboxView } from './components/home/HomeInboxView';
 import { ProjectsView } from './components/projects/ProjectsView';
+import { MobileNav } from './components/layout/MobileNav';
 
 const MainLayout: React.FC = () => {
   const { isNotificationOpen, setIsNotificationOpen } = useApp();
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-bg-base text-text-primary font-sans antialiased">
-      {/* Left Sidebar */}
+      {/* Left Sidebar (Desktop persistent + Mobile slide-over drawer) */}
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-bg-surface border border-border rounded-[12px] my-3 mr-3 ml-1.5 shadow-sm relative">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-bg-surface border-0 md:border border-border rounded-none md:rounded-[12px] m-0 md:my-3 md:mr-3 md:ml-1.5 shadow-none md:shadow-sm relative pb-14 lg:pb-0">
         <Header />
 
         <main className="flex-1 flex min-w-0 overflow-hidden relative">
@@ -84,18 +86,40 @@ const MainLayout: React.FC = () => {
       {/* Modals and Drawers */}
       <NewIssueModal />
       <GlobalSearchModal />
+      <KeyboardShortcutsModal />
       <NotificationDrawer
         isOpen={isNotificationOpen}
         onClose={() => setIsNotificationOpen(false)}
       />
+
+      {/* Mobile Bottom Navigation Bar */}
+      <MobileNav />
     </div>
   );
 };
 
+const checkIsRecovery = () => {
+  const hash = window.location.hash || '';
+  const search = window.location.search || '';
+  const path = window.location.pathname || '';
+
+  const isRecovery =
+    hash.includes('type=recovery') ||
+    search.includes('type=recovery') ||
+    path.includes('reset-password') ||
+    sessionStorage.getItem('supabase_password_recovery') === 'true';
+
+  if (isRecovery) {
+    sessionStorage.setItem('supabase_password_recovery', 'true');
+  }
+
+  return isRecovery;
+};
+
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
-  const [authView, setAuthView] = useState<'login' | 'signup'>('login');
   const [isInitializing, setIsInitializing] = useState(true);
+  const [isResettingPassword, setIsResettingPassword] = useState<boolean>(() => checkIsRecovery());
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -105,8 +129,12 @@ export function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
+      if (event === 'PASSWORD_RECOVERY' || sessionStorage.getItem('supabase_password_recovery') === 'true') {
+        sessionStorage.setItem('supabase_password_recovery', 'true');
+        setIsResettingPassword(true);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -116,12 +144,22 @@ export function App() {
     return <div className="min-h-screen bg-bg-base flex items-center justify-center font-sans text-text-secondary">Loading...</div>;
   }
 
-  if (!session) {
-    return authView === 'login' ? (
-      <LoginView onSwitchToSignup={() => setAuthView('signup')} />
-    ) : (
-      <SignupView onSwitchToLogin={() => setAuthView('login')} />
+  // Handle password recovery flow from email link
+  if (isResettingPassword) {
+    return (
+      <ResetPasswordView
+        onComplete={() => {
+          sessionStorage.removeItem('supabase_password_recovery');
+          setIsResettingPassword(false);
+          window.location.hash = '';
+          window.history.replaceState(null, '', '/');
+        }}
+      />
     );
+  }
+
+  if (!session) {
+    return <LoginView />;
   }
 
   return (

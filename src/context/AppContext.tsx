@@ -29,6 +29,10 @@ interface AppContextType {
   selectedIssue: Issue | null;
   setSelectedIssue: (issue: Issue | null) => void;
   
+  isMobileSidebarOpen: boolean;
+  setIsMobileSidebarOpen: (open: boolean) => void;
+  toggleMobileSidebar: () => void;
+  
   isNotificationOpen: boolean;
   setIsNotificationOpen: (open: boolean) => void;
   toggleNotifications: () => void;
@@ -42,6 +46,9 @@ interface AppContextType {
   isSearchModalOpen: boolean;
   setIsSearchModalOpen: (open: boolean) => void;
 
+  isShortcutsModalOpen: boolean;
+  setIsShortcutsModalOpen: (open: boolean) => void;
+  
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   
@@ -167,6 +174,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
 
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
+  const toggleMobileSidebar = () => setIsMobileSidebarOpen(prev => !prev);
+
   const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
   const toggleNotifications = () => setIsNotificationOpen(prev => !prev);
 
@@ -175,9 +185,96 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
   const [isNewTestCaseModalOpen, setIsNewTestCaseModalOpen] = useState<boolean>(false);
 
   const [isSearchModalOpen, setIsSearchModalOpen] = useState<boolean>(false);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterPriority, setFilterPriority] = useState<IssuePriority | 'all'>('all');
   const [filterAssigneeId, setFilterAssigneeId] = useState<string | 'all'>('all');
+
+  // Global Keyboard Shortcuts Listener
+  useEffect(() => {
+    let pendingGKey = false;
+    let gKeyTimeout: any = null;
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts when user is typing in form controls
+      const activeEl = document.activeElement;
+      const isInputActive =
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          (activeEl as HTMLElement).isContentEditable);
+
+      if (isInputActive) return;
+
+      // 1. Open Search: Cmd+K / Ctrl+K
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsSearchModalOpen(true);
+        return;
+      }
+
+      // 2. Open Shortcuts modal: '?'
+      if (e.key === '?') {
+        e.preventDefault();
+        setIsShortcutsModalOpen(prev => !prev);
+        return;
+      }
+
+      // 3. Create new issue: 'c' or 'C'
+      if (e.key.toLowerCase() === 'c' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setIsNewIssueModalOpen(true);
+        return;
+      }
+
+      // 4. Create new test case: 't' or 'T'
+      if (e.key.toLowerCase() === 't' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (!pendingGKey) {
+          e.preventDefault();
+          setIsNewTestCaseModalOpen(true);
+          return;
+        }
+      }
+
+      // 5. 'G' sequential navigation (G then H/I/P/T/S)
+      if (e.key.toLowerCase() === 'g' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        pendingGKey = true;
+        clearTimeout(gKeyTimeout);
+        gKeyTimeout = setTimeout(() => {
+          pendingGKey = false;
+        }, 1000);
+        return;
+      }
+
+      if (pendingGKey && currentWorkspace?.slug) {
+        pendingGKey = false;
+        clearTimeout(gKeyTimeout);
+        const k = e.key.toLowerCase();
+        if (k === 'h') {
+          e.preventDefault();
+          navigate(`/${currentWorkspace.slug}`);
+        } else if (k === 'i') {
+          e.preventDefault();
+          navigate(`/${currentWorkspace.slug}/issues`);
+        } else if (k === 'p') {
+          e.preventDefault();
+          navigate(`/${currentWorkspace.slug}/projects`);
+        } else if (k === 't') {
+          e.preventDefault();
+          navigate(`/${currentWorkspace.slug}/testcases`);
+        } else if (k === 's') {
+          e.preventDefault();
+          navigate(`/${currentWorkspace.slug}/settings`);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+      clearTimeout(gKeyTimeout);
+    };
+  }, [currentWorkspace?.slug, navigate]);
 
   return (
     <AppContext.Provider
@@ -193,6 +290,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
 
         selectedIssue,
         setSelectedIssue,
+        isMobileSidebarOpen,
+        setIsMobileSidebarOpen,
+        toggleMobileSidebar,
         isNotificationOpen,
         setIsNotificationOpen,
         toggleNotifications,
@@ -202,6 +302,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
         setIsNewTestCaseModalOpen,
         isSearchModalOpen,
         setIsSearchModalOpen,
+        isShortcutsModalOpen,
+        setIsShortcutsModalOpen,
         searchQuery,
         setSearchQuery,
         filterPriority,

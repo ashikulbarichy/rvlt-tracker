@@ -53,20 +53,20 @@ export const DashboardView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-transparent overflow-y-auto px-6 py-5 font-sans">
+    <div className="flex-1 flex flex-col h-full bg-transparent overflow-y-auto px-3 sm:px-6 py-3.5 sm:py-5 font-sans">
       
       {/* Header section */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-karla font-semibold text-text-primary mb-1">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-karla font-semibold text-text-primary mb-0.5 sm:mb-1">
           {getGreeting()}, {currentUser?.full_name?.split(' ')[0] || 'there'}.
         </h1>
-        <p className="text-text-secondary text-sm">
+        <p className="text-text-secondary text-xs sm:text-sm">
           Here is what's happening in <span className="font-medium text-text-primary">{currentWorkspace?.name}</span> today.
         </p>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-3.5 mb-5 sm:mb-6">
         {/* Card 1 */}
         <div className="bg-bg-surface p-3.5 rounded-md border border-border flex flex-col shadow-sm">
           <div className="flex items-center space-x-1.5 text-text-secondary mb-2">

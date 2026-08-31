@@ -50,7 +50,7 @@ export const GlobalSearchModal: React.FC = () => {
   if (!isSearchModalOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] sm:pt-[20vh] px-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[8vh] sm:pt-[20vh] px-3 sm:px-4">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
@@ -58,7 +58,7 @@ export const GlobalSearchModal: React.FC = () => {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-2xl bg-bg-surface rounded-xl shadow-2xl border border-border overflow-hidden flex flex-col max-h-[60vh] transform transition-all">
+      <div className="relative w-full max-w-2xl bg-bg-surface rounded-xl shadow-2xl border border-border overflow-hidden flex flex-col max-h-[75vh] sm:max-h-[60vh] transform transition-all">
         {/* Search Input */}
         <div className="flex items-center px-4 py-3 border-b border-border">
           <Search className="w-5 h-5 text-text-secondary shrink-0" />

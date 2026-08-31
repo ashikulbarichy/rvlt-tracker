@@ -347,8 +347,8 @@ export const ProjectsView: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col h-full bg-transparent overflow-hidden relative">
       {/* Subheader Toolbar */}
-      <div className="px-6 py-3 border-b border-border bg-transparent flex items-center justify-between shrink-0">
-        <div className="flex items-center space-x-3">
+      <div className="px-3 sm:px-6 py-2.5 sm:py-3 border-b border-border bg-transparent flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+        <div className="flex items-center space-x-2.5 sm:space-x-3">
           <div className="flex items-center space-x-2">
             <FolderKanban className="w-4 h-4 text-accent-primary" />
             <span className="text-xs font-semibold text-text-primary uppercase tracking-wider">
@@ -399,10 +399,10 @@ export const ProjectsView: React.FC = () => {
             <Search className="w-3.5 h-3.5 text-text-tertiary absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search projects..."
+              placeholder="Search..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-44 pl-8 pr-2.5 py-1 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+              className="w-32 sm:w-44 pl-8 pr-2.5 py-1 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
             />
           </div>
 
@@ -431,14 +431,15 @@ export const ProjectsView: React.FC = () => {
               className="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-accent-primary hover:bg-accent-primary-hover text-bg-base text-xs font-medium transition-colors shadow-xs"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>New Project</span>
+              <span className="hidden sm:inline">New Project</span>
+              <span className="sm:hidden">New</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Projects Content Body */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar scrollbar-none">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 no-scrollbar scrollbar-none">
         {isLoading ? (
           <div className="p-12 text-center text-xs text-text-secondary">
             Loading projects...
@@ -460,7 +461,7 @@ export const ProjectsView: React.FC = () => {
             )}
           </div>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4">
             {filteredProjects.map((project: any) => {
               const leadProfile = profiles?.find(p => p.id === project.lead_id);
               const team = teams?.find(t => t.id === project.team_id);
@@ -666,7 +667,7 @@ export const ProjectsView: React.FC = () => {
           {/* Project View Body: 2 Columns */}
           <div className="flex-1 overflow-y-auto flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-border min-h-0 no-scrollbar scrollbar-none">
             {/* Left Column: Description & Issues list for this project */}
-            <div className="flex-1 min-w-0 p-6 md:p-8 space-y-6 overflow-y-auto no-scrollbar scrollbar-none">
+            <div className="flex-1 min-w-0 p-4 sm:p-6 md:p-8 space-y-6 overflow-y-auto no-scrollbar scrollbar-none">
               {/* Project Progress Banner */}
               <div className="bg-bg-surface-raised/40 border border-border rounded-lg p-5 space-y-3">
                 <div className="flex items-center justify-between">
@@ -865,10 +866,10 @@ export const ProjectsView: React.FC = () => {
             if (e.target === e.currentTarget) handleCloseCreateDrawer();
           }}
         >
-          <div className="absolute inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10">
-            <div className={`w-screen max-w-2xl lg:max-w-3xl xl:max-w-4xl bg-bg-surface border-l border-border shadow-2xl flex flex-col h-full overflow-hidden transform transition-transform duration-200 ease-out ${isCreateAnimated ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="absolute inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
+            <div className={`w-screen max-w-full sm:max-w-2xl lg:max-w-3xl xl:max-w-4xl bg-bg-surface border-l border-border shadow-2xl flex flex-col h-full overflow-hidden transform transition-transform duration-200 ease-out ${isCreateAnimated ? 'translate-x-0' : 'translate-x-full'}`}>
               {/* Drawer Header */}
-              <div className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0 bg-bg-surface">
+              <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-border flex items-center justify-between shrink-0 bg-bg-surface">
                 <div className="flex items-center space-x-2">
                   <FolderKanban className="w-4 h-4 text-accent-primary" />
                   <h2 className="text-sm font-semibold text-text-primary">
@@ -885,7 +886,7 @@ export const ProjectsView: React.FC = () => {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleCreateProject} className="p-6 space-y-4 bg-bg-surface overflow-y-auto no-scrollbar scrollbar-none flex-1 flex flex-col justify-between">
+              <form onSubmit={handleCreateProject} className="p-4 sm:p-6 space-y-4 bg-bg-surface overflow-y-auto no-scrollbar scrollbar-none flex-1 flex flex-col justify-between">
                 <div className="space-y-4">
                   {errorMessage && (
                     <div className="p-2.5 bg-status-error/10 border border-status-error/30 rounded text-xs text-status-error flex items-center space-x-2">

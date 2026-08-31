@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Maskable full bleed -->
+  <rect width="512" height="512" fill="#121212" />
+  <rect x="116" y="116" width="280" height="280" rx="54" fill="#1A1A1A" stroke="#333333" stroke-width="16" />
+  <path d="M192 260 L236 304 L320 204" 
+        stroke="#4C8DFF" 
+        stroke-width="32" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+</svg>
