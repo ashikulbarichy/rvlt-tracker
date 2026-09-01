@@ -33,7 +33,7 @@ const MainLayout: React.FC = () => {
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col min-w-0 overflow-hidden bg-bg-surface border-0 md:border border-border rounded-none md:rounded-[12px] m-0 md:my-3 md:mr-3 shadow-none md:shadow-sm relative pb-14 lg:pb-0 transition-[margin] duration-200 ease-out ${isSidebarCollapsed ? 'md:ml-3' : 'md:ml-1.5'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 overflow-hidden bg-bg-surface border-0 md:border border-border rounded-none md:rounded-[12px] m-0 md:my-3 shadow-none md:shadow-sm relative pb-14 lg:pb-0 transition-[margin] duration-200 ease-out ${isSidebarCollapsed ? 'md:ml-3' : 'md:ml-1.5'} ${isNotificationOpen ? 'md:mr-1.5' : 'md:mr-3'}`}>
         <Header />
 
         <main className="flex-1 flex min-w-0 overflow-hidden relative">
@@ -83,14 +83,16 @@ const MainLayout: React.FC = () => {
         <NewTestCaseModal />
       </div>
 
-      {/* Modals and Drawers */}
-      <NewIssueModal />
-      <GlobalSearchModal />
-      <KeyboardShortcutsModal />
+      {/* Right Notification Card (Desktop persistent / sliding card + Mobile drawer) */}
       <NotificationDrawer
         isOpen={isNotificationOpen}
         onClose={() => setIsNotificationOpen(false)}
       />
+
+      {/* Modals and Drawers */}
+      <NewIssueModal />
+      <GlobalSearchModal />
+      <KeyboardShortcutsModal />
 
       {/* Mobile Bottom Navigation Bar */}
       <MobileNav />

@@ -22,8 +22,10 @@ export const DESIGN_TOKENS = {
     statusInfo: '#6E8299',
   },
   typography: {
-    fontBody: "'Inter', system-ui, -apple-system, sans-serif",
-    fontHeading: "'Karla', sans-serif",
+    fontBody: "var(--font-sans)",
+    fontHeading: "var(--font-heading)",
+    fontId: "var(--font-id)",
+    fontMono: "var(--font-mono)",
   },
   classes: {
     btnPrimary: 'btn-primary',

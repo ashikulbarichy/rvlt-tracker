@@ -235,7 +235,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
       {/* Pane Subheader Toolbar */}
       <div className="px-6 py-3.5 border-b border-border bg-transparent flex items-center justify-between shrink-0">
         <div className="flex items-center space-x-2.5">
-          <span className="font-sans text-xs font-semibold px-2 py-0.5 rounded bg-bg-surface border border-border text-text-secondary shrink-0">
+          <span className="font-id text-xs font-semibold px-2 py-0.5 rounded bg-bg-surface border border-border text-text-secondary shrink-0">
             {formatIssueIdentifier(issue, currentWorkspace)}
           </span>
           <span className="text-xs text-text-tertiary">Task Overview</span>

@@ -40,8 +40,17 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        sans: ['var(--font-sans)', 'sans-serif'],
+        karla: ['var(--font-heading)', 'sans-serif'],
+        mono: ['var(--font-mono)', 'monospace'],
+        id: ['var(--font-id)', 'sans-serif'],
+      },
+      fontWeight: {
+        normal: 'var(--font-weight-normal)',
+        medium: 'var(--font-weight-medium)',
+        semibold: 'var(--font-weight-semibold)',
+        bold: 'var(--font-weight-bold)',
+        extrabold: 'var(--font-weight-extrabold)',
       },
       borderRadius: {
         sm: '6px',

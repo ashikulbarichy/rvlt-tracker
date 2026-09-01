@@ -144,7 +144,7 @@ export const DashboardView: React.FC = () => {
                             {issue.title}
                           </div>
                           <div className="text-[11px] text-text-tertiary mt-0.5 flex items-center space-x-1.5">
-                            <span className="font-sans bg-bg-surface px-1 py-0.5 rounded text-[10px]">{issue.identifier}</span>
+                            <span className="font-id bg-bg-surface px-1 py-0.5 rounded text-[10px]">{issue.identifier}</span>
                             <span>•</span>
                             <span>{issue.status?.name || 'Open'}</span>
                           </div>
@@ -199,7 +199,7 @@ export const DashboardView: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-text-primary">
-                  <span className="font-medium">Emma L.</span> created a new issue <span className="font-sans text-xs">FJ-1045</span>
+                  <span className="font-medium">Emma L.</span> created a new issue <span className="font-id text-xs">FJ-1045</span>
                 </p>
                 <p className="text-xs text-text-tertiary mt-0.5">1 day ago</p>
               </div>

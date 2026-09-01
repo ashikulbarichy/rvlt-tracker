@@ -88,7 +88,7 @@ export const InboxFeedItem: React.FC<InboxFeedItemProps> = ({ item, isSelected, 
         <div className="flex items-center space-x-2 min-w-0">
           {getPriorityIcon(issue?.priority)}
           {issue && (
-            <span className="font-sans text-[11px] font-semibold text-text-secondary">
+            <span className="font-id text-[11px] font-semibold text-text-secondary">
               {formatIssueIdentifier(issue)}
             </span>
           )}

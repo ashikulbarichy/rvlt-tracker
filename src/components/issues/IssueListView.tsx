@@ -589,7 +589,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                 <div className="flex items-center min-w-0 flex-1">
                   <div className="flex items-center shrink-0">
                     <div className="w-24 shrink-0 flex items-center justify-start pr-2">
-                      <span className="inline-flex items-center justify-center text-center font-sans text-[11px] font-semibold px-1.5 py-0.5 rounded bg-bg-surface border border-border group-hover:border-text-secondary transition-colors text-text-secondary">
+                      <span className="inline-flex items-center justify-center text-center font-id text-[11px] font-semibold px-1.5 py-0.5 rounded bg-bg-surface border border-border group-hover:border-text-secondary transition-colors text-text-secondary">
                         {formatIssueIdentifier(issue, currentWorkspace)}
                       </span>
                     </div>
@@ -698,7 +698,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center justify-center text-center font-sans text-xs font-semibold px-2 py-0.5 rounded bg-bg-surface border border-border group-hover:border-text-secondary transition-colors text-text-secondary">
+                      <span className="inline-flex items-center justify-center text-center font-id text-xs font-semibold px-2 py-0.5 rounded bg-bg-surface border border-border group-hover:border-text-secondary transition-colors text-text-secondary">
                         {formatIssueIdentifier(issue, currentWorkspace)}
                       </span>
 
@@ -855,7 +855,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                             className="group p-3 bg-transparent hover:bg-bg-surface-hover border border-border rounded-md shadow-xs hover:shadow-sm transition-all cursor-pointer space-y-2 active:cursor-grabbing"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="inline-flex items-center justify-center text-center font-sans text-[10px] font-semibold px-1.5 py-0.5 rounded bg-bg-surface border border-border group-hover:border-text-secondary transition-colors text-text-secondary">
+                              <span className="inline-flex items-center justify-center text-center font-id text-[10px] font-semibold px-1.5 py-0.5 rounded bg-bg-surface border border-border group-hover:border-text-secondary transition-colors text-text-secondary">
                                 {formatIssueIdentifier(issue, currentWorkspace)}
                               </span>
 

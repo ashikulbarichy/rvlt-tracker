@@ -526,7 +526,7 @@ export const TestCaseListView: React.FC = () => {
                       </span>
 
                       {/* Identifier */}
-                      <span className="font-mono text-xs text-text-secondary shrink-0 font-medium">
+                      <span className="font-id text-xs text-text-secondary shrink-0 font-medium">
                         {formatTestCaseIdentifier(test, idx, currentWorkspace)}
                       </span>
 
@@ -761,7 +761,7 @@ export const TestCaseListView: React.FC = () => {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-1.5">
-                        <span className="font-mono text-xs text-text-secondary font-medium">
+                        <span className="font-id text-xs text-text-secondary font-medium">
                           {formatTestCaseIdentifier(test, idx, currentWorkspace)}
                         </span>
                         {getPriorityIcon(test.priority)}

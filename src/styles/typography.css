@@ -1,0 +1,79 @@
+/**
+ * ============================================================================
+ * CENTRAL TYPOGRAPHY SYSTEM
+ * ============================================================================
+ * Single Source of Truth for all fonts, font weights, and type tokens.
+ * Modify this file to change typography across the entire application.
+ */
+
+/* 1. Primary App Font Faces (Open Runde) */
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/OpenRunde-1.0.1/web/OpenRunde-Regular.woff2') format('woff2'),
+       url('/OpenRunde-1.0.1/web/OpenRunde-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/OpenRunde-1.0.1/web/OpenRunde-Medium.woff2') format('woff2'),
+       url('/OpenRunde-1.0.1/web/OpenRunde-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/OpenRunde-1.0.1/web/OpenRunde-Semibold.woff2') format('woff2'),
+       url('/OpenRunde-1.0.1/web/OpenRunde-Semibold.woff') format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/OpenRunde-1.0.1/web/OpenRunde-Bold.woff2') format('woff2'),
+       url('/OpenRunde-1.0.1/web/OpenRunde-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 2. Central Typography Tokens */
+:root {
+  /* Font Family Definitions */
+  --font-sans: 'Open Runde', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Open Runde', sans-serif;
+  --font-id: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Sans', monospace;
+
+  /* Scaled Font Weights (Stepped down by 1 level for dark-mode clarity) */
+  --font-weight-normal: 400;
+  --font-weight-medium: 400;
+  --font-weight-semibold: 500;
+  --font-weight-bold: 600;
+  --font-weight-extrabold: 700;
+}
+
+/* 3. Utility Classes */
+.font-sans {
+  font-family: var(--font-sans);
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+.font-id,
+.ticket-id,
+.badge-id {
+  font-family: var(--font-id);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}

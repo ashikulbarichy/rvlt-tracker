@@ -371,7 +371,7 @@ export const IssueDetailModal: React.FC = () => {
 
           <div className="w-px h-4 bg-border shrink-0" />
 
-          <span className="font-sans text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-sm bg-bg-surface border border-border text-text-secondary shrink-0">
+          <span className="font-id text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-sm bg-bg-surface border border-border text-text-secondary shrink-0">
             {formatIssueIdentifier(activeIssue, currentWorkspace)}
           </span>
 

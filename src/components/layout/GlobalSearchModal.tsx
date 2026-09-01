@@ -109,7 +109,7 @@ export const GlobalSearchModal: React.FC = () => {
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-bg-surface-hover transition-colors text-left group"
                 >
                   <div className="flex items-center space-x-3 min-w-0">
-                    <span className="text-[11px] font-medium text-text-secondary shrink-0 w-16">
+                    <span className="font-id text-[11px] font-medium text-text-secondary shrink-0 w-16">
                       {formatIssueIdentifier(issue)}
                     </span>
                     <span className="text-sm text-text-primary truncate font-medium">

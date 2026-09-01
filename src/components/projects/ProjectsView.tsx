@@ -744,7 +744,7 @@ export const ProjectsView: React.FC = () => {
                         className="px-4 py-3 flex items-center justify-between hover:bg-bg-surface-hover cursor-pointer transition-colors"
                       >
                         <div className="flex items-center space-x-3 min-w-0 flex-1 mr-4">
-                          <span className="font-sans text-[10px] font-semibold px-1.5 py-0.5 rounded bg-bg-surface-raised border border-border text-text-secondary shrink-0">
+                          <span className="font-id text-[10px] font-semibold px-1.5 py-0.5 rounded bg-bg-surface-raised border border-border text-text-secondary shrink-0">
                             {formatIssueIdentifier(issue, currentWorkspace)}
                           </span>
                           <span className="text-xs font-medium text-text-primary truncate">
