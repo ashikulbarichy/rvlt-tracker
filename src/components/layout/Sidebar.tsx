@@ -15,7 +15,8 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
-  Bell
+  Bell,
+  Map as MapIcon
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
@@ -406,6 +407,21 @@ export const Sidebar: React.FC = () => {
             >
               <FolderKanban className="w-3.5 h-3.5 text-text-secondary" />
               <span>Projects</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setCurrentTeam(null);
+                handleNav(`/${currentWorkspace?.slug || ''}/roadmap`);
+              }}
+              className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                path.endsWith('/roadmap')
+                  ? 'bg-bg-surface-hover text-text-primary'
+                  : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
+              }`}
+            >
+              <MapIcon className="w-3.5 h-3.5 text-text-secondary" />
+              <span>Roadmap</span>
             </button>
 
             <button

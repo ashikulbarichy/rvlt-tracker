@@ -46,3 +46,69 @@ export function formatRelativeTime(
 
   return timeString;
 }
+
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+/**
+ * Parses a 'YYYY-MM-DD' column value into a local-midnight Date.
+ * `new Date('2026-07-12')` would parse as UTC midnight, which renders as the
+ * 11th in any negative-offset timezone and visibly misplaces timeline bars.
+ */
+export function parseDateOnly(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const [y, m, d] = value.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
+export function startOfToday(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+/** Whole days from `a` to `b`. Negative when `b` is earlier. */
+export function diffInDays(a: Date, b: Date): number {
+  return Math.round((b.getTime() - a.getTime()) / MS_PER_DAY);
+}
+
+export function addMonths(date: Date, count: number): Date {
+  return new Date(date.getFullYear(), date.getMonth() + count, 1);
+}
+
+export function startOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+/** Last day of the month, at local midnight. */
+export function endOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+}
+
+export function daysInMonth(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+}
+
+/** First-of-month Dates covering `start` through `end`, inclusive. */
+export function eachMonthBetween(start: Date, end: Date): Date[] {
+  const months: Date[] = [];
+  let cursor = startOfMonth(start);
+  const last = startOfMonth(end);
+  while (cursor <= last) {
+    months.push(cursor);
+    cursor = addMonths(cursor, 1);
+  }
+  return months;
+}
+
+/** 'Jul 12' — matches the DatePicker's display style without the year. */
+export function formatDateShort(value: string | null | undefined): string {
+  const date = parseDateOnly(value);
+  if (!date) return '';
+  return `${MONTH_ABBR[date.getMonth()]} ${date.getDate()}`;
+}
+
+export function formatMonthLabel(date: Date): string {
+  return `${MONTH_ABBR[date.getMonth()]} ${date.getFullYear()}`;
+}

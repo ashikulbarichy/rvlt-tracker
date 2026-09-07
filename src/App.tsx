@@ -22,6 +22,7 @@ import { TeamSettings } from './components/settings/TeamSettings';
 import { DocsView } from './components/docs/DocsView';
 import { HomeInboxView } from './components/home/HomeInboxView';
 import { ProjectsView } from './components/projects/ProjectsView';
+import { RoadmapView } from './components/roadmap/RoadmapView';
 import { MobileNav } from './components/layout/MobileNav';
 
 const MainLayout: React.FC = () => {
@@ -42,6 +43,7 @@ const MainLayout: React.FC = () => {
               <Route index element={<HomeInboxView />} />
               <Route path="my-issues" element={<IssueListView onlyMine={true} />} />
               <Route path="projects" element={<ProjectsView />} />
+              <Route path="roadmap" element={<RoadmapView />} />
               <Route path="issues" element={<IssueListView onlyMine={false} />} />
               <Route path="members" element={
                 <div className="flex-1 overflow-y-auto p-6">

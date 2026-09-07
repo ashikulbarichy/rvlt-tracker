@@ -92,6 +92,22 @@ export interface Project {
   issues?: { id: string; state_id: string }[];
 }
 
+export interface RoadmapItem {
+  id: string;
+  workspace_id: string;
+  project_id: string;
+  title: string;
+  start_date: string | null;
+  target_date: string | null;
+  is_completed: boolean;
+  completed_at: string | null;
+  position: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  project?: Project;
+}
+
 export interface IssueAssignee {
   workspace_id: string;
   issue_id: string;

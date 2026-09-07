@@ -34,6 +34,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { description: 'Go to Home / Inbox', keys: ['G', 'then', 'H'] },
       { description: 'Go to Issues', keys: ['G', 'then', 'I'] },
       { description: 'Go to Projects', keys: ['G', 'then', 'P'] },
+      { description: 'Go to Roadmap', keys: ['G', 'then', 'R'] },
       { description: 'Go to Test Cases', keys: ['G', 'then', 'T'] },
       { description: 'Go to Settings', keys: ['G', 'then', 'S'] },
     ],

@@ -257,7 +257,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
         }
       }
 
-      // 5. 'G' sequential navigation (G then H/I/P/T/S)
+      // 5. 'G' sequential navigation (G then H/I/P/R/T/S)
       if (e.key.toLowerCase() === 'g' && !e.metaKey && !e.ctrlKey && !e.altKey) {
         pendingGKey = true;
         clearTimeout(gKeyTimeout);
@@ -280,6 +280,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
         } else if (k === 'p') {
           e.preventDefault();
           navigate(`/${currentWorkspace.slug}/projects`);
+        } else if (k === 'r') {
+          e.preventDefault();
+          navigate(`/${currentWorkspace.slug}/roadmap`);
         } else if (k === 't') {
           e.preventDefault();
           navigate(`/${currentWorkspace.slug}/testcases`);
