@@ -9,11 +9,22 @@ import { SidebarToggle } from '../layout/SidebarToggle';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { RoadmapItemModal } from './RoadmapItemModal';
 import { RoadmapTimeline, computeTimelineRange, isScheduled } from './RoadmapTimeline';
-import { diffInDays, startOfToday } from '../../lib/time';
+import { diffInDays, startOfToday, TimeTier } from '../../lib/time';
 
-type Zoom = 'month' | 'quarter';
+type Zoom = 'month' | 'quarter' | 'annual';
 
-const PX_PER_DAY: Record<Zoom, number> = { month: 6, quarter: 2.4 };
+const ZOOM_LEVELS: Zoom[] = ['month', 'quarter', 'annual'];
+
+/**
+ * Quarters and years follow the fiscal calendar (1 July - 30 June), so the
+ * axis tiers are fiscal ones, not calendar ones. Months stay on the axis at
+ * every zoom; `rangeTier` is what the visible window snaps outward to.
+ */
+const ZOOM_CONFIG: Record<Zoom, { pxPerDay: number; tiers: TimeTier[]; rangeTier: TimeTier }> = {
+  month: { pxPerDay: 6, tiers: ['quarter', 'month'], rangeTier: 'month' },
+  quarter: { pxPerDay: 2.2, tiers: ['year', 'quarter', 'month'], rangeTier: 'year' },
+  annual: { pxPerDay: 1, tiers: ['year', 'quarter', 'month'], rangeTier: 'year' },
+};
 
 const PREFS_KEY = 'rvlt-roadmap-view-prefs';
 
@@ -28,7 +39,7 @@ const loadPrefs = (): RoadmapPrefs => {
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
-        zoom: parsed.zoom === 'quarter' ? 'quarter' : 'month',
+        zoom: ZOOM_LEVELS.includes(parsed.zoom) ? parsed.zoom : 'month',
         collapsedProjectIds: Array.isArray(parsed.collapsedProjectIds) ? parsed.collapsedProjectIds : [],
       };
     }
@@ -108,8 +119,13 @@ export const RoadmapView: React.FC = () => {
   const scheduledItems = useMemo(() => visibleItems.filter(isScheduled), [visibleItems]);
   const unscheduledItems = useMemo(() => visibleItems.filter(i => !isScheduled(i)), [visibleItems]);
 
+  const { pxPerDay, tiers, rangeTier } = ZOOM_CONFIG[zoom];
+
   // Only scheduled tasks appear on the track, so only they define the window.
-  const { rangeStart, rangeEnd } = useMemo(() => computeTimelineRange(scheduledItems), [scheduledItems]);
+  const { rangeStart, rangeEnd } = useMemo(
+    () => computeTimelineRange(scheduledItems, rangeTier),
+    [scheduledItems, rangeTier]
+  );
 
   const itemsByProject = useMemo(() => {
     const grouped: Record<string, RoadmapItem[]> = {};
@@ -119,8 +135,6 @@ export const RoadmapView: React.FC = () => {
     }
     return grouped;
   }, [visibleProjects, scheduledItems]);
-
-  const pxPerDay = PX_PER_DAY[zoom];
 
   const scrollToToday = () => {
     const container = scrollRef.current;
@@ -232,14 +246,14 @@ export const RoadmapView: React.FC = () => {
 
           {/* Zoom */}
           <div className="flex items-center rounded-full bg-bg-surface-raised p-0.5">
-            {(['month', 'quarter'] as Zoom[]).map(z => (
+            {ZOOM_LEVELS.map(z => (
               <button
                 key={z}
                 onClick={() => setZoom(z)}
                 className={`px-2.5 py-1 rounded-full text-[11px] font-medium capitalize transition-colors ${
                   zoom === z ? 'bg-bg-surface-hover text-text-primary' : 'text-text-tertiary hover:text-text-secondary'
                 }`}
-                title={`${z === 'month' ? 'Month' : 'Quarter'} zoom`}
+                title={`${z} view`}
               >
                 {z}
               </button>
@@ -280,6 +294,7 @@ export const RoadmapView: React.FC = () => {
             rangeStart={rangeStart}
             rangeEnd={rangeEnd}
             pxPerDay={pxPerDay}
+            tiers={tiers}
             isAdmin={isAdmin}
             collapsedProjectIds={collapsedProjectIds}
             onToggleCollapse={handleToggleCollapse}

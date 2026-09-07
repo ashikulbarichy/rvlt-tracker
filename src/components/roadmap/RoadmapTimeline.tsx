@@ -8,9 +8,13 @@ import {
   addMonths,
   startOfMonth,
   endOfMonth,
-  daysInMonth,
-  eachMonthBetween,
+  eachTierBetween,
+  tierStart,
+  tierNext,
+  tierLabel,
+  fiscalYearStart,
   formatDateShort,
+  TimeTier,
 } from '../../lib/time';
 
 /** Width of the sticky project/task name column, in px. */
@@ -18,29 +22,46 @@ export const NAME_COL_WIDTH = 220;
 
 const ROW_HEIGHT = 34;
 const GROUP_HEADER_HEIGHT = 38;
-const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const AXIS_ROW_HEIGHT = 22;
 
 export const isScheduled = (item: RoadmapItem) => !!(item.start_date || item.target_date);
 
+const dayBefore = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1);
+
 /**
- * The visible date window: the span of every scheduled task, widened to whole
- * months. Falls back to this month +/- 3 when nothing is scheduled yet.
+ * The visible window: the span of every scheduled task, snapped outward to
+ * whole tier boundaries so the axis always starts and ends on a real month,
+ * fiscal quarter, or fiscal year. Falls back to the current period when
+ * nothing is scheduled yet.
  */
-export function computeTimelineRange(items: RoadmapItem[]): { rangeStart: Date; rangeEnd: Date } {
+export function computeTimelineRange(items: RoadmapItem[], tier: TimeTier): { rangeStart: Date; rangeEnd: Date } {
   const dates = items
     .flatMap(i => [parseDateOnly(i.start_date), parseDateOnly(i.target_date)])
     .filter((d): d is Date => !!d);
 
   if (dates.length === 0) {
     const today = startOfToday();
-    return { rangeStart: startOfMonth(addMonths(today, -3)), rangeEnd: endOfMonth(addMonths(today, 3)) };
+    if (tier === 'month') {
+      return { rangeStart: startOfMonth(addMonths(today, -3)), rangeEnd: endOfMonth(addMonths(today, 3)) };
+    }
+    // Coarser zooms open on the whole current fiscal year.
+    const fyStart = fiscalYearStart(today);
+    return { rangeStart: fyStart, rangeEnd: dayBefore(addMonths(fyStart, 12)) };
   }
 
   const min = new Date(Math.min(...dates.map(d => d.getTime())));
   const max = new Date(Math.max(...dates.map(d => d.getTime())));
 
-  // One month of breathing room on each side so bars never touch the edges.
-  return { rangeStart: startOfMonth(addMonths(min, -1)), rangeEnd: endOfMonth(addMonths(max, 1)) };
+  let rangeStart = tierStart(min, tier);
+  let rangeEnd = dayBefore(tierNext(max, tier));
+
+  // Snapping to a month is tight, so month zoom gets a month of padding.
+  if (tier === 'month') {
+    rangeStart = addMonths(rangeStart, -1);
+    rangeEnd = endOfMonth(addMonths(rangeEnd, 1));
+  }
+
+  return { rangeStart, rangeEnd };
 }
 
 interface RoadmapTimelineProps {
@@ -49,6 +70,8 @@ interface RoadmapTimelineProps {
   rangeStart: Date;
   rangeEnd: Date;
   pxPerDay: number;
+  /** Axis rows, coarsest first. The last tier is the finest granularity shown. */
+  tiers: TimeTier[];
   isAdmin: boolean;
   collapsedProjectIds: string[];
   onToggleCollapse: (projectId: string) => void;
@@ -66,6 +89,7 @@ export const RoadmapTimeline: React.FC<RoadmapTimelineProps> = ({
   rangeStart,
   rangeEnd,
   pxPerDay,
+  tiers,
   isAdmin,
   collapsedProjectIds,
   onToggleCollapse,
@@ -82,9 +106,29 @@ export const RoadmapTimeline: React.FC<RoadmapTimelineProps> = ({
   const today = startOfToday();
   const totalDays = diffInDays(rangeStart, rangeEnd) + 1;
   const trackWidth = Math.max(totalDays * pxPerDay, 320);
-  const months = useMemo(() => eachMonthBetween(rangeStart, rangeEnd), [rangeStart, rangeEnd]);
+
+  const tierCells = useMemo(
+    () => tiers.map(tier => ({ tier, cells: eachTierBetween(rangeStart, rangeEnd, tier) })),
+    [rangeStart, rangeEnd, tiers]
+  );
+
+  // 'Jul' needs ~24px; below that the month row falls back to initials.
+  const compactMonths = pxPerDay * 28 < 34;
 
   const offsetOf = (date: Date) => diffInDays(rangeStart, date) * pxPerDay;
+
+  /**
+   * Cell box, clamped to the track. A coarser cell can start before the range
+   * or end after it — a fiscal year is only partly covered when the plan
+   * begins mid-year.
+   */
+  const cellBox = (cellStart: Date, tier: TimeTier) => {
+    const left = Math.max(0, offsetOf(cellStart));
+    const right = Math.min(trackWidth, offsetOf(tierNext(cellStart, tier)));
+    return { left, width: Math.max(0, right - left) };
+  };
+
+  const axisHeight = tiers.length * AXIS_ROW_HEIGHT;
 
   const todayOffset = offsetOf(today);
   const isTodayVisible = today >= rangeStart && today <= rangeEnd;
@@ -202,18 +246,25 @@ export const RoadmapTimeline: React.FC<RoadmapTimelineProps> = ({
       className="flex-1 overflow-auto no-scrollbar scrollbar-none relative"
     >
       <div className="relative" style={{ width: NAME_COL_WIDTH + trackWidth }}>
-        {/* Month gridlines + today marker, behind everything, spanning full content height */}
+        {/* Gridlines + today marker, behind everything, spanning full content height */}
         <div
           className="absolute top-0 bottom-0 z-0 pointer-events-none"
           style={{ left: NAME_COL_WIDTH, width: trackWidth }}
         >
-          {months.map(month => (
-            <div
-              key={month.toISOString()}
-              className="absolute top-0 bottom-0 w-px bg-border"
-              style={{ left: offsetOf(month) }}
-            />
-          ))}
+          {/* Finest tier first, so quarter and year boundaries paint over month ones */}
+          {[...tierCells].reverse().map(({ tier, cells }) =>
+            cells.map(cell => {
+              const left = offsetOf(cell);
+              if (left <= 0) return null;
+              return (
+                <div
+                  key={`grid-${tier}-${cell.toISOString()}`}
+                  className={`absolute top-0 bottom-0 w-px ${tier === 'month' ? 'bg-border' : 'bg-border-strong'}`}
+                  style={{ left }}
+                />
+              );
+            })
+          )}
           {isTodayVisible && (
             <div
               className="absolute top-0 bottom-0 w-px bg-accent-primary"
@@ -222,10 +273,10 @@ export const RoadmapTimeline: React.FC<RoadmapTimelineProps> = ({
           )}
         </div>
 
-        {/* Month axis header */}
-        <div className="sticky top-0 z-30 flex bg-bg-surface" style={{ height: GROUP_HEADER_HEIGHT }}>
+        {/* Date axis: one row per tier, coarsest at the top, months at the bottom */}
+        <div className="sticky top-0 z-30 flex bg-bg-surface" style={{ height: axisHeight }}>
           <div
-            className="sticky left-0 z-40 shrink-0 bg-bg-surface flex items-end px-3 pb-2"
+            className="sticky left-0 z-40 shrink-0 bg-bg-surface flex items-end px-3 pb-1.5"
             style={{ width: NAME_COL_WIDTH }}
           >
             <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
@@ -233,21 +284,40 @@ export const RoadmapTimeline: React.FC<RoadmapTimelineProps> = ({
             </span>
           </div>
           <div className="relative shrink-0" style={{ width: trackWidth }}>
-            {months.map(month => {
-              const width = daysInMonth(month) * pxPerDay;
-              const showYear = month.getMonth() === 0 || month.getTime() === months[0].getTime();
-              return (
-                <div
-                  key={month.toISOString()}
-                  className="absolute top-0 bottom-0 flex items-end pb-2 pl-2 overflow-hidden"
-                  style={{ left: offsetOf(month), width }}
-                >
-                  <span className="text-[10px] font-medium text-text-secondary whitespace-nowrap">
-                    {MONTH_ABBR[month.getMonth()]}
-                    {showYear ? ` '${String(month.getFullYear()).slice(-2)}` : ''}
-                  </span>
-                </div>
-              );
+            {tierCells.map(({ tier, cells }, rowIndex) => {
+              const isCoarsest = rowIndex === 0;
+              const isMonthRow = tier === 'month';
+              return cells.map(cell => {
+                const { left, width } = cellBox(cell, tier);
+                if (width <= 0) return null;
+                const label = tierLabel(cell, tier, {
+                  // Only the top row spells out the fiscal year, and only when
+                  // there is no dedicated year row above it.
+                  showYear: isCoarsest && tier !== 'year',
+                  compact: isMonthRow && compactMonths,
+                });
+                // A narrow cell can't fit its label without spilling into the next.
+                if (width < 14) return null;
+                return (
+                  <div
+                    key={`label-${tier}-${cell.toISOString()}`}
+                    className={`absolute flex items-center overflow-hidden ${compactMonths && isMonthRow ? 'justify-center' : 'pl-2'}`}
+                    style={{ left, width, top: rowIndex * AXIS_ROW_HEIGHT, height: AXIS_ROW_HEIGHT }}
+                  >
+                    <span
+                      className={`text-[10px] whitespace-nowrap ${
+                        isCoarsest
+                          ? 'font-semibold text-text-secondary'
+                          : isMonthRow
+                            ? 'font-medium text-text-tertiary'
+                            : 'font-medium text-text-secondary'
+                      }`}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                );
+              });
             })}
           </div>
         </div>

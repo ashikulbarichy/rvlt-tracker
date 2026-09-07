@@ -86,22 +86,6 @@ export function endOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0);
 }
 
-export function daysInMonth(date: Date): number {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-}
-
-/** First-of-month Dates covering `start` through `end`, inclusive. */
-export function eachMonthBetween(start: Date, end: Date): Date[] {
-  const months: Date[] = [];
-  let cursor = startOfMonth(start);
-  const last = startOfMonth(end);
-  while (cursor <= last) {
-    months.push(cursor);
-    cursor = addMonths(cursor, 1);
-  }
-  return months;
-}
-
 /** 'Jul 12' — matches the DatePicker's display style without the year. */
 export function formatDateShort(value: string | null | undefined): string {
   const date = parseDateOnly(value);
@@ -109,6 +93,96 @@ export function formatDateShort(value: string | null | undefined): string {
   return `${MONTH_ABBR[date.getMonth()]} ${date.getDate()}`;
 }
 
-export function formatMonthLabel(date: Date): string {
-  return `${MONTH_ABBR[date.getMonth()]} ${date.getFullYear()}`;
+// ============================================================================
+// Fiscal calendar — the financial year runs 1 July to 30 June.
+// Quarters and years on the roadmap follow this, not the calendar year.
+// ============================================================================
+
+/** 0-indexed: 6 = July. */
+export const FISCAL_YEAR_START_MONTH = 6;
+
+/** The 1 July on or before `date`. */
+export function fiscalYearStart(date: Date): Date {
+  const year = date.getFullYear();
+  return date.getMonth() >= FISCAL_YEAR_START_MONTH
+    ? new Date(year, FISCAL_YEAR_START_MONTH, 1)
+    : new Date(year - 1, FISCAL_YEAR_START_MONTH, 1);
+}
+
+/** Months elapsed from the containing fiscal year's start. 0 = July. */
+function monthsIntoFiscalYear(date: Date): number {
+  const fyStart = fiscalYearStart(date);
+  return (date.getFullYear() - fyStart.getFullYear()) * 12 + (date.getMonth() - fyStart.getMonth());
+}
+
+/** The start of the fiscal quarter containing `date`. Q1 begins 1 July. */
+export function fiscalQuarterStart(date: Date): Date {
+  const fyStart = fiscalYearStart(date);
+  return addMonths(fyStart, Math.floor(monthsIntoFiscalYear(date) / 3) * 3);
+}
+
+/** 1-4, where Q1 is Jul-Sep. */
+export function fiscalQuarterOf(date: Date): number {
+  return Math.floor(monthsIntoFiscalYear(date) / 3) + 1;
+}
+
+/** 'FY 26/27' for the year beginning July 2026. */
+export function fiscalYearLabel(date: Date): string {
+  const start = fiscalYearStart(date);
+  const from = String(start.getFullYear()).slice(-2);
+  const to = String(start.getFullYear() + 1).slice(-2);
+  return `FY ${from}/${to}`;
+}
+
+// ============================================================================
+// Timeline tiers — the axis granularity shared by the roadmap's zoom levels.
+// ============================================================================
+
+export type TimeTier = 'month' | 'quarter' | 'year';
+
+/** Snaps `date` back to the start of its tier. */
+export function tierStart(date: Date, tier: TimeTier): Date {
+  if (tier === 'month') return startOfMonth(date);
+  if (tier === 'quarter') return fiscalQuarterStart(date);
+  return fiscalYearStart(date);
+}
+
+/** The start of the tier following the one containing `date`. */
+export function tierNext(date: Date, tier: TimeTier): Date {
+  const start = tierStart(date, tier);
+  return addMonths(start, tier === 'month' ? 1 : tier === 'quarter' ? 3 : 12);
+}
+
+/** Tier-start Dates covering `start` through `end`, inclusive. */
+export function eachTierBetween(start: Date, end: Date, tier: TimeTier): Date[] {
+  const cells: Date[] = [];
+  let cursor = tierStart(start, tier);
+  const last = tierStart(end, tier);
+  while (cursor <= last) {
+    cells.push(cursor);
+    cursor = tierNext(cursor, tier);
+  }
+  return cells;
+}
+
+/**
+ * Axis label for a tier cell.
+ * `showYear` appends the fiscal year, for the row that anchors the reader.
+ * `compact` shrinks a month to its initial, for cells too narrow for 'Jul'.
+ */
+export function tierLabel(
+  start: Date,
+  tier: TimeTier,
+  opts?: { showYear?: boolean; compact?: boolean }
+): string {
+  if (tier === 'year') return fiscalYearLabel(start);
+
+  if (tier === 'quarter') {
+    const quarter = `Q${fiscalQuarterOf(start)}`;
+    return opts?.showYear ? `${quarter} ${fiscalYearLabel(start)}` : quarter;
+  }
+
+  const month = MONTH_ABBR[start.getMonth()];
+  if (opts?.compact) return month[0];
+  return opts?.showYear ? `${month} '${String(start.getFullYear()).slice(-2)}` : month;
 }
