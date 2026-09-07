@@ -195,7 +195,7 @@ export const HomeInboxView: React.FC = () => {
       {/* Tier 2: Triage Feed Column (340px - 380px) */}
       <div className="w-80 md:w-96 shrink-0 border-r border-border flex flex-col bg-transparent h-full overflow-hidden">
         {/* Feed Header */}
-        <div className="p-3.5 border-b border-border bg-transparent space-y-3">
+        <div className="p-3.5 bg-transparent space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <SidebarToggle />
@@ -257,8 +257,7 @@ export const HomeInboxView: React.FC = () => {
           </div>
         </div>
 
-        {/* Feed List Items */}
-        <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
           {(isLoadingIssues || isLoadingNotifs) ? (
             <div className="p-8 text-center text-xs text-text-secondary">
               Loading triage feed...

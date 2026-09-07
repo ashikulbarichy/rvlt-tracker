@@ -82,7 +82,7 @@ export const InboxFeedItem: React.FC<InboxFeedItemProps> = ({ item, isSelected, 
   return (
     <div
       onClick={onSelect}
-      className={`p-2 border-b border-border cursor-pointer transition-colors bg-transparent hover:bg-bg-surface-hover`}
+      className={`p-3 rounded-md cursor-pointer transition-colors ${isSelected ? 'bg-bg-surface-hover' : 'bg-bg-surface-raised hover:bg-bg-surface-hover'}`}
     >
       {/* Top row: Identifier / Type + Urgency Badge + Time */}
       <div className="flex items-center justify-between mb-1.5">

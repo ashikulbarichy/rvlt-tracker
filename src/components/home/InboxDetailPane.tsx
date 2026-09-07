@@ -557,7 +557,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
           </div>
 
           {/* Timestamps & Reporter */}
-          <div className="pt-4 border-t border-border space-y-2 text-xs text-text-secondary">
+          <div className="pt-4 space-y-2 text-xs text-text-secondary">
             <div className="flex justify-between">
               <span>Created</span>
               <span className="font-medium text-text-primary">
