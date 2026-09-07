@@ -12,6 +12,7 @@ import {
   CheckCheck
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { SidebarToggle } from '../../components/layout/SidebarToggle';
 import { useIssues } from '../../hooks/useIssues';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useTeamMembers } from '../../hooks/useTeamMembers';
@@ -197,12 +198,13 @@ export const HomeInboxView: React.FC = () => {
         <div className="p-3.5 border-b border-border bg-transparent space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
+              <SidebarToggle />
               <Inbox className="w-4 h-4 text-text-primary" />
               <h1 className="text-sm font-semibold text-text-primary font-karla">
                 Home
               </h1>
               {urgentCount > 0 && (
-                <span className="px-1.5 py-0.2 bg-red-500 text-white text-[10px] font-semibold rounded-full">
+                <span className="px-1.5 py-0.5 bg-status-error text-white text-[10px] font-semibold rounded-full">
                   {urgentCount} urgent
                 </span>
               )}
@@ -228,7 +230,7 @@ export const HomeInboxView: React.FC = () => {
               placeholder="Filter triage feed..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+              className="w-full pl-8 pr-3 py-1 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
             />
           </div>
 
@@ -245,7 +247,7 @@ export const HomeInboxView: React.FC = () => {
                 onClick={() => setActiveFilter(tab.id as TriageFilter)}
                 className={`px-2.5 py-1 rounded-md whitespace-nowrap transition-colors ${
                   activeFilter === tab.id
-                    ? 'bg-text-primary text-bg-base font-medium shadow-xs'
+                    ? 'bg-text-primary text-button-text font-medium shadow-xs'
                     : 'bg-bg-surface text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover'
                 }`}
               >
@@ -304,7 +306,7 @@ export const HomeInboxView: React.FC = () => {
           />
         ) : (
           <div className="flex-1 h-full bg-transparent flex flex-col items-center justify-center p-8 text-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-bg-surface border border-border flex items-center justify-center text-status-success">
+            <div className="w-12 h-12 rounded-full bg-bg-surface-raised border border-transparent flex items-center justify-center text-status-success">
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <h3 className="text-sm font-semibold text-text-primary font-karla">

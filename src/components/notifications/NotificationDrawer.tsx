@@ -97,23 +97,23 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
           ${
             !isOpen
               ? 'lg:w-0 lg:my-3 lg:ml-0 lg:mr-0 lg:p-0 lg:border-0 pointer-events-none'
-              : 'w-[300px] lg:w-[300px] xl:w-[320px] lg:my-3 lg:mr-3 lg:ml-1.5 lg:border'
+              : 'w-[300px] lg:w-[300px] xl:w-[320px] lg:my-3 lg:mr-3 lg:ml-1.5 lg:border-0'
           }
         `}
       >
         {/* Sliding Contents Wrapper */}
         <div className={`flex flex-col h-full w-[300px] lg:w-[300px] xl:w-[320px] shrink-0 transition-transform duration-200 ease-out ${!isOpen ? 'lg:translate-x-full' : 'translate-x-0'}`}>
           {/* Header */}
-          <div className="h-14 px-4 flex items-center justify-between border-b border-white/10 shrink-0">
+          <div className="h-14 px-4 flex items-center justify-between shrink-0">
             <div className="flex items-center space-x-2.5 min-w-0">
-              <div className="p-1.5 rounded-md bg-accent-primary/10 text-accent-primary flex items-center justify-center shrink-0">
+              <div className="p-1.5 rounded-full bg-accent-primary/10 text-accent-primary flex items-center justify-center shrink-0">
                 <Bell className="w-4 h-4" />
               </div>
               <span className="font-medium text-sm sm:text-base text-text-primary tracking-wide leading-tight truncate">
                 Notifications
               </span>
               {unreadCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-accent-primary text-bg-base font-id text-[10px] font-bold shrink-0 leading-tight">
+                <span className="px-1.5 py-0.5 rounded-full bg-accent-primary text-button-text font-id text-[10px] font-bold shrink-0 leading-tight">
                   {unreadCount}
                 </span>
               )}
@@ -132,7 +132,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
               )}
               <button
                 onClick={onClose}
-                className="w-7 h-7 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors"
                 title="Close notifications"
                 aria-label="Close notifications"
               >
@@ -142,7 +142,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
           </div>
 
           {/* List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-border/50">
+          <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
             {(!notifications || notifications.length === 0) ? (
               <div className="p-8 text-center flex flex-col items-center justify-center h-full text-text-tertiary">
                 <div className="w-10 h-10 rounded-full bg-bg-surface-raised flex items-center justify-center mb-3">
@@ -156,8 +156,8 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
                 <div
                   key={notif.id}
                   onClick={() => handleNotificationClick(notif)}
-                  className={`p-3.5 cursor-pointer transition-colors ${
-                    notif.is_read ? 'bg-transparent hover:bg-bg-surface-hover opacity-70' : 'bg-accent-primary/5 hover:bg-bg-surface-hover'
+                  className={`p-3.5 cursor-pointer transition-colors rounded-md ${
+                    notif.is_read ? 'bg-bg-surface-raised hover:bg-bg-surface-hover opacity-70' : 'bg-accent-muted/40 hover:bg-bg-surface-hover'
                   }`}
                 >
                   <div className="flex items-start space-x-3">
@@ -184,7 +184,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
                               handleAcceptInvite(notif);
                             }}
                             disabled={actionLoading === notif.id}
-                            className="px-2.5 py-1 text-[11px] font-medium text-bg-base bg-accent-primary hover:bg-accent-primary-hover rounded transition-colors disabled:opacity-50"
+                            className="px-2.5 py-1 text-[11px] font-semibold text-button-text bg-accent-primary hover:bg-accent-primary-hover rounded-full transition-colors disabled:opacity-50"
                           >
                             {actionLoading === notif.id ? 'Joining...' : 'Accept'}
                           </button>
@@ -194,7 +194,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
                               handleDeclineInvite(notif);
                             }}
                             disabled={actionLoading === notif.id}
-                            className="px-2.5 py-1 text-[11px] font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface border border-border rounded transition-colors disabled:opacity-50"
+                            className="px-2.5 py-1 text-[11px] font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface-raised border border-transparent rounded-sm transition-colors disabled:opacity-50"
                           >
                             Decline
                           </button>

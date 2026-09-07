@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, AlertCircle, Users, Check, Plus } from 'lucide-react';
 import { CustomSelect } from '../common/CustomSelect';
+import { DatePicker } from '../common/DatePicker';
 import { useApp } from '../../context/AppContext';
 import { IssuePriority } from '../../types/database';
 import { useIssues } from '../../hooks/useIssues';
@@ -38,6 +39,19 @@ export const NewIssueModal: React.FC = () => {
   const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const assigneeSectionRef = React.useRef<HTMLDivElement>(null);
+
+  // Close the assignee list when clicking outside of it
+  React.useEffect(() => {
+    if (!isAssigneeDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (assigneeSectionRef.current && !assigneeSectionRef.current.contains(e.target as Node)) {
+        setIsAssigneeDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isAssigneeDropdownOpen]);
 
   const isAdmin = userRole === 'admin' || currentWorkspace?.created_by === currentUser?.id;
   const userAssignedTeams = currentUser ? getUserTeams(currentUser.id) : [];
@@ -173,13 +187,13 @@ export const NewIssueModal: React.FC = () => {
       <div className="absolute inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
         <div className={`w-screen max-w-full sm:max-w-2xl lg:max-w-3xl xl:max-w-4xl bg-bg-surface border-l border-border shadow-2xl flex flex-col h-full overflow-hidden transform transition-transform duration-200 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           {/* Header */}
-          <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-border flex items-center justify-between shrink-0 bg-bg-surface">
+          <div className="px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between shrink-0 bg-bg-surface">
             <h2 className="text-sm font-semibold text-text-primary">
               Create New Issue
             </h2>
             <button
               onClick={handleClose}
-              className="p-1.5 rounded text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors"
+              className="p-1.5 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors"
               title="Close (Esc)"
             >
               <X className="w-4 h-4" />
@@ -190,7 +204,7 @@ export const NewIssueModal: React.FC = () => {
           <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 bg-bg-surface overflow-y-auto no-scrollbar scrollbar-none flex-1 flex flex-col justify-between">
             <div className="space-y-4">
           {errorMessage && (
-            <div className="p-2.5 bg-status-error/10 border border-status-error/30 rounded text-xs text-status-error flex items-center space-x-2">
+            <div className="p-2.5 bg-status-error/10 border border-transparent rounded-sm text-xs text-status-error flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMessage}</span>
             </div>
@@ -206,7 +220,7 @@ export const NewIssueModal: React.FC = () => {
               placeholder="Issue title..."
               value={title}
               onChange={e => setTitle(e.target.value)}
-              className="w-full text-xs bg-bg-surface border border-border rounded px-2.5 py-1.5 text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+              className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-sm px-2.5 py-1.5 text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
             />
           </div>
 
@@ -285,17 +299,12 @@ export const NewIssueModal: React.FC = () => {
               <label className="block text-[11px] font-medium text-text-secondary mb-0.5">
                 Due Date
               </label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={e => setDueDate(e.target.value)}
-                className="w-full text-xs bg-bg-surface border border-border rounded px-2 py-1 text-text-primary focus:outline-none focus:border-border-strong h-[30px]"
-              />
+              <DatePicker value={dueDate} onChange={setDueDate} placeholder="Due date" />
             </div>
           </div>
 
           {/* Multiple Assignees Selector */}
-          <div>
+          <div ref={assigneeSectionRef}>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-[11px] font-medium text-text-secondary">
                 Assignees ({selectedAssigneeIds.length})
@@ -311,17 +320,17 @@ export const NewIssueModal: React.FC = () => {
             </div>
 
             {/* Selected Assignee Chips */}
-            <div className="flex flex-wrap gap-1.5 p-2 bg-bg-surface border border-border rounded min-h-[38px] items-center">
+            <div className="flex flex-wrap gap-1.5 p-2 bg-bg-surface-raised border border-transparent rounded-sm min-h-[38px] items-center">
               {selectedProfiles.length === 0 ? (
                 <span className="text-xs text-text-tertiary">No assignees selected</span>
               ) : (
                 selectedProfiles.map(u => (
                   <span
                     key={u.id}
-                    className="inline-flex items-center space-x-1.5 pl-1 pr-2 py-0.5 bg-bg-surface border border-border rounded text-xs text-text-primary"
+                    className="inline-flex items-center space-x-1.5 pl-1 pr-2 py-0.5 bg-bg-surface-raised border border-transparent rounded-full text-xs text-text-primary"
                   >
                     <img
-                      src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.full_name || u.email}&background=EFE8DC&color=3A342C`}
+                      src={u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || u.email)}&background=282828&color=B3B3B3&rounded=true`}
                       alt="Avatar"
                       className="w-4 h-4 rounded-full object-cover"
                     />
@@ -340,18 +349,20 @@ export const NewIssueModal: React.FC = () => {
 
             {/* In-Flow Multi-Select List */}
             {isAssigneeDropdownOpen && (
-              <div className="mt-1.5 bg-bg-surface border border-border rounded-md shadow-sm max-h-40 overflow-y-auto p-1 divide-y divide-border">
+              <div className="mt-1.5 bg-bg-surface-raised border border-transparent rounded-md shadow-lg max-h-44 overflow-y-auto p-1.5 space-y-0.5">
                 {(profiles || []).map((u: any) => {
                   const isSelected = selectedAssigneeIds.includes(u.id);
                   return (
                     <div
                       key={u.id}
                       onClick={() => toggleAssignee(u.id)}
-                      className="flex items-center justify-between p-2 hover:bg-bg-surface/50 cursor-pointer rounded text-xs transition-colors"
+                      className={`flex items-center justify-between px-2.5 py-2 cursor-pointer rounded-sm text-xs transition-colors ${
+                        isSelected ? 'bg-bg-surface-hover' : 'hover:bg-bg-surface-hover'
+                      }`}
                     >
                       <div className="flex items-center space-x-2 min-w-0">
                         <img
-                          src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.full_name || u.email}&background=EFE8DC&color=3A342C`}
+                          src={u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || u.email)}&background=282828&color=B3B3B3&rounded=true`}
                           alt="Avatar"
                           className="w-5 h-5 rounded-full object-cover shrink-0"
                         />
@@ -360,7 +371,7 @@ export const NewIssueModal: React.FC = () => {
                           <div className="text-[10px] text-text-secondary truncate">{u.email}</div>
                         </div>
                       </div>
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center ${isSelected ? 'bg-accent-primary border-accent-primary text-bg-base' : 'border-border'}`}>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'bg-accent-primary border-accent-primary text-button-text' : 'border-border'}`}>
                         {isSelected && <Check className="w-3 h-3" />}
                       </div>
                     </div>
@@ -378,14 +389,14 @@ export const NewIssueModal: React.FC = () => {
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleClose}
-                className="px-3.5 py-1.5 rounded text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors disabled:opacity-50"
+                className="px-3.5 py-1.5 rounded-full text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-1.5 rounded bg-accent-primary hover:bg-accent-primary-hover text-bg-base text-xs font-medium transition-colors disabled:opacity-50 shadow-sm"
+                className="px-4 py-1.5 rounded-full bg-accent-primary hover:bg-accent-primary-hover text-button-text text-xs font-semibold transition-colors disabled:opacity-50 shadow-sm"
               >
                 {isSubmitting ? 'Creating...' : 'Create Issue'}
               </button>

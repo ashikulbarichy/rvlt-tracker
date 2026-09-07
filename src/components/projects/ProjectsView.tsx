@@ -5,6 +5,7 @@ import {
   CheckSquare, AlertTriangle, Layers
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { SidebarToggle } from '../../components/layout/SidebarToggle';
 import { useProjects } from '../../hooks/useProjects';
 import { useTeams } from '../../hooks/useTeams';
 import { useProfiles } from '../../hooks/useProfiles';
@@ -12,8 +13,18 @@ import { useWorkflowStates } from '../../hooks/useWorkflowStates';
 import { useIssues } from '../../hooks/useIssues';
 import { Project, ProjectStatus, IssuePriority } from '../../types/database';
 import { CustomSelect } from '../common/CustomSelect';
+import { DatePicker } from '../common/DatePicker';
 import { formatIssueIdentifier } from '../../lib/identifier';
 import { ConfirmModal } from '../common/ConfirmModal';
+import { StatusBadge } from '../common/StatusBadge';
+
+// Priority label colors (match the priority icon colors used across the app)
+const PRIORITY_COLORS: Record<string, string> = {
+  urgent: '#F15E6C',
+  high: '#FFA42B',
+  medium: '#F5C842',
+  low: '#509BF5',
+};
 
 export const ProjectsView: React.FC = () => {
   const { currentWorkspace, currentUser, userRole, currentTeam, setSelectedIssue, setIsNewIssueModalOpen } = useApp();
@@ -39,8 +50,22 @@ export const ProjectsView: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    try {
+      const saved = localStorage.getItem('rvlt-projects-view-mode');
+      return saved === 'list' || saved === 'grid' ? saved : 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
   const [sortBy, setSortBy] = useState<'name' | 'target_date' | 'progress' | 'status'>('name');
+
+  // Persist view mode across refreshes
+  useEffect(() => {
+    try {
+      localStorage.setItem('rvlt-projects-view-mode', viewMode);
+    } catch { /* storage unavailable */ }
+  }, [viewMode]);
   
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
@@ -277,15 +302,15 @@ export const ProjectsView: React.FC = () => {
   const getStatusBadge = (st: ProjectStatus) => {
     switch (st) {
       case 'planned':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-bg-surface-raised border border-border text-text-secondary">Planning</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-bg-surface-hover border border-transparent text-text-secondary">Planning</span>;
       case 'in_progress':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-accent-muted text-accent-primary border border-accent-primary/30">In Progress</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-accent-muted text-accent-primary border border-transparent ">In Progress</span>;
       case 'paused':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-status-warning/10 text-status-warning border border-status-warning/30">Paused</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-status-warning/10 text-status-warning border border-transparent ">Paused</span>;
       case 'completed':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-status-success/10 text-status-success border border-status-success/30">Completed</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-status-success/10 text-status-success border border-transparent ">Completed</span>;
       case 'canceled':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-status-error/10 text-status-error border border-status-error/30">Canceled</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-status-error/10 text-status-error border border-transparent ">Canceled</span>;
     }
   };
 
@@ -306,16 +331,16 @@ export const ProjectsView: React.FC = () => {
     if (isOverdue || (daysLeft !== null && daysLeft !== undefined && daysLeft < 0)) {
       const overdueDays = daysLeft !== null && daysLeft !== undefined ? Math.abs(daysLeft) : 1;
       return (
-        <span className="inline-flex items-center space-x-1 text-[11px] font-medium text-status-error bg-bg-surface-raised border border-border px-2 py-0.5 rounded">
+        <span className="inline-flex items-center space-x-1 text-[11px] font-medium text-status-error bg-status-error/10 border border-transparent px-2 py-0.5 rounded-full">
           <AlertTriangle className="w-3 h-3 text-status-error shrink-0" />
-          <span>Overdue {overdueDays}d ({formatted})</span>
+          <span>Overdue {overdueDays}d</span>
         </span>
       );
     }
 
     if (daysLeft === 0) {
       return (
-        <span className="inline-flex items-center space-x-1 text-[11px] font-medium text-status-warning bg-bg-surface-raised border border-border px-2 py-0.5 rounded">
+        <span className="inline-flex items-center space-x-1 text-[11px] font-medium text-status-warning bg-status-warning/10 border border-transparent px-2 py-0.5 rounded-full">
           <Clock className="w-3 h-3 text-status-warning shrink-0" />
           <span>Due Today ({formatted})</span>
         </span>
@@ -324,7 +349,7 @@ export const ProjectsView: React.FC = () => {
 
     if (daysLeft !== null && daysLeft !== undefined && daysLeft <= 2) {
       return (
-        <span className="inline-flex items-center space-x-1 text-[10px] font-medium text-status-warning bg-bg-surface-raised border border-border px-1.5 py-0.5 rounded">
+        <span className="inline-flex items-center space-x-1 text-[10px] font-medium text-status-warning bg-status-warning/10 border border-transparent px-1.5 py-0.5 rounded-full">
           <Clock className="w-3 h-3 text-status-warning shrink-0" />
           <span>{daysLeft}d left ({formatted})</span>
         </span>
@@ -347,8 +372,9 @@ export const ProjectsView: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col h-full bg-transparent overflow-hidden relative">
       {/* Subheader Toolbar */}
-      <div className="px-3 sm:px-6 py-2.5 sm:py-3 border-b border-border bg-transparent flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+      <div className="px-3 sm:px-6 py-2.5 sm:py-3 bg-transparent flex flex-wrap items-center justify-between gap-2.5 shrink-0">
         <div className="flex items-center space-x-2.5 sm:space-x-3">
+          <SidebarToggle />
           <div className="flex items-center space-x-2">
             <FolderKanban className="w-4 h-4 text-accent-primary" />
             <span className="text-xs font-semibold text-text-primary uppercase tracking-wider">
@@ -363,13 +389,13 @@ export const ProjectsView: React.FC = () => {
           <div className="relative" ref={teamMenuRef}>
             <button
               onClick={() => setIsTeamMenuOpen(!isTeamMenuOpen)}
-              className="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-bg-surface hover:bg-bg-surface-hover text-text-secondary hover:text-text-primary border border-border text-xs transition-colors"
+              className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-bg-surface-raised hover:bg-bg-surface-hover text-text-secondary hover:text-text-primary border border-transparent text-xs transition-colors"
             >
               <Filter className="w-3 h-3" />
               <span>{selectedTeamId === 'all' ? 'All Teams' : teams?.find(t => t.id === selectedTeamId)?.name || 'Team'}</span>
             </button>
             {isTeamMenuOpen && (
-              <div className="absolute left-0 mt-1 w-44 bg-bg-surface border border-border rounded-md shadow-lg py-1 z-30">
+              <div className="absolute left-0 mt-1 w-44 bg-bg-surface-raised border border-transparent rounded-md shadow-lg py-1 z-30">
                 <button
                   onClick={() => { setSelectedTeamId('all'); setIsTeamMenuOpen(false); }}
                   className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-bg-surface-hover ${selectedTeamId === 'all' ? 'text-accent-primary font-medium' : 'text-text-secondary'}`}
@@ -402,22 +428,22 @@ export const ProjectsView: React.FC = () => {
               placeholder="Search..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-32 sm:w-44 pl-8 pr-2.5 py-1 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+              className="w-32 sm:w-44 pl-8 pr-2.5 py-1 text-xs bg-bg-surface-raised border border-transparent rounded-full text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
             />
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center border border-border rounded overflow-hidden bg-bg-surface p-0.5">
+          <div className="flex items-center rounded-full bg-bg-surface-raised p-0.5">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-1 rounded text-xs transition-colors ${viewMode === 'grid' ? 'bg-bg-surface-hover text-text-primary' : 'text-text-tertiary hover:text-text-secondary'}`}
+              className={`p-1.5 rounded-full text-xs transition-colors ${viewMode === 'grid' ? 'bg-bg-surface-hover text-text-primary' : 'text-text-tertiary hover:text-text-secondary'}`}
               title="Grid View"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-1 rounded text-xs transition-colors ${viewMode === 'list' ? 'bg-bg-surface-hover text-text-primary' : 'text-text-tertiary hover:text-text-secondary'}`}
+              className={`p-1.5 rounded-full text-xs transition-colors ${viewMode === 'list' ? 'bg-bg-surface-hover text-text-primary' : 'text-text-tertiary hover:text-text-secondary'}`}
               title="List View"
             >
               <LayoutList className="w-3.5 h-3.5" />
@@ -428,7 +454,7 @@ export const ProjectsView: React.FC = () => {
           {isAdmin && (
             <button
               onClick={() => setIsCreateDrawerOpen(true)}
-              className="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-accent-primary hover:bg-accent-primary-hover text-bg-base text-xs font-medium transition-colors shadow-xs"
+              className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-accent-primary hover:bg-accent-primary-hover text-button-text text-xs font-semibold transition-colors shadow-xs"
             >
               <Plus className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">New Project</span>
@@ -454,7 +480,7 @@ export const ProjectsView: React.FC = () => {
             {isAdmin && (
               <button
                 onClick={() => setIsCreateDrawerOpen(true)}
-                className="px-3.5 py-1.5 rounded bg-accent-primary hover:bg-accent-primary-hover text-bg-base text-xs font-medium transition-colors"
+                className="px-3.5 py-1.5 rounded-full bg-accent-primary hover:bg-accent-primary-hover text-button-text text-xs font-semibold transition-colors"
               >
                 Create first project
               </button>
@@ -470,11 +496,11 @@ export const ProjectsView: React.FC = () => {
                 <div
                   key={project.id}
                   onClick={() => setSelectedProject(project)}
-                  className="bg-bg-surface border border-border hover:border-border-strong rounded-lg p-5 flex flex-col justify-between space-y-4 cursor-pointer transition-all hover:bg-bg-surface-hover/60 group"
+                  className="bg-bg-surface-raised border border-transparent hover:bg-bg-surface-hover rounded-lg p-5 flex flex-col justify-between space-y-4 cursor-pointer transition-all hover:bg-bg-surface-hover/60 group"
                 >
                   <div className="space-y-2">
                     <div className="flex items-start justify-between">
-                      <span className="font-sans text-[10px] font-semibold px-1.5 py-0.5 rounded bg-bg-surface-raised border border-border text-text-secondary">
+                      <span className="font-sans text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-bg-surface-hover border border-transparent text-text-secondary">
                         {project.key}
                       </span>
                       {getStatusBadge(project.status)}
@@ -499,7 +525,7 @@ export const ProjectsView: React.FC = () => {
                   </div>
 
                   {/* Progress & Meta */}
-                  <div className="space-y-3 pt-3 border-t border-border">
+                  <div className="space-y-3 pt-3">
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-[11px]">
                         <span className="text-text-tertiary">Progress</span>
@@ -518,7 +544,7 @@ export const ProjectsView: React.FC = () => {
                       {leadProfile && (
                         <div className="flex items-center space-x-1.5">
                           <img
-                            src={leadProfile.avatar_url || `https://ui-avatars.com/api/?name=${leadProfile.full_name || leadProfile.email}&background=EFE8DC&color=3A342C`}
+                            src={leadProfile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(leadProfile.full_name || leadProfile.email)}&background=282828&color=B3B3B3&rounded=true`}
                             alt="Lead"
                             className="w-4 h-4 rounded-full object-cover shrink-0"
                           />
@@ -532,7 +558,7 @@ export const ProjectsView: React.FC = () => {
             })}
           </div>
         ) : (
-          <div className="border border-border rounded-lg bg-bg-surface overflow-hidden">
+          <div className="border border-transparent rounded-lg bg-bg-surface-raised overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead className="bg-bg-surface-raised/50 border-b border-border text-[11px] font-medium text-text-secondary">
                 <tr>
@@ -556,7 +582,7 @@ export const ProjectsView: React.FC = () => {
                     >
                       <td className="px-4 py-3 align-middle">
                         <div className="flex items-center space-x-3">
-                          <span className="font-sans text-[10px] font-semibold px-1.5 py-0.5 rounded bg-bg-surface border border-border text-text-secondary shrink-0">
+                          <span className="font-sans text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-bg-surface-raised border border-transparent text-text-secondary shrink-0">
                             {project.key}
                           </span>
                           <div className="min-w-0">
@@ -583,7 +609,7 @@ export const ProjectsView: React.FC = () => {
                         {leadProfile ? (
                           <div className="flex items-center space-x-2">
                             <img
-                              src={leadProfile.avatar_url || `https://ui-avatars.com/api/?name=${leadProfile.full_name || leadProfile.email}&background=EFE8DC&color=3A342C`}
+                              src={leadProfile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(leadProfile.full_name || leadProfile.email)}&background=282828&color=B3B3B3&rounded=true`}
                               alt="Lead"
                               className="w-4 h-4 rounded-full object-cover shrink-0"
                             />
@@ -598,7 +624,7 @@ export const ProjectsView: React.FC = () => {
                               e.stopPropagation();
                               setDeletingProject({ id: project.id, name: project.name, closeDetail: false });
                             }}
-                            className="p-1 rounded text-text-tertiary hover:text-status-error transition-colors opacity-0 group-hover:opacity-100"
+                            className="p-1 rounded-sm text-text-tertiary hover:text-status-error transition-colors opacity-0 group-hover:opacity-100"
                             title="Delete Project"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -620,11 +646,11 @@ export const ProjectsView: React.FC = () => {
           className={`absolute inset-0 z-30 bg-bg-surface flex flex-col overflow-hidden transform transition-transform duration-200 ease-out font-sans ${isDetailOpen ? 'translate-x-0 pointer-events-auto' : 'translate-x-full pointer-events-none'}`}
         >
           {/* Project View Header */}
-          <div className="px-6 py-3.5 border-b border-border flex items-center justify-between shrink-0 bg-bg-surface">
+          <div className="px-6 py-3.5 flex items-center justify-between shrink-0 bg-bg-surface">
             <div className="flex items-center space-x-3 flex-1 min-w-0 mr-4">
               <button
                 onClick={handleCloseDetail}
-                className="flex items-center space-x-1.5 px-2 py-1 -ml-1 rounded text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors shrink-0"
+                className="flex items-center space-x-1.5 px-2.5 py-1 -ml-1 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors shrink-0"
                 title="Back to projects (Esc)"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -633,7 +659,7 @@ export const ProjectsView: React.FC = () => {
 
               <div className="w-px h-4 bg-border shrink-0" />
 
-              <span className="font-sans text-xs font-semibold px-2 py-0.5 rounded bg-bg-surface border border-border text-text-secondary shrink-0">
+              <span className="font-sans text-xs font-semibold px-2 py-0.5 rounded-full bg-bg-surface-raised border border-transparent text-text-secondary shrink-0">
                 {selectedProject.key}
               </span>
 
@@ -648,7 +674,7 @@ export const ProjectsView: React.FC = () => {
                   onClick={() => {
                     setDeletingProject({ id: selectedProject.id, name: selectedProject.name, closeDetail: true });
                   }}
-                  className="p-1.5 rounded text-text-secondary hover:text-status-error hover:bg-bg-surface transition-colors"
+                  className="p-1.5 rounded-full text-text-secondary hover:text-status-error hover:bg-bg-surface transition-colors"
                   title="Delete Project"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -656,7 +682,7 @@ export const ProjectsView: React.FC = () => {
               )}
               <button
                 onClick={handleCloseDetail}
-                className="p-1.5 rounded text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors"
+                className="p-1.5 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors"
                 title="Close (Esc)"
               >
                 <X className="w-5 h-5" />
@@ -669,7 +695,7 @@ export const ProjectsView: React.FC = () => {
             {/* Left Column: Description & Issues list for this project */}
             <div className="flex-1 min-w-0 p-4 sm:p-6 md:p-8 space-y-6 overflow-y-auto no-scrollbar scrollbar-none">
               {/* Project Progress Banner */}
-              <div className="bg-bg-surface-raised/40 border border-border rounded-lg p-5 space-y-3">
+              <div className="bg-bg-surface-raised border border-transparent rounded-lg p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <span className="text-xs font-semibold text-text-primary uppercase tracking-wider">
@@ -682,7 +708,7 @@ export const ProjectsView: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="w-full h-2 bg-bg-surface border border-border rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-bg-surface-raised border border-transparent rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-accent-primary transition-all duration-300"
                     style={{ width: `${(activeProjectEnriched as any)?.progress || 0}%` }}
@@ -707,7 +733,7 @@ export const ProjectsView: React.FC = () => {
                 <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider">
                   Description & Scope
                 </h3>
-                <div className="bg-bg-surface border border-border rounded-md p-4 text-xs text-text-primary leading-relaxed whitespace-pre-wrap">
+                <div className="bg-bg-surface-raised border border-transparent rounded-md p-4 text-xs text-text-primary leading-relaxed whitespace-pre-wrap">
                   {selectedProject.description || 'No description provided for this project.'}
                 </div>
               </div>
@@ -724,14 +750,14 @@ export const ProjectsView: React.FC = () => {
 
                   <button
                     onClick={() => setIsNewIssueModalOpen(true)}
-                    className="flex items-center space-x-1 px-2.5 py-1 rounded bg-bg-surface hover:bg-bg-surface-hover text-text-primary border border-border text-xs font-medium transition-colors"
+                    className="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-bg-surface-raised hover:bg-bg-surface-hover text-text-primary border border-transparent text-xs font-medium transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5 text-accent-primary" />
                     <span>Add Issue</span>
                   </button>
                 </div>
 
-                <div className="border border-border rounded-md divide-y divide-border bg-bg-surface overflow-hidden">
+                <div className="border border-transparent rounded-md bg-bg-surface-raised overflow-hidden">
                   {(!projectIssues || projectIssues.length === 0) ? (
                     <div className="p-6 text-center text-xs text-text-secondary">
                       No issues created for this project yet. Click "Add Issue" to assign tasks to this project.
@@ -744,7 +770,7 @@ export const ProjectsView: React.FC = () => {
                         className="px-4 py-3 flex items-center justify-between hover:bg-bg-surface-hover cursor-pointer transition-colors"
                       >
                         <div className="flex items-center space-x-3 min-w-0 flex-1 mr-4">
-                          <span className="font-id text-[10px] font-semibold px-1.5 py-0.5 rounded bg-bg-surface-raised border border-border text-text-secondary shrink-0">
+                          <span className="font-id text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-bg-surface-hover border border-transparent text-text-secondary shrink-0">
                             {formatIssueIdentifier(issue, currentWorkspace)}
                           </span>
                           <span className="text-xs font-medium text-text-primary truncate">
@@ -752,13 +778,16 @@ export const ProjectsView: React.FC = () => {
                           </span>
                         </div>
 
-                        <div className="flex items-center space-x-3 shrink-0">
-                          {issue.status && (
-                            <span className="text-[11px] px-2 py-0.5 rounded bg-bg-surface-raised border border-border text-text-secondary">
-                              {issue.status.name}
-                            </span>
-                          )}
-                          <span className="text-[10px] font-medium capitalize text-text-tertiary">
+                        <div className="flex items-center shrink-0">
+                          <div className="w-24 flex justify-end">
+                            {issue.status && (
+                              <StatusBadge name={issue.status.name} color={issue.status.color} />
+                            )}
+                          </div>
+                          <span
+                            className="w-16 text-right text-[10px] font-medium capitalize"
+                            style={{ color: PRIORITY_COLORS[issue.priority as string] || '#727272' }}
+                          >
                             {issue.priority}
                           </span>
                         </div>
@@ -800,7 +829,7 @@ export const ProjectsView: React.FC = () => {
                 <label className="text-xs font-medium text-text-secondary">
                   Team
                 </label>
-                <div className="text-xs font-medium text-text-primary px-2.5 py-1.5 bg-bg-surface border border-border rounded">
+                <div className="text-xs font-medium text-text-primary px-2.5 py-1.5 bg-bg-surface-raised border border-transparent rounded-sm">
                   {teams?.find(t => t.id === selectedProject.team_id)?.name || 'General Workspace'}
                 </div>
               </div>
@@ -813,16 +842,16 @@ export const ProjectsView: React.FC = () => {
                 {(() => {
                   const lead = profiles?.find(p => p.id === selectedProject.lead_id);
                   return lead ? (
-                    <div className="flex items-center space-x-2 px-2.5 py-1.5 bg-bg-surface border border-border rounded text-xs">
+                    <div className="flex items-center space-x-2 px-3 py-1.5 bg-bg-surface-raised border border-transparent rounded-full text-xs">
                       <img
-                        src={lead.avatar_url || `https://ui-avatars.com/api/?name=${lead.full_name || lead.email}&background=EFE8DC&color=3A342C`}
+                        src={lead.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(lead.full_name || lead.email)}&background=282828&color=B3B3B3&rounded=true`}
                         alt="Lead"
                         className="w-4 h-4 rounded-full object-cover shrink-0"
                       />
                       <span className="text-text-primary truncate font-medium">{lead.full_name || lead.email}</span>
                     </div>
                   ) : (
-                    <div className="text-xs text-text-tertiary px-2.5 py-1.5 bg-bg-surface border border-border rounded">
+                    <div className="text-xs text-text-tertiary px-2.5 py-1.5 bg-bg-surface-raised border border-transparent rounded-sm">
                       No lead assigned
                     </div>
                   );
@@ -869,7 +898,7 @@ export const ProjectsView: React.FC = () => {
           <div className="absolute inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
             <div className={`w-screen max-w-full sm:max-w-2xl lg:max-w-3xl xl:max-w-4xl bg-bg-surface border-l border-border shadow-2xl flex flex-col h-full overflow-hidden transform transition-transform duration-200 ease-out ${isCreateAnimated ? 'translate-x-0' : 'translate-x-full'}`}>
               {/* Drawer Header */}
-              <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-border flex items-center justify-between shrink-0 bg-bg-surface">
+              <div className="px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between shrink-0 bg-bg-surface">
                 <div className="flex items-center space-x-2">
                   <FolderKanban className="w-4 h-4 text-accent-primary" />
                   <h2 className="text-sm font-semibold text-text-primary">
@@ -878,7 +907,7 @@ export const ProjectsView: React.FC = () => {
                 </div>
                 <button
                   onClick={handleCloseCreateDrawer}
-                  className="p-1.5 rounded text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors"
+                  className="p-1.5 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors"
                   title="Close (Esc)"
                 >
                   <X className="w-4 h-4" />
@@ -889,7 +918,7 @@ export const ProjectsView: React.FC = () => {
               <form onSubmit={handleCreateProject} className="p-4 sm:p-6 space-y-4 bg-bg-surface overflow-y-auto no-scrollbar scrollbar-none flex-1 flex flex-col justify-between">
                 <div className="space-y-4">
                   {errorMessage && (
-                    <div className="p-2.5 bg-status-error/10 border border-status-error/30 rounded text-xs text-status-error flex items-center space-x-2">
+                    <div className="p-2.5 bg-status-error/10 border border-transparent rounded-sm text-xs text-status-error flex items-center space-x-2">
                       <AlertCircle className="w-4 h-4 shrink-0" />
                       <span>{errorMessage}</span>
                     </div>
@@ -905,7 +934,7 @@ export const ProjectsView: React.FC = () => {
                       placeholder="e.g. Mobile App Redesign"
                       value={name}
                       onChange={handleNameChange}
-                      className="w-full text-xs bg-bg-surface border border-border rounded px-2.5 py-1.5 text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                      className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-sm px-2.5 py-1.5 text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                     />
                   </div>
 
@@ -920,7 +949,7 @@ export const ProjectsView: React.FC = () => {
                         placeholder="e.g. MOB"
                         value={key}
                         onChange={e => setKey(e.target.value.toUpperCase())}
-                        className="w-full text-xs bg-bg-surface border border-border rounded px-2.5 py-1.5 font-mono uppercase text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                        className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-sm px-2.5 py-1.5 font-mono uppercase text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                       />
                     </div>
 
@@ -947,7 +976,7 @@ export const ProjectsView: React.FC = () => {
                       placeholder="Project vision, goals, and key milestones..."
                       value={description}
                       onChange={e => setDescription(e.target.value)}
-                      className="w-full text-xs bg-bg-surface border border-border rounded p-3 text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                      className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-sm p-3 text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                     />
                   </div>
 
@@ -972,12 +1001,7 @@ export const ProjectsView: React.FC = () => {
                       <label className="block text-[11px] font-medium text-text-secondary mb-1">
                         Target Completion Date
                       </label>
-                      <input
-                        type="date"
-                        value={targetDate}
-                        onChange={e => setTargetDate(e.target.value)}
-                        className="w-full text-xs bg-bg-surface border border-border rounded px-2.5 py-1.5 text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
-                      />
+                      <DatePicker value={targetDate} onChange={setTargetDate} placeholder="Target date" />
                     </div>
                   </div>
 
@@ -1006,14 +1030,14 @@ export const ProjectsView: React.FC = () => {
                     type="button"
                     disabled={isSubmitting}
                     onClick={handleCloseCreateDrawer}
-                    className="px-3.5 py-1.5 rounded text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors disabled:opacity-50"
+                    className="px-3.5 py-1.5 rounded-full text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting || !name.trim()}
-                    className="px-4 py-1.5 rounded bg-accent-primary hover:bg-accent-primary-hover text-bg-base text-xs font-medium transition-colors disabled:opacity-50 shadow-sm"
+                    className="px-4 py-1.5 rounded-full bg-accent-primary hover:bg-accent-primary-hover text-button-text text-xs font-semibold transition-colors disabled:opacity-50 shadow-sm"
                   >
                     {isSubmitting ? 'Creating...' : 'Create Project'}
                   </button>

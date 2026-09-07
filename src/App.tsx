@@ -33,7 +33,7 @@ const MainLayout: React.FC = () => {
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col min-w-0 overflow-hidden bg-bg-surface border-0 md:border border-border rounded-none md:rounded-[12px] m-0 md:my-3 shadow-none md:shadow-sm relative pb-14 lg:pb-0 transition-[margin] duration-200 ease-out ${isSidebarCollapsed ? 'md:ml-3' : 'md:ml-1.5'} ${isNotificationOpen ? 'md:mr-1.5' : 'md:mr-3'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 overflow-hidden bg-bg-surface rounded-none md:rounded-lg m-0 md:my-3 shadow-none md:shadow-sm relative pb-14 lg:pb-0 transition-[margin] duration-200 ease-out ${isSidebarCollapsed ? 'md:ml-3' : 'md:ml-1.5'} ${isNotificationOpen ? 'md:mr-1.5' : 'md:mr-3'}`}>
         <Header />
 
         <main className="flex-1 flex min-w-0 overflow-hidden relative">
@@ -44,14 +44,14 @@ const MainLayout: React.FC = () => {
               <Route path="projects" element={<ProjectsView />} />
               <Route path="issues" element={<IssueListView onlyMine={false} />} />
               <Route path="members" element={
-                <div className="flex-1 overflow-y-auto p-6 bg-bg-base">
+                <div className="flex-1 overflow-y-auto p-6">
                   <div className="max-w-4xl mx-auto">
                     <MemberSettings />
                   </div>
                 </div>
               } />
               <Route path="teams" element={
-                <div className="flex-1 overflow-y-auto p-6 bg-bg-base">
+                <div className="flex-1 overflow-y-auto p-6">
                   <div className="max-w-4xl mx-auto">
                     <TeamSettings />
                   </div>
@@ -62,7 +62,7 @@ const MainLayout: React.FC = () => {
               <Route path="teams/:teamId/projects" element={<ProjectsView />} />
               <Route path="teams/:teamId/issues" element={<IssueListView onlyMine={false} />} />
               <Route path="teams/:teamId/members" element={
-                <div className="flex-1 overflow-y-auto p-6 bg-bg-base">
+                <div className="flex-1 overflow-y-auto p-6">
                   <div className="max-w-4xl mx-auto">
                     <TeamSettings />
                   </div>

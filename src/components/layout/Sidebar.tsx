@@ -8,19 +8,20 @@ import {
   Layers,
   FileCheck2,
   FileText,
-  Keyboard,
   Settings,
   ChevronDown,
   Check,
   Plus,
   X,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Bell
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useWorkspaces } from '../../hooks/useWorkspaces';
 import { useTeams } from '../../hooks/useTeams';
+import { useNotifications } from '../../hooks/useNotifications';
 import * as Icons from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -32,7 +33,7 @@ export const Sidebar: React.FC = () => {
     setCurrentTeam,
     isMobileSidebarOpen,
     setIsMobileSidebarOpen,
-    setIsShortcutsModalOpen,
+    toggleNotifications,
     isSidebarCollapsed
   } = useApp();
   const navigate = useNavigate();
@@ -45,6 +46,8 @@ export const Sidebar: React.FC = () => {
   };
   const { workspaces, createWorkspaceAsync } = useWorkspaces();
   const { teams } = useTeams(currentWorkspace?.id);
+  const { notifications } = useNotifications();
+  const unreadCount = notifications?.filter((n: any) => !n.is_read).length || 0;
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(true);
@@ -57,6 +60,20 @@ export const Sidebar: React.FC = () => {
   const [createError, setCreateError] = useState<string | null>(null);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close profile menu on outside click
+  useEffect(() => {
+    if (!isProfileMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isProfileMenuOpen]);
 
   const toggleTeam = (teamId: string) => {
     setOpenTeams(prev => ({
@@ -150,14 +167,14 @@ export const Sidebar: React.FC = () => {
           ${
             isSidebarCollapsed
               ? 'lg:w-0 lg:my-3 lg:ml-0 lg:mr-0 lg:p-0 lg:border-0 pointer-events-none'
-              : 'w-[260px] lg:w-[230px] lg:my-3 lg:ml-3 lg:mr-1.5 lg:border'
+              : 'w-[260px] lg:w-[230px] lg:my-3 lg:ml-3 lg:mr-1.5 lg:border-0'
           }
         `}
       >
         {/* Mobile Close Button (Mobile only) */}
         <button
           onClick={() => setIsMobileSidebarOpen(false)}
-          className="lg:hidden absolute right-2 top-3.5 w-8 h-8 flex items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover z-50 transition-colors"
+          className="lg:hidden absolute right-2 top-3.5 w-8 h-8 flex items-center justify-center rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover z-50 transition-colors"
           title="Close menu"
           aria-label="Close menu"
         >
@@ -168,10 +185,10 @@ export const Sidebar: React.FC = () => {
         <div className={`flex flex-col h-full w-[260px] lg:w-[230px] shrink-0 transition-transform duration-200 ease-out ${isSidebarCollapsed ? 'lg:-translate-x-full' : 'translate-x-0'}`}>
         
         {/* Workspace Selector */}
-        <div className="h-14 pl-4 pr-11 flex items-center border-b border-white/10 relative shrink-0" ref={dropdownRef}>
+        <div className="h-14 pl-4 pr-11 lg:pr-3 flex items-center gap-1.5 relative shrink-0" ref={dropdownRef}>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="w-full flex items-center p-1.5 -m-1.5 rounded-md hover:bg-bg-surface/70 transition-colors group text-left min-w-0"
+          className="flex flex-1 items-center p-1.5 -my-1.5 -ml-1.5 rounded-full hover:bg-bg-surface/70 transition-colors group text-left min-w-0"
           title="Switch workspace"
         >
           <img
@@ -179,7 +196,7 @@ export const Sidebar: React.FC = () => {
             alt="Reevolt Track Logo"
             className="w-7 h-7 rounded-md shrink-0 drop-shadow-sm mr-3"
           />
-          <span className="font-karla font-medium text-base text-text-primary tracking-wide leading-tight truncate">
+          <span className="font-karla font-medium text-sm text-text-primary tracking-wide leading-tight truncate">
             {currentWorkspace?.name || 'No workspace'}
           </span>
           <ChevronDown
@@ -189,9 +206,24 @@ export const Sidebar: React.FC = () => {
           />
         </button>
 
+        {/* Notifications */}
+        <button
+          onClick={toggleNotifications}
+          className="relative hidden lg:flex w-8 h-8 shrink-0 items-center justify-center rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors"
+          title="Notifications"
+          aria-label="Notifications"
+        >
+          <Bell className="w-4 h-4" />
+          {unreadCount > 0 && (
+            <span className="absolute top-0.5 right-0.5 min-w-[15px] h-3.5 px-1 bg-accent-primary text-button-text text-[9px] font-semibold flex items-center justify-center rounded-full leading-none">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </button>
+
         {/* Dropdown Menu */}
         {isDropdownOpen && (
-          <div className="absolute left-3 right-3 top-full mt-1.5 bg-bg-surface border border-border rounded-md shadow-lg py-1 z-50 font-sans">
+          <div className="absolute left-3 right-3 top-full mt-1.5 bg-bg-surface-raised border border-transparent rounded-md shadow-lg py-1 z-50 font-sans">
             <div className="px-3 py-1 text-[10px] uppercase font-semibold text-text-tertiary tracking-wider">
               Workspaces
             </div>
@@ -225,7 +257,7 @@ export const Sidebar: React.FC = () => {
               )}
             </div>
 
-            <div className="h-[1px] bg-white/10 my-1" />
+            
 
             <button
               onClick={() => {
@@ -244,7 +276,7 @@ export const Sidebar: React.FC = () => {
       {/* Create Workspace Modal */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 font-sans">
-          <div className="bg-bg-surface border border-border rounded-md max-w-sm w-full p-4 shadow-lg">
+          <div className="bg-bg-surface-raised border border-transparent rounded-md max-w-sm w-full p-4 shadow-lg">
             <div className="flex items-center justify-between mb-3 border-b border-border/60 pb-2">
               <h3 className="text-sm font-karla font-semibold text-text-primary">Create Workspace</h3>
               <button
@@ -252,14 +284,14 @@ export const Sidebar: React.FC = () => {
                   setIsCreateModalOpen(false);
                   setCreateError(null);
                 }}
-                className="text-text-tertiary hover:text-text-primary p-1 rounded"
+                className="text-text-tertiary hover:text-text-primary p-1 rounded-full"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
             {createError && (
-              <div className="mb-3 p-2 bg-status-error/10 border border-status-error/30 rounded text-[11px] text-status-error">
+              <div className="mb-3 p-2 bg-status-error/10 border border-transparent rounded-sm text-[11px] text-status-error">
                 {createError}
               </div>
             )}
@@ -275,7 +307,7 @@ export const Sidebar: React.FC = () => {
                   placeholder="e.g. Acme Corp"
                   value={newWorkspaceName}
                   onChange={handleNameChange}
-                  className="w-full px-2.5 py-1.5 text-xs bg-bg-surface border border-border rounded text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                  className="w-full px-2.5 py-1.5 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                 />
               </div>
 
@@ -289,7 +321,7 @@ export const Sidebar: React.FC = () => {
                   placeholder="e.g. acme-corp"
                   value={newWorkspaceSlug}
                   onChange={(e) => setNewWorkspaceSlug(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-xs bg-bg-surface border border-border rounded text-text-primary font-mono focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                  className="w-full px-2.5 py-1.5 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary font-mono focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                 />
               </div>
 
@@ -300,14 +332,14 @@ export const Sidebar: React.FC = () => {
                     setIsCreateModalOpen(false);
                     setCreateError(null);
                   }}
-                  className="px-3 py-1.5 text-sm font-medium text-text-secondary hover:bg-bg-surface rounded transition-colors"
+                  className="px-3 py-1.5 text-sm font-medium text-text-secondary hover:bg-bg-surface rounded-full transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting || !newWorkspaceName.trim() || !newWorkspaceSlug.trim()}
-                  className="px-3 py-1.5 text-xs font-medium text-bg-base bg-accent-primary hover:bg-accent-primary-hover rounded disabled:opacity-50 transition-colors"
+                  className="px-3 py-1.5 text-xs font-semibold text-button-text bg-accent-primary hover:bg-accent-primary-hover rounded-full disabled:opacity-50 transition-colors"
                 >
                   {isSubmitting ? 'Creating...' : 'Create'}
                 </button>
@@ -321,7 +353,7 @@ export const Sidebar: React.FC = () => {
       <div className="px-3 space-y-0.5 mt-4 shrink-0">
         <button
           onClick={() => handleNav(`/${currentWorkspace?.slug || ''}`)}
-          className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+          className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
             path === `/${currentWorkspace?.slug || ''}`
               ? 'bg-bg-surface-hover text-text-primary'
               : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
@@ -333,7 +365,7 @@ export const Sidebar: React.FC = () => {
 
         <button
           onClick={() => handleNav(`/${currentWorkspace?.slug || ''}/my-issues`)}
-          className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+          className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
             path.endsWith('/my-issues')
               ? 'bg-bg-surface-hover text-text-primary'
               : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
@@ -349,7 +381,7 @@ export const Sidebar: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsWorkspaceOpen(!isWorkspaceOpen)}
-          className="w-full flex items-center justify-between px-2.5 py-1 text-[10px] font-semibold text-text-tertiary uppercase tracking-wider hover:text-text-primary rounded transition-colors group cursor-pointer"
+          className="w-full flex items-center justify-between px-2.5 py-1 text-[10px] font-semibold text-text-tertiary uppercase tracking-wider hover:text-text-primary rounded-full transition-colors group cursor-pointer"
         >
           <span>Workspace</span>
           <ChevronDown
@@ -366,7 +398,7 @@ export const Sidebar: React.FC = () => {
                 setCurrentTeam(null);
                 handleNav(`/${currentWorkspace?.slug || ''}/projects`);
               }}
-              className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 path.endsWith('/projects') && !path.includes('/teams/')
                   ? 'bg-bg-surface-hover text-text-primary'
                   : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
@@ -381,7 +413,7 @@ export const Sidebar: React.FC = () => {
                 setCurrentTeam(null);
                 handleNav(`/${currentWorkspace?.slug || ''}/issues`);
               }}
-              className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 path.endsWith('/issues') && !path.includes('/teams/')
                   ? 'bg-bg-surface-hover text-text-primary'
                   : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
@@ -396,7 +428,7 @@ export const Sidebar: React.FC = () => {
                 setCurrentTeam(null);
                 handleNav(`/${currentWorkspace?.slug || ''}/testcases`);
               }}
-              className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 path.endsWith('/testcases') && !path.includes('/teams/')
                   ? 'bg-bg-surface-hover text-text-primary'
                   : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
@@ -411,7 +443,7 @@ export const Sidebar: React.FC = () => {
                 setCurrentTeam(null);
                 handleNav(`/${currentWorkspace?.slug || ''}/members`);
               }}
-              className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 path.endsWith('/members') && !path.includes('/teams/')
                   ? 'bg-bg-surface-hover text-text-primary'
                   : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
@@ -426,7 +458,7 @@ export const Sidebar: React.FC = () => {
                 setCurrentTeam(null);
                 handleNav(`/${currentWorkspace?.slug || ''}/teams`);
               }}
-              className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 path.endsWith('/teams')
                   ? 'bg-bg-surface-hover text-text-primary'
                   : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
@@ -443,7 +475,7 @@ export const Sidebar: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsTeamsSectionOpen(!isTeamsSectionOpen)}
-            className="w-full flex items-center justify-between px-2.5 py-1 text-[10px] font-semibold text-text-tertiary uppercase tracking-wider hover:text-text-primary rounded transition-colors group cursor-pointer mb-1"
+            className="w-full flex items-center justify-between px-2.5 py-1 text-[10px] font-semibold text-text-tertiary uppercase tracking-wider hover:text-text-primary rounded-full transition-colors group cursor-pointer mb-1"
           >
             <span>Teams</span>
             <ChevronDown
@@ -463,7 +495,7 @@ export const Sidebar: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => toggleTeam(team.id)}
-                  className="w-full flex items-center justify-between px-2.5 py-1 text-xs font-medium text-text-secondary hover:text-text-primary rounded transition-colors group cursor-pointer"
+                  className="w-full flex items-center justify-between px-2.5 py-1 text-xs font-medium text-text-secondary hover:text-text-primary rounded-full transition-colors group cursor-pointer"
                 >
                   <div className="flex items-center space-x-2">
                     <DynamicIcon className="w-3.5 h-3.5" />
@@ -482,7 +514,7 @@ export const Sidebar: React.FC = () => {
                         setCurrentTeam(team);
                         handleNav(`/${currentWorkspace?.slug || ''}/teams/${team.id}/projects`);
                       }}
-                      className={`w-full flex items-center space-x-2 px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                      className={`w-full flex items-center space-x-2 px-3 py-1 rounded-full text-[11px] font-medium transition-colors ${
                         path.endsWith('/projects') && currentTeam?.id === team.id
                           ? 'bg-bg-surface-hover text-text-primary'
                           : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
@@ -496,7 +528,7 @@ export const Sidebar: React.FC = () => {
                         setCurrentTeam(team);
                         handleNav(`/${currentWorkspace?.slug || ''}/teams/${team.id}/issues`);
                       }}
-                      className={`w-full flex items-center space-x-2 px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                      className={`w-full flex items-center space-x-2 px-3 py-1 rounded-full text-[11px] font-medium transition-colors ${
                         path.endsWith('/issues') && currentTeam?.id === team.id
                           ? 'bg-bg-surface-hover text-text-primary'
                           : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
@@ -510,7 +542,7 @@ export const Sidebar: React.FC = () => {
                         setCurrentTeam(team);
                         handleNav(`/${currentWorkspace?.slug || ''}/teams/${team.id}/members`);
                       }}
-                      className={`w-full flex items-center space-x-2 px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                      className={`w-full flex items-center space-x-2 px-3 py-1 rounded-full text-[11px] font-medium transition-colors ${
                         path.endsWith('/members') && currentTeam?.id === team.id
                           ? 'bg-bg-surface-hover text-text-primary'
                           : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
@@ -543,7 +575,7 @@ export const Sidebar: React.FC = () => {
           </div>
           <button
             onClick={() => handleNav(`/${currentWorkspace?.slug || ''}/docs`)}
-            className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
               path.endsWith('/docs')
                 ? 'bg-bg-surface-hover text-text-primary'
                 : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
@@ -555,46 +587,66 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* Footer Navigation */}
-      <div className="px-3 py-3 border-t border-border space-y-1">
-        <button
-          onClick={() => {
-            setIsShortcutsModalOpen(true);
-            setIsMobileSidebarOpen(false);
-          }}
-          className="w-full flex items-center justify-between px-3 py-1.5 rounded-md text-xs font-medium transition-colors text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary group"
-          title="Keyboard shortcuts (?)"
-        >
-          <div className="flex items-center space-x-2.5">
-            <Keyboard className="w-3.5 h-3.5 text-text-secondary group-hover:text-text-primary" />
-            <span>Shortcuts</span>
-          </div>
-          <kbd className="text-[10px] font-mono px-1.5 py-0.5 bg-bg-surface-raised border border-border rounded text-text-tertiary">?</kbd>
-        </button>
+      {/* Footer: Profile & Notifications */}
+      <div className="px-3 py-3">
+        <div className="relative flex items-center justify-between gap-2" ref={profileMenuRef}>
+          <button
+            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+            className="flex flex-1 items-center space-x-2.5 min-w-0 px-1.5 py-1 -mx-1.5 rounded-full hover:bg-bg-surface-hover transition-colors text-left select-none"
+            title="Account"
+          >
+            <img
+              src={currentUser?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.full_name || 'User')}&background=282828&color=B3B3B3&rounded=true`}
+              alt={currentUser?.full_name || 'User'}
+              className="w-7 h-7 rounded-full object-cover shrink-0"
+            />
+            <div className="text-sm font-medium text-text-primary truncate min-w-0">
+              {currentUser?.full_name || 'User'}
+            </div>
+          </button>
 
-        <button
-          onClick={() => handleNav(`/${currentWorkspace?.slug || ''}/settings`)}
-          className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-            path.endsWith('/settings')
-              ? 'bg-bg-surface-hover text-text-primary'
-              : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
-          }`}
-        >
-          <Settings className="w-3.5 h-3.5" />
-          <span>Settings</span>
-        </button>
+          <button
+            onClick={toggleNotifications}
+            className="relative lg:hidden w-8 h-8 shrink-0 flex items-center justify-center rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors"
+            title="Notifications"
+            aria-label="Notifications"
+          >
+            <Bell className="w-4 h-4" />
+            {unreadCount > 0 && (
+              <span className="absolute top-0.5 right-0.5 min-w-[15px] h-3.5 px-1 bg-accent-primary text-button-text text-[9px] font-semibold flex items-center justify-center rounded-full leading-none">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
 
-        <button
-          onClick={() => {
-            import('../../lib/supabase').then(({ supabase }) => {
-              supabase.auth.signOut();
-            });
-          }}
-          className="w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors text-text-secondary hover:bg-status-error/10 hover:text-status-error"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-          <span>Log out</span>
-        </button>
+          {/* Profile Menu */}
+          {isProfileMenuOpen && (
+            <div className="absolute bottom-full left-0 right-0 mb-2 bg-bg-surface-raised rounded-md shadow-lg p-1.5 space-y-0.5 z-50">
+              <button
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
+                  handleNav(`/${currentWorkspace?.slug || ''}/settings`);
+                }}
+                className="w-full flex items-center space-x-2.5 px-2.5 py-2 rounded-full text-xs font-medium transition-colors text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                <span>Settings</span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
+                  import('../../lib/supabase').then(({ supabase }) => {
+                    supabase.auth.signOut();
+                  });
+                }}
+                className="w-full flex items-center space-x-2.5 px-2.5 py-2 rounded-full text-xs font-medium transition-colors text-text-secondary hover:bg-status-error/10 hover:text-status-error"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <span>Log out</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       </div>
     </aside>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { SidebarToggle } from '../../components/layout/SidebarToggle';
 import { useIssues } from '../../hooks/useIssues';
 import { 
   CheckCircle2, 
@@ -48,7 +49,7 @@ export const DashboardView: React.FC = () => {
       case 'high': return { color: 'bg-status-warning', label: 'High' };
       case 'medium': return { color: 'bg-status-attention', label: 'Med' };
       case 'low': return { color: 'bg-status-info', label: 'Low' };
-      default: return { color: 'bg-bg-surface border border-border', label: 'None' };
+      default: return { color: 'bg-bg-surface-raised border border-transparent', label: 'None' };
     }
   };
 
@@ -57,7 +58,8 @@ export const DashboardView: React.FC = () => {
       
       {/* Header section */}
       <div className="mb-4 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-karla font-semibold text-text-primary mb-0.5 sm:mb-1">
+        <h1 className="flex items-center gap-2.5 text-xl sm:text-2xl font-karla font-bold tracking-tight text-text-primary mb-0.5 sm:mb-1">
+            <SidebarToggle />
           {getGreeting()}, {currentUser?.full_name?.split(' ')[0] || 'there'}.
         </h1>
         <p className="text-text-secondary text-xs sm:text-sm">
@@ -68,7 +70,7 @@ export const DashboardView: React.FC = () => {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-3.5 mb-5 sm:mb-6">
         {/* Card 1 */}
-        <div className="bg-bg-surface p-3.5 rounded-md border border-border flex flex-col shadow-sm">
+        <div className="bg-bg-surface p-3.5 rounded-md border border-transparent flex flex-col shadow-sm">
           <div className="flex items-center space-x-1.5 text-text-secondary mb-2">
             <Clock className="w-3.5 h-3.5" />
             <span className="text-[10px] font-semibold uppercase tracking-wider">My Workload</span>
@@ -82,7 +84,7 @@ export const DashboardView: React.FC = () => {
         </div>
 
         {/* Card 2 */}
-        <div className="bg-bg-surface p-3.5 rounded-md border border-border flex flex-col shadow-sm">
+        <div className="bg-bg-surface p-3.5 rounded-md border border-transparent flex flex-col shadow-sm">
           <div className="flex items-center space-x-1.5 text-text-secondary mb-2">
             <TrendingUp className="w-3.5 h-3.5" />
             <span className="text-[10px] font-semibold uppercase tracking-wider">Workspace Volume</span>
@@ -96,7 +98,7 @@ export const DashboardView: React.FC = () => {
         </div>
 
         {/* Card 3 (Placeholder for Velocity/Completed) */}
-        <div className="bg-bg-surface p-3.5 rounded-md border border-border flex flex-col shadow-sm">
+        <div className="bg-bg-surface p-3.5 rounded-md border border-transparent flex flex-col shadow-sm">
           <div className="flex items-center space-x-1.5 text-text-secondary mb-2">
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span className="text-[10px] font-semibold uppercase tracking-wider">Weekly Velocity</span>
@@ -122,7 +124,7 @@ export const DashboardView: React.FC = () => {
             </button>
           </div>
           
-          <div className="bg-bg-surface border border-border rounded-md shadow-sm overflow-hidden">
+          <div className="bg-bg-surface-raised border border-transparent rounded-md shadow-sm overflow-hidden">
             {isLoadingMine ? (
               <div className="p-6 text-center text-xs text-text-secondary">Loading your issues...</div>
             ) : activeIssues.length === 0 ? (
@@ -144,7 +146,7 @@ export const DashboardView: React.FC = () => {
                             {issue.title}
                           </div>
                           <div className="text-[11px] text-text-tertiary mt-0.5 flex items-center space-x-1.5">
-                            <span className="font-id bg-bg-surface px-1 py-0.5 rounded text-[10px]">{issue.identifier}</span>
+                            <span className="font-id bg-bg-surface px-1 py-0.5 rounded-full text-[10px]">{issue.identifier}</span>
                             <span>•</span>
                             <span>{issue.status?.name || 'Open'}</span>
                           </div>
@@ -168,7 +170,7 @@ export const DashboardView: React.FC = () => {
           <div className="space-y-4">
             {/* Activity Item */}
             <div className="flex items-start space-x-3">
-              <div className="w-6 h-6 rounded-full bg-bg-surface border border-border flex flex-col items-center justify-center shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-bg-surface-raised border border-transparent flex flex-col items-center justify-center shrink-0 mt-0.5">
                 <span className="text-[9px] font-bold text-text-secondary">JD</span>
               </div>
               <div>
@@ -181,7 +183,7 @@ export const DashboardView: React.FC = () => {
 
             {/* Activity Item */}
             <div className="flex items-start space-x-3">
-              <div className="w-6 h-6 rounded-full bg-bg-surface border border-border flex flex-col items-center justify-center shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-bg-surface-raised border border-transparent flex flex-col items-center justify-center shrink-0 mt-0.5">
                 <span className="text-[9px] font-bold text-text-secondary">AS</span>
               </div>
               <div>
@@ -194,7 +196,7 @@ export const DashboardView: React.FC = () => {
 
             {/* Activity Item */}
             <div className="flex items-start space-x-3">
-              <div className="w-6 h-6 rounded-full bg-bg-surface border border-border flex flex-col items-center justify-center shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-bg-surface-raised border border-transparent flex flex-col items-center justify-center shrink-0 mt-0.5">
                 <span className="text-[9px] font-bold text-text-secondary">EL</span>
               </div>
               <div>

@@ -11,14 +11,14 @@ export const TeamWorkflowSettings: React.FC<TeamWorkflowSettingsProps> = ({ team
   const { workflowStates, isLoading, updateWorkflowState } = useWorkflowStates(teamId);
 
   const predefinedColors = [
-    '#726A5C', // Backlog neutral
-    '#D48C45', // Orange
-    '#C7A242', // Yellow
-    '#4A7BB5', // Blue
-    '#6B9E6D', // Green
-    '#B55151', // Red
-    '#805A96', // Purple
-    '#5C7272', // Slate
+    '#535353', // Backlog neutral
+    '#FFA42B', // Orange (warning token)
+    '#F5C842', // Yellow (attention token)
+    '#4C8DFF', // Blue (accent token)
+    '#1ED760', // Green (success token)
+    '#F15E6C', // Red (error token)
+    '#B37FEB', // Purple
+    '#509BF5', // Sky (info token)
   ];
 
   if (isLoading) {
@@ -55,11 +55,11 @@ export const TeamWorkflowSettings: React.FC<TeamWorkflowSettingsProps> = ({ team
         {workflowStates.map((state) => (
           <div
             key={state.id}
-            className="flex items-center justify-between p-3 bg-bg-surface border border-border rounded-lg"
+            className="flex items-center justify-between p-3 bg-bg-surface-raised border border-transparent rounded-lg"
           >
             <div className="flex items-center space-x-3">
               <div
-                className="w-3 h-3 rounded-full border border-border"
+                className="w-3 h-3 rounded-full border border-transparent"
                 style={{ backgroundColor: state.color }}
               />
               <div>

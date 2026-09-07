@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import DOMPurify from 'dompurify';
 import { RichTextEditor } from '../common/RichTextEditor';
 import { CustomSelect } from '../common/CustomSelect';
+import { DatePicker } from '../common/DatePicker';
 import {
   X, Trash2, Send, Edit3, MessageSquare, Plus, Check, Users, ArrowLeft, Calendar, Clock, AlertTriangle
 } from 'lucide-react';
@@ -65,6 +66,19 @@ export const IssueDetailModal: React.FC = () => {
   const [titleText, setTitleText] = useState(activeIssue?.title || '');
   const [newCommentText, setNewCommentText] = useState('');
   const [isAssigneePickerOpen, setIsAssigneePickerOpen] = useState(false);
+  const assigneePickerRef = React.useRef<HTMLDivElement>(null);
+
+  // Close the assignee picker when clicking outside of it
+  React.useEffect(() => {
+    if (!isAssigneePickerOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (assigneePickerRef.current && !assigneePickerRef.current.contains(e.target as Node)) {
+        setIsAssigneePickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isAssigneePickerOpen]);
   const [prevIssueId, setPrevIssueId] = useState(activeIssue?.id);
 
   if (activeIssue?.id !== prevIssueId) {
@@ -286,7 +300,7 @@ export const IssueDetailModal: React.FC = () => {
             key={i} 
             className={
               isCurrentUser 
-                ? 'font-medium cursor-default px-1 py-0.5 rounded text-[11px] bg-status-warning/20 text-status-warning' 
+                ? 'font-medium cursor-default px-1 py-0.5 rounded-sm text-[11px] bg-status-warning/20 text-status-warning' 
                 : 'text-text-primary font-medium hover:underline cursor-default'
             }
           >
@@ -358,11 +372,11 @@ export const IssueDetailModal: React.FC = () => {
       className={`absolute inset-0 z-30 bg-bg-surface flex flex-col overflow-hidden transform transition-transform duration-200 ease-out font-sans ${isOpen ? 'translate-x-0 pointer-events-auto' : 'translate-x-full pointer-events-none'}`}
     >
       {/* Header */}
-      <div className="px-3 sm:px-6 py-3 sm:py-3.5 border-b border-border flex items-center justify-between shrink-0 bg-bg-surface">
+      <div className="px-3 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between shrink-0 bg-bg-surface">
         <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0 mr-2 sm:mr-4">
           <button
             onClick={handleClose}
-            className="flex items-center space-x-1.5 px-2 py-1 -ml-1 rounded text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors shrink-0"
+            className="flex items-center space-x-1.5 px-2.5 py-1 -ml-1 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors shrink-0"
             title="Back to list (Esc)"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -371,7 +385,7 @@ export const IssueDetailModal: React.FC = () => {
 
           <div className="w-px h-4 bg-border shrink-0" />
 
-          <span className="font-id text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-sm bg-bg-surface border border-border text-text-secondary shrink-0">
+          <span className="font-id text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-bg-surface-raised border border-transparent text-text-secondary shrink-0">
             {formatIssueIdentifier(activeIssue, currentWorkspace)}
           </span>
 
@@ -395,14 +409,14 @@ export const IssueDetailModal: React.FC = () => {
                       setIsEditingTitle(false);
                     }
                   }}
-                  className="w-full text-sm sm:text-base font-semibold text-text-primary px-2.5 py-1 bg-bg-surface border border-border focus:border-text-secondary focus:ring-1 focus:ring-text-secondary rounded focus:outline-none transition-colors"
+                  className="w-full text-sm sm:text-base font-semibold text-text-primary px-2.5 py-1 bg-bg-surface-raised border border-transparent focus:border-text-secondary focus:ring-1 focus:ring-text-secondary rounded-sm focus:outline-none transition-colors"
                   placeholder="Issue title..."
                 />
               </form>
             ) : (
               <div
                 onClick={() => setIsEditingTitle(true)}
-                className="group/title flex items-center space-x-2 cursor-pointer py-1 px-1.5 -ml-1.5 rounded hover:bg-bg-surface/70 transition-colors flex-1 min-w-0"
+                className="group/title flex items-center space-x-2 cursor-pointer py-1 px-1.5 -ml-1.5 rounded-sm hover:bg-bg-surface/70 transition-colors flex-1 min-w-0"
                 title="Click to rename title"
               >
                 <h2 className="text-sm sm:text-base font-semibold text-text-primary truncate">
@@ -417,7 +431,7 @@ export const IssueDetailModal: React.FC = () => {
             {(userRole === 'admin' || activeIssue.reporter_id === currentUser?.id) && (
               <button
                 onClick={() => setShowDeleteIssueModal(true)}
-                className="p-1.5 rounded-md text-text-secondary hover:text-status-error hover:bg-bg-surface transition-colors"
+                className="p-1.5 rounded-full text-text-secondary hover:text-status-error hover:bg-bg-surface transition-colors"
                 title="Delete Issue"
               >
                 <Trash2 className="w-4 h-4" />
@@ -425,7 +439,7 @@ export const IssueDetailModal: React.FC = () => {
             )}
             <button
               onClick={handleClose}
-              className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors"
+              className="p-1.5 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors"
               title="Close"
             >
               <X className="w-5 h-5" />
@@ -453,13 +467,13 @@ export const IssueDetailModal: React.FC = () => {
                   <div className="flex justify-end space-x-2 pt-1">
                     <button
                       onClick={() => setDescriptionText(activeIssue.description || '')}
-                      className="px-3 py-1.5 rounded text-xs text-text-secondary hover:bg-bg-surface transition-colors"
+                      className="px-3 py-1.5 rounded-full text-xs text-text-secondary hover:bg-bg-surface transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSaveDescription}
-                      className="px-3 py-1.5 rounded bg-accent-primary hover:bg-accent-primary-hover text-bg-base text-xs font-medium transition-colors"
+                      className="px-3 py-1.5 rounded-full bg-accent-primary hover:bg-accent-primary-hover text-button-text text-xs font-semibold transition-colors"
                     >
                       Save Description
                     </button>
@@ -509,7 +523,7 @@ export const IssueDetailModal: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2.5">
                           <img
-                            src={comment.author?.avatar_url || `https://ui-avatars.com/api/?name=${comment.author?.full_name}&background=EFE8DC&color=3A342C`}
+                            src={comment.author?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author?.full_name)}&background=282828&color=B3B3B3&rounded=true`}
                             alt="Author"
                             className="w-5 h-5 rounded-full object-cover"
                           />
@@ -525,14 +539,14 @@ export const IssueDetailModal: React.FC = () => {
                                   setEditingCommentId(comment.id);
                                   setEditCommentText(comment.body);
                                 }}
-                                className="p-1 text-text-tertiary hover:text-text-primary rounded hover:bg-bg-surface-hover transition-colors"
+                                className="p-1 text-text-tertiary hover:text-text-primary rounded-full hover:bg-bg-surface-hover transition-colors"
                                 title="Edit comment"
                               >
                                 <Edit3 className="w-3 h-3" />
                               </button>
                               <button
                                 onClick={() => setDeletingCommentId(comment.id)}
-                                className="p-1 text-text-tertiary hover:text-status-error rounded hover:bg-bg-surface-hover transition-colors"
+                                className="p-1 text-text-tertiary hover:text-status-error rounded-full hover:bg-bg-surface-hover transition-colors"
                                 title="Delete comment"
                               >
                                 <Trash2 className="w-3 h-3" />
@@ -548,7 +562,7 @@ export const IssueDetailModal: React.FC = () => {
                       {isEditing ? (
                         <div className="pt-2 pl-7 relative">
                           {showMentionPicker && mentionContext === 'edit' && filteredMentionables.length > 0 && (
-                            <div className="absolute bottom-full left-7 mb-1 w-64 max-h-48 overflow-y-auto bg-bg-surface-raised border border-border rounded-md shadow-lg z-50 py-1">
+                            <div className="absolute bottom-full left-7 mb-1 w-64 max-h-48 overflow-y-auto bg-bg-surface-raised border border-transparent rounded-md shadow-lg z-50 py-1">
                               {filteredMentionables.map(p => (
                                 <button
                                   key={p.id}
@@ -557,7 +571,7 @@ export const IssueDetailModal: React.FC = () => {
                                   className="w-full text-left px-3 py-2 text-xs hover:bg-bg-surface-hover flex items-center space-x-2 transition-colors"
                                 >
                                   <img
-                                    src={p.avatar_url || `https://ui-avatars.com/api/?name=${p.full_name || p.email}&background=EFE8DC&color=3A342C`}
+                                    src={p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.full_name || p.email)}&background=282828&color=B3B3B3&rounded=true`}
                                     alt="Avatar"
                                     className="w-5 h-5 rounded-full object-cover shrink-0"
                                   />
@@ -588,7 +602,7 @@ export const IssueDetailModal: React.FC = () => {
                               }
                             }}
                             onPaste={handleEditCommentPaste}
-                            className="w-full text-sm bg-bg-base border border-border rounded-md px-3 py-2 text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                            className="w-full text-sm bg-bg-base border border-transparent rounded-md px-3 py-2 text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                             rows={3}
                           />
                           <div className="flex justify-end space-x-2 mt-2">
@@ -597,7 +611,7 @@ export const IssueDetailModal: React.FC = () => {
                                 setEditingCommentId(null);
                                 setEditCommentText('');
                               }}
-                              className="px-3 py-1.5 rounded text-xs text-text-secondary hover:bg-bg-surface transition-colors"
+                              className="px-3 py-1.5 rounded-full text-xs text-text-secondary hover:bg-bg-surface transition-colors"
                             >
                               Cancel
                             </button>
@@ -608,7 +622,7 @@ export const IssueDetailModal: React.FC = () => {
                                 }
                                 setEditingCommentId(null);
                               }}
-                              className="px-3 py-1.5 rounded bg-accent-primary hover:bg-accent-primary-hover text-bg-base text-xs font-medium transition-colors"
+                              className="px-3 py-1.5 rounded-full bg-accent-primary hover:bg-accent-primary-hover text-button-text text-xs font-semibold transition-colors"
                             >
                               Save
                             </button>
@@ -627,13 +641,13 @@ export const IssueDetailModal: React.FC = () => {
               {/* Add Comment Input */}
               <form onSubmit={handleSendComment} className="flex items-start space-x-3 pt-2">
                 <img
-                  src={currentUser?.avatar_url || `https://ui-avatars.com/api/?name=${currentUser?.full_name}&background=EFE8DC&color=3A342C`}
+                  src={currentUser?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.full_name || 'User')}&background=282828&color=B3B3B3&rounded=true`}
                   alt="You"
                   className="w-6 h-6 rounded-full object-cover mt-1"
                 />
                 <div className="flex-1 relative">
                   {showMentionPicker && mentionContext === 'new' && filteredMentionables.length > 0 && (
-                    <div className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto bg-bg-surface-raised border border-border rounded-md shadow-lg z-50 py-1">
+                    <div className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto bg-bg-surface-raised border border-transparent rounded-md shadow-lg z-50 py-1">
                       {filteredMentionables.map(p => (
                         <button
                           key={p.id}
@@ -642,7 +656,7 @@ export const IssueDetailModal: React.FC = () => {
                           className="w-full text-left px-3 py-2 text-xs hover:bg-bg-surface-hover flex items-center space-x-2 transition-colors"
                         >
                           <img
-                            src={p.avatar_url || `https://ui-avatars.com/api/?name=${p.full_name || p.email}&background=EFE8DC&color=3A342C`}
+                            src={p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.full_name || p.email)}&background=282828&color=B3B3B3&rounded=true`}
                             alt="Avatar"
                             className="w-5 h-5 rounded-full object-cover shrink-0"
                           />
@@ -659,7 +673,7 @@ export const IssueDetailModal: React.FC = () => {
                     onChange={handleCommentChange}
                     onKeyDown={handleCommentKeyDown}
                     onPaste={handleCommentPaste}
-                    className="w-full text-sm bg-bg-surface border border-border rounded-md pl-3 pr-10 py-2 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                    className="w-full text-sm bg-bg-surface-raised border border-transparent rounded-md pl-3 pr-10 py-2 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                   />
                   <button
                     type="submit"
@@ -710,7 +724,7 @@ export const IssueDetailModal: React.FC = () => {
             </div>
 
             {/* Multi-Assignees Section */}
-            <div className="space-y-2 relative">
+            <div className="space-y-2 relative" ref={assigneePickerRef}>
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-text-secondary">
                   Assignees ({currentAssigneeIds.length})
@@ -728,18 +742,18 @@ export const IssueDetailModal: React.FC = () => {
               {/* Assigned List Chips */}
               <div className="space-y-1.5">
                 {assignedProfiles.length === 0 ? (
-                  <div className="text-xs text-text-tertiary p-2 bg-bg-surface border border-border rounded">
+                  <div className="text-xs text-text-tertiary p-2 bg-bg-surface-raised border border-transparent rounded-sm">
                     No assignees
                   </div>
                 ) : (
                   assignedProfiles.map(u => (
                     <div
                       key={u.id}
-                      className="flex items-center justify-between px-2.5 py-1.5 bg-bg-surface border border-border rounded text-xs"
+                      className="flex items-center justify-between px-2.5 py-1.5 bg-bg-surface-raised border border-transparent rounded-sm text-xs"
                     >
                       <div className="flex items-center space-x-2 min-w-0">
                         <img
-                          src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.full_name || u.email}&background=EFE8DC&color=3A342C`}
+                          src={u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || u.email)}&background=282828&color=B3B3B3&rounded=true`}
                           alt="Avatar"
                           className="w-4 h-4 rounded-full object-cover shrink-0"
                         />
@@ -759,18 +773,18 @@ export const IssueDetailModal: React.FC = () => {
 
               {/* Assignee Picker Dropdown */}
               {isAssigneePickerOpen && (
-                <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-bg-surface border border-border rounded-md shadow-lg max-h-48 overflow-y-auto p-1 divide-y divide-border/40">
+                <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-bg-surface-raised border border-transparent rounded-md shadow-lg max-h-48 overflow-y-auto p-1.5 space-y-0.5">
                   {mentionableProfiles.map((u: any) => {
                     const isSelected = currentAssigneeIds.includes(u.id);
                     return (
                       <div
                         key={u.id}
                         onClick={() => handleToggleAssignee(u.id)}
-                        className="flex items-center justify-between p-2 hover:bg-bg-surface/50 cursor-pointer rounded text-xs transition-colors"
+                        className="flex items-center justify-between px-2.5 py-2 hover:bg-bg-surface-hover cursor-pointer rounded-sm text-xs transition-colors"
                       >
                         <div className="flex items-center space-x-2 min-w-0">
                           <img
-                            src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.full_name || u.email}&background=EFE8DC&color=3A342C`}
+                            src={u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || u.email)}&background=282828&color=B3B3B3&rounded=true`}
                             alt="Avatar"
                             className="w-4 h-4 rounded-full object-cover shrink-0"
                           />
@@ -779,7 +793,7 @@ export const IssueDetailModal: React.FC = () => {
                             <div className="text-[10px] text-text-secondary truncate">{u.email}</div>
                           </div>
                         </div>
-                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${isSelected ? 'bg-accent-primary border-accent-primary text-bg-base' : 'border-border'}`}>
+                        <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${isSelected ? 'bg-accent-primary border-accent-primary text-button-text' : 'border-border'}`}>
                           {isSelected && <Check className="w-2.5 h-2.5" />}
                         </div>
                       </div>
@@ -801,7 +815,7 @@ export const IssueDetailModal: React.FC = () => {
                 value={activeIssue.estimate || ''}
                 onChange={e => handleUpdateField('estimate', e.target.value ? parseInt(e.target.value, 10) : null)}
                 placeholder="Story points..."
-                className="w-full text-xs bg-bg-surface border border-border rounded-md px-2.5 py-1.5 text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-md px-2.5 py-1.5 text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
               />
             </div>
 
@@ -822,12 +836,7 @@ export const IssueDetailModal: React.FC = () => {
                   </button>
                 )}
               </div>
-              <input
-                type="date"
-                value={activeIssue.due_date || ''}
-                onChange={e => handleUpdateField('due_date', e.target.value || null)}
-                className="w-full text-xs bg-bg-surface border border-border rounded-md px-2.5 py-1.5 text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
-              />
+              <DatePicker value={activeIssue.due_date || ''} onChange={(v) => handleUpdateField('due_date', v || null)} placeholder="Due date" />
               {activeIssue.due_date && (() => {
                 const now = new Date();
                 now.setHours(0, 0, 0, 0);
@@ -840,7 +849,7 @@ export const IssueDetailModal: React.FC = () => {
 
                 if (diffDays < 0) {
                   return (
-                    <div className="inline-flex items-center space-x-1 text-[10px] font-medium text-status-error bg-bg-surface-raised border border-border px-1.5 py-0.5 rounded mt-1">
+                    <div className="inline-flex items-center space-x-1 text-[10px] font-medium text-status-error bg-bg-surface-raised border border-transparent px-1.5 py-0.5 rounded-full mt-1">
                       <AlertTriangle className="w-3 h-3 text-status-error shrink-0" />
                       <span>Overdue {Math.abs(diffDays)}d</span>
                     </div>
@@ -848,7 +857,7 @@ export const IssueDetailModal: React.FC = () => {
                 }
                 if (diffDays === 0) {
                   return (
-                    <div className="inline-flex items-center space-x-1 text-[10px] font-medium text-status-warning bg-bg-surface-raised border border-border px-1.5 py-0.5 rounded mt-1">
+                    <div className="inline-flex items-center space-x-1 text-[10px] font-medium text-status-warning bg-bg-surface-raised border border-transparent px-1.5 py-0.5 rounded-full mt-1">
                       <Clock className="w-3 h-3 text-status-warning shrink-0" />
                       <span>Due Today</span>
                     </div>
@@ -856,7 +865,7 @@ export const IssueDetailModal: React.FC = () => {
                 }
                 if (diffDays <= 2) {
                   return (
-                    <div className="inline-flex items-center space-x-1 text-[10px] font-medium text-status-warning bg-bg-surface-raised border border-border px-1.5 py-0.5 rounded mt-1">
+                    <div className="inline-flex items-center space-x-1 text-[10px] font-medium text-status-warning bg-bg-surface-raised border border-transparent px-1.5 py-0.5 rounded-full mt-1">
                       <span>{diffDays}d left</span>
                     </div>
                   );

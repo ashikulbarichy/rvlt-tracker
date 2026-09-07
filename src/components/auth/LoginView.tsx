@@ -88,7 +88,7 @@ export const LoginView: React.FC<LoginViewProps> = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <img src="/favicon.svg" alt="Logo" className="w-14 h-14 rounded-xl mx-auto drop-shadow-sm mb-4" />
-          <h1 className="text-2xl sm:text-3xl font-karla font-semibold text-text-primary mb-1.5">
+          <h1 className="text-2xl sm:text-3xl font-karla font-bold tracking-tight text-text-primary mb-1.5">
             {viewMode === 'login' ? 'Welcome back' : 'Reset your password'}
           </h1>
           <p className="text-xs sm:text-sm text-text-secondary">
@@ -99,12 +99,12 @@ export const LoginView: React.FC<LoginViewProps> = () => {
         </div>
 
         {/* Card */}
-        <div className="bg-bg-surface p-5 sm:p-8 rounded-xl border border-border shadow-sm">
+        <div className="bg-bg-surface p-5 sm:p-8 rounded-xl border border-transparent shadow-sm">
           {viewMode === 'login' ? (
             /* Login Form */
             <form onSubmit={handleLogin} className="space-y-4">
               {error && (
-                <div className="p-3 bg-status-error/10 border border-status-error/20 text-status-error text-xs rounded-md">
+                <div className="p-3 bg-status-error/10 border border-transparent text-status-error text-xs rounded-md">
                   {error}
                 </div>
               )}
@@ -121,7 +121,7 @@ export const LoginView: React.FC<LoginViewProps> = () => {
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 bg-bg-surface border border-border rounded-md text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
+                    className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-raised border border-transparent rounded-md text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
                     placeholder="name@company.com"
                     required
                   />
@@ -153,7 +153,7 @@ export const LoginView: React.FC<LoginViewProps> = () => {
                     type="password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 bg-bg-surface border border-border rounded-md text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
+                    className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-raised border border-transparent rounded-md text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
                     placeholder="••••••••"
                     required
                   />
@@ -163,7 +163,7 @@ export const LoginView: React.FC<LoginViewProps> = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center space-x-2 bg-accent-primary hover:bg-accent-primary-hover disabled:bg-accent-primary/50 text-bg-base py-2.5 rounded-md text-sm font-medium transition-colors mt-2"
+                className="w-full flex items-center justify-center space-x-2 bg-accent-primary hover:bg-accent-primary-hover disabled:bg-accent-primary/50 text-black py-2.5 rounded-full text-sm font-semibold transition-colors mt-2"
               >
                 <span>{isLoading ? 'Logging in...' : 'Log in'}</span>
                 {!isLoading && <ArrowRight className="w-4 h-4" />}
@@ -174,7 +174,7 @@ export const LoginView: React.FC<LoginViewProps> = () => {
             <div>
               {isResetSent ? (
                 <div className="text-center space-y-4 py-2">
-                  <div className="w-12 h-12 rounded-full bg-status-success/15 border border-status-success/30 flex items-center justify-center mx-auto text-status-success">
+                  <div className="w-12 h-12 rounded-full bg-status-success/15 border border-transparent flex items-center justify-center mx-auto text-status-success">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
                   <div>
@@ -190,7 +190,7 @@ export const LoginView: React.FC<LoginViewProps> = () => {
                       setIsResetSent(false);
                       setViewMode('login');
                     }}
-                    className="w-full flex items-center justify-center space-x-2 bg-bg-surface hover:bg-bg-surface-hover text-text-primary border border-border py-2 rounded-md text-xs font-medium transition-colors mt-3"
+                    className="w-full flex items-center justify-center space-x-2 bg-bg-surface hover:bg-bg-surface-hover text-text-primary border border-transparent py-2 rounded-md text-xs font-medium transition-colors mt-3"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>Back to log in</span>
@@ -199,7 +199,7 @@ export const LoginView: React.FC<LoginViewProps> = () => {
               ) : (
                 <form onSubmit={handleForgotPassword} className="space-y-4">
                   {error && (
-                    <div className="p-3 bg-status-error/10 border border-status-error/20 text-status-error text-xs rounded-md">
+                    <div className="p-3 bg-status-error/10 border border-transparent text-status-error text-xs rounded-md">
                       {error}
                     </div>
                   )}
@@ -216,7 +216,7 @@ export const LoginView: React.FC<LoginViewProps> = () => {
                         type="email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2.5 bg-bg-surface border border-border rounded-md text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
+                        className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-raised border border-transparent rounded-md text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
                         placeholder="name@company.com"
                         required
                         autoFocus
@@ -227,7 +227,7 @@ export const LoginView: React.FC<LoginViewProps> = () => {
                   <button
                     type="submit"
                     disabled={isLoading || !email}
-                    className="w-full flex items-center justify-center space-x-2 bg-accent-primary hover:bg-accent-primary-hover disabled:bg-accent-primary/50 text-bg-base py-2.5 rounded-md text-sm font-medium transition-colors mt-2"
+                    className="w-full flex items-center justify-center space-x-2 bg-accent-primary hover:bg-accent-primary-hover disabled:bg-accent-primary/50 text-black py-2.5 rounded-full text-sm font-semibold transition-colors mt-2"
                   >
                     <span>{isLoading ? 'Sending link...' : 'Send reset link'}</span>
                     {!isLoading && <ArrowRight className="w-4 h-4" />}

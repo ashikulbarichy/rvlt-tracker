@@ -8,7 +8,7 @@
   
   <!-- Clean Tick / Checkmark -->
   <path d="M188 262 L236 312 L328 196" 
-        stroke="#4C8DFF" 
+        stroke="#4C8DFF"
         stroke-width="36" 
         stroke-linecap="round" 
         stroke-linejoin="round" />

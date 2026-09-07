@@ -6,7 +6,13 @@
  * Modify this file to change typography across the entire application.
  */
 
-/* 1. Primary App Font Faces (Open Runde) */
+/* 0. Figtree — closest free alternative to Spotify's Circular */
+@import '@fontsource/figtree/400.css';
+@import '@fontsource/figtree/500.css';
+@import '@fontsource/figtree/600.css';
+@import '@fontsource/figtree/700.css';
+
+/* 1. Legacy App Font Faces (Open Runde) */
 @font-face {
   font-family: 'Open Runde';
   src: url('/OpenRunde-1.0.1/web/OpenRunde-Regular.woff2') format('woff2'),
@@ -45,17 +51,17 @@
 
 /* 2. Central Typography Tokens */
 :root {
-  /* Font Family Definitions */
-  --font-sans: 'Open Runde', system-ui, -apple-system, sans-serif;
-  --font-heading: 'Open Runde', sans-serif;
+  /* Font Family Definitions (Figtree ≈ Spotify Circular) */
+  --font-sans: 'Figtree', 'Open Runde', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --font-heading: 'Figtree', 'Open Runde', sans-serif;
   --font-id: 'IBM Plex Sans', sans-serif;
   --font-mono: 'IBM Plex Sans', monospace;
 
-  /* Scaled Font Weights (Stepped down by 1 level for dark-mode clarity) */
+  /* True font weights (Spotify-style: bold, confident type) */
   --font-weight-normal: 400;
-  --font-weight-medium: 400;
-  --font-weight-semibold: 500;
-  --font-weight-bold: 600;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
   --font-weight-extrabold: 700;
 }
 

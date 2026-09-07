@@ -52,13 +52,13 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, classNa
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-10 h-10 rounded-lg bg-bg-surface border border-border flex items-center justify-center text-text-primary hover:border-accent-primary hover:ring-1 hover:ring-accent-primary/50 transition-colors focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+        className="w-10 h-10 rounded-lg bg-bg-surface-raised border border-transparent flex items-center justify-center text-text-primary hover:border-accent-primary hover:ring-1 hover:ring-accent-primary/50 transition-colors focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
       >
         <SelectedIcon className="w-5 h-5" />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full mt-1.5 left-0 w-64 bg-bg-surface border border-border rounded-lg shadow-lg z-50 p-2 font-sans overflow-hidden flex flex-col">
+        <div className="absolute top-full mt-1.5 left-0 w-64 bg-bg-surface-raised border border-transparent rounded-lg shadow-lg z-50 p-2 font-sans overflow-hidden flex flex-col">
           <div className="relative mb-2">
             <Icons.Search className="w-3.5 h-3.5 text-text-tertiary absolute left-2 top-1/2 -translate-y-1/2" />
             <input
@@ -66,7 +66,7 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, classNa
               placeholder="Search icons..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-7 pr-2 py-1.5 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+              className="w-full pl-7 pr-2 py-1.5 text-xs bg-bg-surface-raised border border-transparent rounded-full text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
             />
           </div>
           
@@ -92,9 +92,9 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, classNa
                       setIsOpen(false);
                       setSearch('');
                     }}
-                    className={`w-8 h-8 rounded flex items-center justify-center transition-colors ${
+                    className={`w-8 h-8 rounded-sm flex items-center justify-center transition-colors ${
                       isSelected 
-                        ? 'bg-accent-primary/10 text-accent-primary border border-accent-primary/30' 
+                        ? 'bg-accent-primary/10 text-accent-primary border border-transparent' 
                         : 'text-text-secondary hover:bg-bg-surface hover:text-text-primary border border-transparent'
                     }`}
                   >

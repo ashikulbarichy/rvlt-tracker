@@ -26,6 +26,7 @@ import {
   FolderKanban
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { SidebarToggle } from '../../components/layout/SidebarToggle';
 import { TestCase, TestCaseStatus, IssuePriority } from '../../types/database';
 import { useTestCases } from '../../hooks/useTestCases';
 import { useProjects } from '../../hooks/useProjects';
@@ -272,7 +273,8 @@ export const TestCaseListView: React.FC = () => {
       {/* Header section */}
       <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-karla font-semibold text-text-primary mb-0.5 sm:mb-1">
+          <h1 className="flex items-center gap-2.5 text-xl sm:text-2xl font-karla font-bold tracking-tight text-text-primary mb-0.5 sm:mb-1">
+            <SidebarToggle />
             Testing
           </h1>
           <p className="hidden sm:block text-text-secondary text-xs sm:text-sm">
@@ -281,7 +283,7 @@ export const TestCaseListView: React.FC = () => {
         </div>
         <button
           onClick={() => setIsNewTestCaseModalOpen(true)}
-          className="flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-md bg-accent-primary hover:bg-accent-primary-hover text-bg-base text-xs sm:text-sm font-medium transition-colors shadow-sm"
+          className="flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-accent-primary hover:bg-accent-primary-hover text-button-text text-xs sm:text-sm font-semibold transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           <span>New Test Case</span>
@@ -324,7 +326,7 @@ export const TestCaseListView: React.FC = () => {
                   setIsSortMenuOpen(!isSortMenuOpen);
                   setIsViewMenuOpen(false);
                 }}
-                className={`p-1.5 rounded transition-colors text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover ${
+                className={`p-1.5 rounded-full transition-colors text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover ${
                   isSortMenuOpen ? 'bg-bg-surface text-text-primary' : ''
                 }`}
                 title={`Sort by: ${sortOptions.find(s => s.id === sortBy)?.label}`}
@@ -333,7 +335,7 @@ export const TestCaseListView: React.FC = () => {
               </button>
 
               {isSortMenuOpen && (
-                <div className="absolute left-0 mt-1.5 w-44 bg-bg-surface border border-border rounded-md shadow-xl py-1 z-30 animate-in fade-in-0 zoom-in-95">
+                <div className="absolute left-0 mt-1.5 w-44 bg-bg-surface-raised border border-transparent rounded-md shadow-xl py-1 z-30 animate-in fade-in-0 zoom-in-95">
                   <div className="px-2.5 py-1 text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
                     Sort by
                   </div>
@@ -362,7 +364,7 @@ export const TestCaseListView: React.FC = () => {
                   setIsViewMenuOpen(!isViewMenuOpen);
                   setIsSortMenuOpen(false);
                 }}
-                className={`p-1.5 rounded transition-colors text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover ${
+                className={`p-1.5 rounded-full transition-colors text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover ${
                   isViewMenuOpen ? 'bg-bg-surface text-text-primary' : ''
                 }`}
                 title="Change display layout"
@@ -375,7 +377,7 @@ export const TestCaseListView: React.FC = () => {
               </button>
 
               {isViewMenuOpen && (
-                <div className="absolute left-0 mt-1.5 w-36 bg-bg-surface border border-border rounded-md shadow-xl py-1 z-30 animate-in fade-in-0 zoom-in-95">
+                <div className="absolute left-0 mt-1.5 w-36 bg-bg-surface-raised border border-transparent rounded-md shadow-xl py-1 z-30 animate-in fade-in-0 zoom-in-95">
                   <div className="px-2.5 py-1 text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
                     Layout
                   </div>
@@ -421,7 +423,7 @@ export const TestCaseListView: React.FC = () => {
               placeholder="Search..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-36 sm:w-44 pl-8 pr-2.5 py-1.5 bg-bg-surface hover:bg-bg-surface-hover focus:bg-bg-surface border border-border rounded-md text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-border-strong transition-colors"
+              className="w-36 sm:w-44 pl-8 pr-2.5 py-1.5 bg-bg-surface hover:bg-bg-surface-hover focus:bg-bg-surface-raised border border-transparent rounded-full text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-border-strong transition-colors"
             />
           </div>
 
@@ -445,7 +447,7 @@ export const TestCaseListView: React.FC = () => {
               </button>
 
               {isProjectMenuOpen && (
-                <div className="absolute right-0 mt-1.5 w-48 bg-bg-surface border border-border rounded-md shadow-xl py-1 z-30 animate-in fade-in-0 zoom-in-95">
+                <div className="absolute right-0 mt-1.5 w-48 bg-bg-surface-raised border border-transparent rounded-md shadow-xl py-1 z-30 animate-in fade-in-0 zoom-in-95">
                   <div className="px-2.5 py-1 text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
                     Filter by Project
                   </div>
@@ -542,7 +544,7 @@ export const TestCaseListView: React.FC = () => {
 
                       {/* Project Badge */}
                       {project && (
-                        <span className="hidden md:inline-flex items-center space-x-1 text-[10px] px-1.5 py-0.5 rounded bg-bg-surface-raised border border-border text-text-tertiary shrink-0">
+                        <span className="hidden md:inline-flex items-center space-x-1 text-[10px] px-1.5 py-0.5 rounded-full bg-bg-surface-raised border border-transparent text-text-tertiary shrink-0">
                           <FolderKanban className="w-2.5 h-2.5" />
                           <span className="truncate max-w-[120px]">{project.name}</span>
                         </span>
@@ -561,7 +563,7 @@ export const TestCaseListView: React.FC = () => {
                             console.error('Failed to change status:', err);
                           }
                         }}
-                        className={`text-[11px] font-medium px-2 py-0.5 rounded border focus:outline-none cursor-pointer transition-colors ${
+                        className={`text-[11px] font-medium px-2 py-0.5 rounded-full border focus:outline-none cursor-pointer transition-colors ${
                           test.status === 'passed' ? 'bg-status-success/15 border-status-success/40 text-status-success' :
                           test.status === 'failed' ? 'bg-status-error/15 border-status-error/40 text-status-error font-semibold' :
                           test.status === 'draft' ? 'bg-bg-surface border-border text-text-tertiary' :
@@ -578,7 +580,7 @@ export const TestCaseListView: React.FC = () => {
                         <button
                           onClick={() => handleFileBugFromTest(test)}
                           title="File Bug Issue from this test failure"
-                          className="flex items-center space-x-1 px-2 py-0.5 rounded bg-status-error/15 hover:bg-status-error/25 border border-status-error/40 text-[11px] text-status-error font-medium transition-colors"
+                          className="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-status-error/15 hover:bg-status-error/25 border border-transparent text-[11px] text-status-error font-medium transition-colors"
                         >
                           <Bug className="w-3 h-3" />
                           <span className="hidden sm:inline">File Bug</span>
@@ -587,7 +589,7 @@ export const TestCaseListView: React.FC = () => {
 
                       <button
                         onClick={() => (isEditing ? handleCancelEdit() : handleStartEdit(test))}
-                        className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-bg-surface transition-colors"
+                        className="p-1 rounded-full text-text-tertiary hover:text-text-primary hover:bg-bg-surface transition-colors"
                         title={isEditing ? 'Cancel edit' : 'Edit test case'}
                       >
                         <Edit2 className="w-3.5 h-3.5" />
@@ -595,7 +597,7 @@ export const TestCaseListView: React.FC = () => {
 
                       <button
                         onClick={() => setDeletingTestCase({ id: test.id, title: test.title })}
-                        className="p-1 rounded text-text-tertiary hover:text-status-error hover:bg-bg-surface transition-colors"
+                        className="p-1 rounded-full text-text-tertiary hover:text-status-error hover:bg-bg-surface transition-colors"
                         title="Delete test case"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -617,7 +619,7 @@ export const TestCaseListView: React.FC = () => {
                               type="text"
                               value={editTitle}
                               onChange={e => setEditTitle(e.target.value)}
-                              className="w-full text-xs bg-bg-surface border border-border rounded px-3 py-1.5 text-text-primary focus:outline-none focus:border-border-strong"
+                              className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-sm px-3 py-1.5 text-text-primary focus:outline-none focus:border-border-strong"
                             />
                           </div>
 
@@ -629,7 +631,7 @@ export const TestCaseListView: React.FC = () => {
                               <select
                                 value={editProjectId}
                                 onChange={e => setEditProjectId(e.target.value)}
-                                className="w-full text-xs bg-bg-surface border border-border rounded px-2.5 py-1.5 text-text-primary focus:outline-none focus:border-border-strong"
+                                className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-sm px-2.5 py-1.5 text-text-primary focus:outline-none focus:border-border-strong"
                               >
                                 <option value="">No Project (General)</option>
                                 {projects?.map(p => (
@@ -645,7 +647,7 @@ export const TestCaseListView: React.FC = () => {
                               <select
                                 value={editPriority}
                                 onChange={e => setEditPriority(e.target.value as IssuePriority)}
-                                className="w-full text-xs bg-bg-surface border border-border rounded px-2.5 py-1.5 text-text-primary focus:outline-none focus:border-border-strong"
+                                className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-sm px-2.5 py-1.5 text-text-primary focus:outline-none focus:border-border-strong"
                               >
                                 <option value="urgent">Urgent</option>
                                 <option value="high">High</option>
@@ -663,7 +665,7 @@ export const TestCaseListView: React.FC = () => {
                               rows={2}
                               value={editPreconditions}
                               onChange={e => setEditPreconditions(e.target.value)}
-                              className="w-full text-xs bg-bg-surface border border-border rounded p-2.5 text-text-primary focus:outline-none focus:border-border-strong resize-y"
+                              className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-sm p-2.5 text-text-primary focus:outline-none focus:border-border-strong resize-y"
                             />
                           </div>
 
@@ -675,7 +677,7 @@ export const TestCaseListView: React.FC = () => {
                               rows={3}
                               value={editSteps}
                               onChange={e => setEditSteps(e.target.value)}
-                              className="w-full text-xs font-mono bg-bg-surface border border-border rounded p-2.5 text-text-primary focus:outline-none focus:border-border-strong resize-y"
+                              className="w-full text-xs font-mono bg-bg-surface-raised border border-transparent rounded-sm p-2.5 text-text-primary focus:outline-none focus:border-border-strong resize-y"
                             />
                           </div>
 
@@ -687,7 +689,7 @@ export const TestCaseListView: React.FC = () => {
                               rows={2}
                               value={editExpectedResult}
                               onChange={e => setEditExpectedResult(e.target.value)}
-                              className="w-full text-xs bg-bg-surface border border-border rounded p-2.5 text-text-primary focus:outline-none focus:border-border-strong resize-y"
+                              className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-sm p-2.5 text-text-primary focus:outline-none focus:border-border-strong resize-y"
                             />
                           </div>
 
@@ -695,7 +697,7 @@ export const TestCaseListView: React.FC = () => {
                             <button
                               type="button"
                               onClick={handleCancelEdit}
-                              className="px-3 py-1.5 rounded bg-bg-surface hover:bg-bg-surface-hover text-text-secondary border border-border text-xs font-medium transition-colors"
+                              className="px-3 py-1.5 rounded-full bg-bg-surface hover:bg-bg-surface-hover text-text-secondary border border-transparent text-xs font-medium transition-colors"
                             >
                               Cancel
                             </button>
@@ -703,7 +705,7 @@ export const TestCaseListView: React.FC = () => {
                               type="button"
                               disabled={isSavingEdit || !editTitle.trim()}
                               onClick={() => handleSaveEdit(test.id)}
-                              className="flex items-center space-x-1 px-3 py-1.5 rounded bg-accent-primary hover:bg-accent-primary-hover text-bg-base text-xs font-medium transition-colors disabled:opacity-50"
+                              className="flex items-center space-x-1 px-3 py-1.5 rounded-full bg-accent-primary hover:bg-accent-primary-hover text-button-text text-xs font-semibold transition-colors disabled:opacity-50"
                             >
                               <Save className="w-3.5 h-3.5" />
                               <span>{isSavingEdit ? 'Saving...' : 'Save Changes'}</span>
@@ -726,7 +728,7 @@ export const TestCaseListView: React.FC = () => {
                             <span className="font-semibold text-text-secondary text-[10px] uppercase tracking-wider block mb-0.5">
                               Test Steps:
                             </span>
-                            <p className="text-text-primary whitespace-pre-wrap font-mono text-[11px] bg-bg-surface border border-border rounded p-2.5 leading-relaxed">
+                            <p className="text-text-primary whitespace-pre-wrap font-mono text-[11px] bg-bg-surface-raised border border-transparent rounded-sm p-2.5 leading-relaxed">
                               {test.steps || 'No steps provided.'}
                             </p>
                           </div>
@@ -756,7 +758,7 @@ export const TestCaseListView: React.FC = () => {
                 <div
                   key={test.id}
                   onClick={() => setExpandedId(expandedId === test.id ? null : test.id)}
-                  className="bg-bg-surface border border-border hover:border-border-strong rounded-md p-4 flex flex-col justify-between space-y-3 cursor-pointer transition-colors"
+                  className="bg-bg-surface-raised border border-transparent hover:bg-bg-surface-hover rounded-md p-4 flex flex-col justify-between space-y-3 cursor-pointer transition-colors"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -777,7 +779,7 @@ export const TestCaseListView: React.FC = () => {
                     </h3>
 
                     {test.steps && (
-                      <p className="text-[11px] text-text-secondary line-clamp-2 font-mono bg-bg-surface-raised p-1.5 rounded border border-border">
+                      <p className="text-[11px] text-text-secondary line-clamp-2 font-mono bg-bg-surface-raised p-1.5 rounded-sm border border-transparent">
                         {test.steps}
                       </p>
                     )}

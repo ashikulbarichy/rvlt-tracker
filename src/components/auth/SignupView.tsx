@@ -58,7 +58,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onSwitchToLogin }) => {
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-4 font-sans">
-        <div className="w-full max-w-md bg-bg-surface p-5 sm:p-8 rounded-xl border border-border shadow-sm text-center">
+        <div className="w-full max-w-md bg-bg-surface p-5 sm:p-8 rounded-xl border border-transparent shadow-sm text-center">
           <div className="w-12 h-12 bg-status-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-6 h-6 text-status-success" />
           </div>
@@ -68,7 +68,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onSwitchToLogin }) => {
           </p>
           <button
             onClick={onSwitchToLogin}
-            className="w-full bg-accent-primary hover:bg-accent-primary-hover text-bg-base py-2.5 rounded-md text-sm font-medium transition-colors"
+            className="w-full bg-accent-primary hover:bg-accent-primary-hover text-button-text py-2.5 rounded-full text-sm font-semibold transition-colors"
           >
             Go to Login
           </button>
@@ -89,10 +89,10 @@ export const SignupView: React.FC<SignupViewProps> = ({ onSwitchToLogin }) => {
         </div>
 
         {/* Form Card */}
-        <div className="bg-bg-surface p-5 sm:p-8 rounded-xl border border-border shadow-sm">
+        <div className="bg-bg-surface p-5 sm:p-8 rounded-xl border border-transparent shadow-sm">
           <form onSubmit={handleSignup} className="space-y-5">
             {error && (
-              <div className="p-3 bg-status-error/10 border border-status-error/20 text-status-error text-sm rounded-md">
+              <div className="p-3 bg-status-error/10 border border-transparent text-status-error text-sm rounded-md">
                 {error}
               </div>
             )}
@@ -109,7 +109,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onSwitchToLogin }) => {
                   type="text"
                   value={fullName}
                   onChange={e => setFullName(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-bg-surface border border-border rounded-md text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
+                  className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-raised border border-transparent rounded-md text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
                   placeholder="Jane Doe"
                   required
                 />
@@ -128,7 +128,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onSwitchToLogin }) => {
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-bg-surface border border-border rounded-md text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
+                  className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-raised border border-transparent rounded-md text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
                   placeholder="name@company.com"
                   required
                 />
@@ -147,7 +147,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onSwitchToLogin }) => {
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-bg-surface border border-border rounded-md text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
+                  className="w-full pl-9 pr-3 py-2.5 bg-bg-surface-raised border border-transparent rounded-md text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
                   placeholder="••••••••"
                   required
                 />
@@ -158,7 +158,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onSwitchToLogin }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center space-x-2 bg-accent-primary hover:bg-accent-primary-hover disabled:bg-accent-primary/50 text-bg-base py-2.5 rounded-md text-sm font-medium transition-colors mt-2"
+              className="w-full flex items-center justify-center space-x-2 bg-accent-primary hover:bg-accent-primary-hover disabled:bg-accent-primary/50 text-button-text py-2.5 rounded-full text-sm font-semibold transition-colors mt-2"
             >
               <span>{isLoading ? 'Creating account...' : 'Sign up'}</span>
               {!isLoading && <ArrowRight className="w-4 h-4" />}

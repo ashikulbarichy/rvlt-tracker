@@ -65,7 +65,7 @@ export const KeyboardShortcutsModal: React.FC = () => {
       />
 
       {/* Modal Box */}
-      <div className="relative w-full max-w-lg bg-bg-surface border border-border-strong rounded-lg shadow-2xl overflow-hidden font-sans z-10 animate-in fade-in-0 zoom-in-95 duration-150">
+      <div className="relative w-full max-w-lg bg-bg-surface-raised border border-transparent-strong rounded-lg shadow-2xl overflow-hidden font-sans z-10 animate-in fade-in-0 zoom-in-95 duration-150">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center space-x-2.5">
@@ -74,7 +74,7 @@ export const KeyboardShortcutsModal: React.FC = () => {
           </div>
           <button
             onClick={() => setIsShortcutsModalOpen(false)}
-            className="text-text-tertiary hover:text-text-primary p-1 rounded hover:bg-bg-surface-hover transition-colors"
+            className="text-text-tertiary hover:text-text-primary p-1 rounded-full hover:bg-bg-surface-hover transition-colors"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -107,7 +107,7 @@ export const KeyboardShortcutsModal: React.FC = () => {
                         return (
                           <kbd
                             key={kIdx}
-                            className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-mono text-text-primary bg-bg-surface-raised border border-border-strong rounded shadow-sm"
+                            className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-mono text-text-primary bg-bg-surface-raised border border-transparent-strong rounded-sm shadow-sm"
                           >
                             {k}
                           </kbd>
@@ -124,7 +124,7 @@ export const KeyboardShortcutsModal: React.FC = () => {
         {/* Footer Note */}
         <div className="px-5 py-3 bg-bg-base border-t border-border flex items-center justify-between text-[11px] text-text-tertiary">
           <span>Shortcuts work when no text input is active</span>
-          <kbd className="px-1.5 py-0.5 font-mono text-[10px] bg-bg-surface-raised border border-border rounded">Esc to close</kbd>
+          <kbd className="px-1.5 py-0.5 font-mono text-[10px] bg-bg-surface-raised border border-transparent rounded-full">Esc to close</kbd>
         </div>
       </div>
     </div>

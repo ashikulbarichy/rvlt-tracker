@@ -177,7 +177,7 @@ export const MemberSettings: React.FC = () => {
         {isAdmin && (
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-bg-base bg-accent-primary rounded hover:bg-accent-primary-hover transition-colors shadow-sm"
+            className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-button-text bg-accent-primary rounded-full hover:bg-accent-primary-hover transition-colors shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Member</span>
@@ -200,7 +200,7 @@ export const MemberSettings: React.FC = () => {
       {/* Add Member Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-bg-surface border border-border rounded-lg max-w-md w-full p-6 shadow-lg">
+          <div className="bg-bg-surface-raised border border-transparent rounded-lg max-w-md w-full p-6 shadow-lg">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-karla font-medium text-text-primary">Add Member to Workspace</h3>
               <button
@@ -223,7 +223,7 @@ export const MemberSettings: React.FC = () => {
                     onChange={(e) => setSearchEmail(e.target.value)}
                     placeholder="e.g. colleague@company.com"
                     required
-                    className="w-full pl-9 pr-3 py-2 text-sm bg-bg-surface border border-border rounded-md text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
+                    className="w-full pl-9 pr-3 py-2 text-sm bg-bg-surface-raised border border-transparent rounded-md text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
                   />
                   <Mail className="w-4 h-4 text-text-tertiary absolute left-3 top-2.5" />
                 </div>
@@ -249,13 +249,13 @@ export const MemberSettings: React.FC = () => {
                       }`}
                     >
                       <div className="flex items-center space-x-3 min-w-0">
-                        <div className="w-9 h-9 rounded-full overflow-hidden border border-border shrink-0">
+                        <div className="w-9 h-9 rounded-full overflow-hidden border border-transparent shrink-0">
                           <img
                             src={
                               matchedProfile.avatar_url ||
                               `https://ui-avatars.com/api/?name=${encodeURIComponent(
                                 matchedProfile.full_name || 'User'
-                              )}&background=EFE8DC&color=3A342C`
+                              )}&background=282828&color=B3B3B3&rounded=true`
                             }
                             alt={matchedProfile.full_name || 'User'}
                             className="w-full h-full object-cover"
@@ -285,7 +285,7 @@ export const MemberSettings: React.FC = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="p-3 bg-status-error/10 border border-status-error/30 rounded-lg flex items-start space-x-2.5">
+                    <div className="p-3 bg-status-error/10 border border-transparent rounded-lg flex items-start space-x-2.5">
                       <AlertCircle className="w-4 h-4 text-status-error shrink-0 mt-0.5" />
                       <div className="text-xs text-text-secondary">
                         No registered user found with <span className="font-mono text-text-primary">{trimmedEmail}</span>. The user must sign up to Reevolt Track before they can be added to this workspace.
@@ -301,7 +301,7 @@ export const MemberSettings: React.FC = () => {
                   <select
                     value={newMemberRole}
                     onChange={(e) => setNewMemberRole(e.target.value as 'admin' | 'member')}
-                    className="w-full px-2.5 py-1.5 text-xs bg-bg-surface border border-border rounded text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                    className="w-full px-2.5 py-1.5 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                   >
                     <option value="member">Member</option>
                     <option value="admin">Admin</option>
@@ -313,7 +313,7 @@ export const MemberSettings: React.FC = () => {
                   <select
                     value={initialTeamId}
                     onChange={(e) => setInitialTeamId(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs bg-bg-surface border border-border rounded text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                    className="w-full px-2.5 py-1.5 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                   >
                     <option value="">No Team Assigned</option>
                     {teams?.map(t => (
@@ -331,14 +331,14 @@ export const MemberSettings: React.FC = () => {
                     setSearchEmail('');
                     setInitialTeamId('');
                   }}
-                  className="px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-surface rounded transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-surface rounded-full transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isAdding || !matchedProfile || isAlreadyMember}
-                  className="px-3 py-1.5 text-xs font-medium text-bg-base bg-accent-primary rounded hover:bg-accent-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 py-1.5 text-xs font-semibold text-button-text bg-accent-primary rounded-full hover:bg-accent-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isAdding ? 'Adding...' : 'Add Member'}
                 </button>
@@ -351,7 +351,7 @@ export const MemberSettings: React.FC = () => {
       {/* Assign Teams Modal */}
       {assigningMember && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 font-sans">
-          <div className="bg-bg-surface border border-border rounded-md max-w-sm w-full p-4 shadow-lg">
+          <div className="bg-bg-surface-raised border border-transparent rounded-md max-w-sm w-full p-4 shadow-lg">
             <div className="flex items-center justify-between mb-3 border-b border-border/60 pb-2.5">
               <div className="min-w-0">
                 <h3 className="text-xs font-karla font-semibold text-text-primary">Assign Teams</h3>
@@ -361,7 +361,7 @@ export const MemberSettings: React.FC = () => {
               </div>
               <button
                 onClick={() => setAssigningMember(null)}
-                className="text-text-tertiary hover:text-text-primary p-1 rounded"
+                className="text-text-tertiary hover:text-text-primary p-1 rounded-sm"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -397,14 +397,14 @@ export const MemberSettings: React.FC = () => {
                           setTogglingTeamId(null);
                         }
                       }}
-                      className={`flex items-center justify-between px-3 py-2 rounded border cursor-pointer transition-colors ${
+                      className={`flex items-center justify-between px-3 py-2 rounded-sm border cursor-pointer transition-colors ${
                         isMemberOfTeam
                           ? 'bg-status-success/10 border-status-success/40'
                           : 'bg-transparent border-border hover:bg-bg-surface'
                       }`}
                     >
                       <div className="flex items-center space-x-2">
-                        <span className="font-mono text-[10px] font-bold text-text-primary bg-bg-surface px-1 py-0.5 rounded border border-border">
+                        <span className="font-mono text-[10px] font-bold text-text-primary bg-bg-surface px-1 py-0.5 rounded-full border border-transparent">
                           {t.key}
                         </span>
                         <span className="text-xs font-medium text-text-primary">{t.name}</span>
@@ -431,7 +431,7 @@ export const MemberSettings: React.FC = () => {
             <div className="pt-2 border-t border-border/60 flex justify-end">
               <button
                 onClick={() => setAssigningMember(null)}
-                className="px-3 py-1.5 text-xs font-medium text-bg-base bg-accent-primary rounded hover:bg-accent-primary-hover transition-colors"
+                className="px-3 py-1.5 text-xs font-semibold text-button-text bg-accent-primary rounded-full hover:bg-accent-primary-hover transition-colors"
               >
                 Done
               </button>
@@ -440,7 +440,7 @@ export const MemberSettings: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-bg-surface border border-border rounded-md shadow-sm">
+      <div className="bg-bg-surface-raised border border-transparent rounded-md shadow-sm">
         {isLoading ? (
           <div className="p-6 text-center text-xs text-text-secondary">Loading members...</div>
         ) : members?.length === 0 ? (
@@ -465,7 +465,7 @@ export const MemberSettings: React.FC = () => {
                           isCreator ? 'border-white ring-2 ring-white' : 'border-border'
                         }`}>
                           <img
-                            src={member.profile?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.profile?.full_name || member.profile?.email || 'User')}&background=EFE8DC&color=3A342C`}
+                            src={member.profile?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.profile?.full_name || member.profile?.email || 'User')}&background=282828&color=B3B3B3&rounded=true`}
                             alt="Avatar"
                             className="w-full h-full object-cover"
                           />
@@ -486,7 +486,7 @@ export const MemberSettings: React.FC = () => {
                           {member.profile?.full_name || 'Unnamed User'}
                         </span>
                         {isSelf && !isCreator && (
-                          <span className="px-1.5 py-0.2 text-[9px] font-semibold tracking-wider uppercase bg-bg-surface text-text-secondary rounded">
+                          <span className="px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase bg-bg-surface text-text-secondary rounded-full">
                             You
                           </span>
                         )}
@@ -526,7 +526,7 @@ export const MemberSettings: React.FC = () => {
                     {/* Role display / selector */}
                     <div className="flex items-center space-x-1.5">
                       {member.status === 'pending' && (
-                        <span className="px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase bg-status-warning/15 text-status-warning border border-status-warning/30 rounded">
+                        <span className="px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase bg-status-warning/15 text-status-warning border border-transparent rounded-full">
                           Pending
                         </span>
                       )}
@@ -542,7 +542,7 @@ export const MemberSettings: React.FC = () => {
                           size="xs"
                         />
                       ) : (
-                        <div className="flex items-center space-x-1 text-text-secondary bg-bg-surface/50 px-2 py-0.5 rounded border border-border/50">
+                        <div className="flex items-center space-x-1 text-text-secondary bg-bg-surface/50 px-2 py-0.5 rounded-full border border-transparent/50">
                           {member.role === 'admin' ? <ShieldAlert className="w-3 h-3" /> : <User className="w-3 h-3" />}
                           <span className="text-[11px] font-medium capitalize">{member.role}</span>
                         </div>
@@ -554,7 +554,7 @@ export const MemberSettings: React.FC = () => {
                       <button
                         onClick={() => handleRemove(member.user_id, member.profile?.full_name || member.profile?.email || 'this member')}
                         disabled={isProcessing}
-                        className="p-1 text-text-tertiary hover:text-status-error hover:bg-status-error/10 rounded transition-colors"
+                        className="p-1 text-text-tertiary hover:text-status-error hover:bg-status-error/10 rounded-full transition-colors"
                         title="Remove member"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

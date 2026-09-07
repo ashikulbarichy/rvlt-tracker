@@ -51,15 +51,15 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onComplete
         {/* Header */}
         <div className="text-center mb-8">
           <img src="/favicon.svg" alt="Logo" className="w-14 h-14 rounded-xl mx-auto drop-shadow-sm mb-4" />
-          <h1 className="text-2xl sm:text-3xl font-karla font-semibold text-text-primary mb-1.5">Reset Password</h1>
+          <h1 className="text-2xl sm:text-3xl font-karla font-bold tracking-tight text-text-primary mb-1.5">Reset Password</h1>
           <p className="text-xs sm:text-sm text-text-secondary">Enter your new secure password below</p>
         </div>
 
         {/* Card */}
-        <div className="bg-bg-surface p-6 sm:p-8 rounded-xl border border-border shadow-sm">
+        <div className="bg-bg-surface p-6 sm:p-8 rounded-xl border border-transparent shadow-sm">
           {isSuccess ? (
             <div className="text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-status-success/15 border border-status-success/30 flex items-center justify-center mx-auto text-status-success">
+              <div className="w-12 h-12 rounded-full bg-status-success/15 border border-transparent flex items-center justify-center mx-auto text-status-success">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <div>
@@ -70,7 +70,7 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onComplete
               </div>
               <button
                 onClick={onComplete}
-                className="w-full flex items-center justify-center space-x-2 bg-accent-primary hover:bg-accent-primary-hover text-bg-base py-2.5 rounded-md text-sm font-medium transition-colors mt-4"
+                className="w-full flex items-center justify-center space-x-2 bg-accent-primary hover:bg-accent-primary-hover text-button-text py-2.5 rounded-full text-sm font-semibold transition-colors mt-4"
               >
                 <span>Continue to Workspace</span>
                 <ArrowRight className="w-4 h-4" />
@@ -79,7 +79,7 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onComplete
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="p-3 bg-status-error/10 border border-status-error/20 text-status-error text-xs rounded-md">
+                <div className="p-3 bg-status-error/10 border border-transparent text-status-error text-xs rounded-md">
                   {error}
                 </div>
               )}
@@ -96,7 +96,7 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onComplete
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="w-full pl-9 pr-9 py-2 bg-bg-surface border border-border rounded-md text-xs sm:text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
+                    className="w-full pl-9 pr-9 py-2 bg-bg-surface-raised border border-transparent rounded-md text-xs sm:text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
                     placeholder="At least 8 characters"
                     required
                   />
@@ -122,7 +122,7 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onComplete
                     type={showPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-bg-surface border border-border rounded-md text-xs sm:text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
+                    className="w-full pl-9 pr-3 py-2 bg-bg-surface-raised border border-transparent rounded-md text-xs sm:text-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
                     placeholder="Re-enter new password"
                     required
                   />
@@ -132,7 +132,7 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onComplete
               <button
                 type="submit"
                 disabled={isLoading || !password || !confirmPassword}
-                className="w-full flex items-center justify-center space-x-2 bg-accent-primary hover:bg-accent-primary-hover disabled:opacity-50 text-bg-base py-2.5 rounded-md text-xs sm:text-sm font-medium transition-colors mt-3"
+                className="w-full flex items-center justify-center space-x-2 bg-accent-primary hover:bg-accent-primary-hover disabled:opacity-50 text-button-text py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-colors mt-3"
               >
                 <span>{isLoading ? 'Saving password...' : 'Save new password'}</span>
                 {!isLoading && <ArrowRight className="w-4 h-4" />}

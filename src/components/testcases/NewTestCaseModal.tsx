@@ -100,11 +100,11 @@ export const NewTestCaseModal: React.FC = () => {
       className={`absolute inset-0 z-30 bg-bg-surface flex flex-col overflow-hidden transform transition-transform duration-200 ease-out font-sans ${isOpen ? 'translate-x-0 pointer-events-auto' : 'translate-x-full pointer-events-none'}`}
     >
       {/* Header */}
-      <div className="px-4 sm:px-6 py-3.5 border-b border-border flex items-center justify-between shrink-0 bg-bg-surface">
+      <div className="px-4 sm:px-6 py-3.5 flex items-center justify-between shrink-0 bg-bg-surface">
         <div className="flex items-center space-x-3 flex-1 min-w-0 mr-4">
           <button
             onClick={handleClose}
-            className="flex items-center space-x-1.5 px-2 py-1 -ml-1 rounded text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors shrink-0"
+            className="flex items-center space-x-1.5 px-2.5 py-1 -ml-1 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors shrink-0"
             title="Back to test cases (Esc)"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -124,7 +124,7 @@ export const NewTestCaseModal: React.FC = () => {
         <div className="flex items-center space-x-2 shrink-0">
           <button
             onClick={handleClose}
-            className="p-1.5 rounded text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors"
+            className="p-1.5 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors"
             title="Close (Esc)"
           >
             <X className="w-4 h-4" />
@@ -137,7 +137,7 @@ export const NewTestCaseModal: React.FC = () => {
         {/* Left Column: Form Fields */}
         <div className="flex-1 min-w-0 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6 overflow-y-auto no-scrollbar scrollbar-none">
           {errorMessage && (
-            <div className="p-3 bg-status-error/10 border border-status-error/40 rounded flex items-center space-x-2.5 text-xs text-status-error">
+            <div className="p-3 bg-status-error/10 border border-transparent rounded-sm flex items-center space-x-2.5 text-xs text-status-error">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMessage}</span>
             </div>
@@ -153,7 +153,7 @@ export const NewTestCaseModal: React.FC = () => {
               placeholder="e.g. Verify RLS rejection on cross-tenant request"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              className="w-full text-sm font-semibold bg-bg-surface border border-border rounded px-3 py-2 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+              className="w-full text-sm font-semibold bg-bg-surface-raised border border-transparent rounded-sm px-3 py-2 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
             />
           </div>
 
@@ -166,7 +166,7 @@ export const NewTestCaseModal: React.FC = () => {
               placeholder="e.g. User is logged in as Member of Workspace A"
               value={preconditions}
               onChange={e => setPreconditions(e.target.value)}
-              className="w-full text-xs bg-bg-surface border border-border rounded px-3 py-2 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+              className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-sm px-3 py-2 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
             />
           </div>
 
@@ -179,7 +179,7 @@ export const NewTestCaseModal: React.FC = () => {
               placeholder="1. Open API endpoint&#10;2. Send request with header X&#10;3. Assert response code 403 Forbidden"
               value={steps}
               onChange={e => setSteps(e.target.value)}
-              className="w-full text-xs font-mono bg-bg-surface border border-border rounded p-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary leading-relaxed"
+              className="w-full text-xs font-mono bg-bg-surface-raised border border-transparent rounded-sm p-3 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary leading-relaxed"
             />
           </div>
 
@@ -192,7 +192,7 @@ export const NewTestCaseModal: React.FC = () => {
               placeholder="e.g. HTTP 403 Forbidden with empty tenant payload"
               value={expectedResult}
               onChange={e => setExpectedResult(e.target.value)}
-              className="w-full text-xs bg-bg-surface border border-border rounded px-3 py-2 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+              className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-sm px-3 py-2 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
             />
           </div>
         </div>
@@ -235,7 +235,7 @@ export const NewTestCaseModal: React.FC = () => {
               <label className="block text-xs font-medium text-text-secondary mb-1.5">
                 Initial Status
               </label>
-              <div className="text-xs font-medium text-text-secondary px-2.5 py-1.5 bg-bg-surface-raised border border-border rounded">
+              <div className="text-xs font-medium text-text-secondary px-2.5 py-1.5 bg-bg-surface-raised border border-transparent rounded-full">
                 Untested
               </div>
             </div>
@@ -247,14 +247,14 @@ export const NewTestCaseModal: React.FC = () => {
               type="button"
               disabled={isSubmitting}
               onClick={handleClose}
-              className="px-3.5 py-1.5 rounded text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors disabled:opacity-50"
+              className="px-3.5 py-1.5 rounded-full text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !title.trim()}
-              className="px-4 py-1.5 rounded bg-accent-primary hover:bg-accent-primary-hover text-bg-base text-xs font-medium transition-colors disabled:opacity-50 shadow-sm"
+              className="px-4 py-1.5 rounded-full bg-accent-primary hover:bg-accent-primary-hover text-button-text text-xs font-semibold transition-colors disabled:opacity-50 shadow-sm"
             >
               {isSubmitting ? 'Saving...' : 'Save Test Case'}
             </button>

@@ -18,7 +18,7 @@ export const MobileNav: React.FC = () => {
   return (
     <nav 
       aria-label="Mobile navigation" 
-      className="fixed bottom-0 left-0 right-0 z-40 bg-bg-surface/95 backdrop-blur-md border-t border-border flex items-center justify-around px-2 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:hidden shadow-lg select-none"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-black/90 backdrop-blur-md flex items-center justify-around px-2 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:hidden shadow-lg select-none"
     >
       {/* Home / Inbox */}
       <button
@@ -45,7 +45,7 @@ export const MobileNav: React.FC = () => {
       {/* New Issue Quick Action */}
       <button
         onClick={() => setIsNewIssueModalOpen(true)}
-        className="flex items-center justify-center w-10 h-10 -mt-3 rounded-full bg-accent-primary text-bg-base shadow-md hover:bg-accent-primary-hover active:scale-95 transition-transform shrink-0"
+        className="flex items-center justify-center w-10 h-10 -mt-3 rounded-full bg-accent-primary text-button-text shadow-md hover:bg-accent-primary-hover active:scale-95 transition-transform shrink-0"
         title="New Issue"
         aria-label="Create new issue"
       >

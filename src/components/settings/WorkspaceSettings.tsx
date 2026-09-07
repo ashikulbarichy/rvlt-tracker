@@ -88,10 +88,10 @@ export const WorkspaceSettings: React.FC = () => {
         </p>
       </div>
 
-      <form onSubmit={handleSave} className="bg-bg-surface border border-border rounded-md p-4 space-y-4 shadow-sm">
+      <form onSubmit={handleSave} className="bg-bg-surface-raised border border-transparent rounded-md p-4 space-y-4 shadow-sm">
         {statusMessage && (
           <div
-            className={`p-2.5 rounded text-xs font-medium border ${
+            className={`p-2.5 rounded-sm text-xs font-medium border ${
               statusMessage.type === 'success'
                 ? 'bg-status-success/15 border-status-success text-text-primary'
                 : 'bg-status-error/15 border-status-error text-status-error'
@@ -102,7 +102,7 @@ export const WorkspaceSettings: React.FC = () => {
         )}
         
         {!isAdmin && currentWorkspace && (
-          <div className="bg-status-warning/10 border border-status-warning/30 rounded p-3 flex items-start space-x-2.5">
+          <div className="bg-status-warning/10 border border-transparent rounded-sm p-3 flex items-start space-x-2.5">
             <div className="text-status-warning shrink-0 mt-0.5">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
             </div>
@@ -122,7 +122,7 @@ export const WorkspaceSettings: React.FC = () => {
               value={workspaceName}
               onChange={(e) => setWorkspaceName(e.target.value)}
               disabled={!isAdmin}
-              className="w-full px-2.5 py-1.5 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary disabled:bg-bg-surface/50 disabled:text-text-tertiary disabled:cursor-not-allowed transition-colors"
+              className="w-full px-2.5 py-1.5 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary disabled:bg-bg-surface/50 disabled:text-text-tertiary disabled:cursor-not-allowed transition-colors"
               placeholder="e.g. Fjord Engineering"
             />
           </div>
@@ -133,7 +133,7 @@ export const WorkspaceSettings: React.FC = () => {
               type="text"
               value={currentWorkspace?.slug || (workspaceName ? workspaceName.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'Auto-generated')}
               disabled
-              className="w-full px-2.5 py-1.5 text-xs bg-bg-surface/50 border border-border rounded text-text-tertiary focus:outline-none cursor-not-allowed"
+              className="w-full px-2.5 py-1.5 text-xs bg-bg-surface/50 border border-transparent rounded-sm text-text-tertiary focus:outline-none cursor-not-allowed"
             />
             <p className="mt-1 text-[11px] text-text-tertiary">Slugs are unique and cannot be changed after creation.</p>
           </div>
@@ -158,12 +158,12 @@ export const WorkspaceSettings: React.FC = () => {
                   value={issuePrefix}
                   onChange={(e) => setIssuePrefix(e.target.value.toUpperCase())}
                   disabled={!isAdmin}
-                  className="w-full px-2.5 py-1.5 text-xs font-mono uppercase bg-bg-surface border border-border rounded text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                  className="w-full px-2.5 py-1.5 text-xs font-mono uppercase bg-bg-surface-raised border border-transparent rounded-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                   placeholder="e.g. ISS or DEV"
                 />
                 <div className="mt-1.5 flex items-center space-x-1.5 text-[10px] text-text-secondary">
                   <span>Preview:</span>
-                  <span className="font-mono font-semibold px-1.5 py-0.2 rounded bg-bg-surface border border-border text-text-primary">
+                  <span className="font-mono font-semibold px-1.5 py-0.5 rounded-full bg-bg-surface-raised border border-transparent text-text-primary">
                     {(issuePrefix || 'XXX').toUpperCase()}-DEV-01
                   </span>
                 </div>
@@ -179,12 +179,12 @@ export const WorkspaceSettings: React.FC = () => {
                   value={testCasePrefix}
                   onChange={(e) => setTestCasePrefix(e.target.value.toUpperCase())}
                   disabled={!isAdmin}
-                  className="w-full px-2.5 py-1.5 text-xs font-mono uppercase bg-bg-surface border border-border rounded text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                  className="w-full px-2.5 py-1.5 text-xs font-mono uppercase bg-bg-surface-raised border border-transparent rounded-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                   placeholder="e.g. TC or TEST"
                 />
                 <div className="mt-1.5 flex items-center space-x-1.5 text-[10px] text-text-secondary">
                   <span>Preview:</span>
-                  <span className="font-mono font-semibold px-1.5 py-0.2 rounded bg-bg-surface border border-border text-text-primary">
+                  <span className="font-mono font-semibold px-1.5 py-0.5 rounded-full bg-bg-surface-raised border border-transparent text-text-primary">
                     {(issuePrefix || 'XXX').toUpperCase()}-{(testCasePrefix || 'TC').toUpperCase()}-01
                   </span>
                 </div>
@@ -197,7 +197,7 @@ export const WorkspaceSettings: React.FC = () => {
           <button
             type="submit"
             disabled={!isAdmin || isSaving || !workspaceName.trim() || (!!currentWorkspace && !isFormDirty)}
-            className="px-3 py-1.5 text-xs font-medium text-bg-base bg-accent-primary rounded hover:bg-accent-primary-hover focus:outline-none focus:ring-1 focus:ring-accent-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1.5 text-xs font-semibold text-button-text bg-accent-primary rounded-full hover:bg-accent-primary-hover focus:outline-none focus:ring-1 focus:ring-accent-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isSaving ? 'Saving...' : currentWorkspace ? 'Save changes' : 'Create Workspace'}
           </button>

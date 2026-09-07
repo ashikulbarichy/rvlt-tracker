@@ -68,7 +68,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       }}
     >
       <div
-        className={`w-full max-w-md bg-bg-surface border border-border rounded-lg shadow-xl overflow-hidden transform transition-all duration-150 ease-out ${
+        className={`w-full max-w-md bg-bg-surface-raised border border-transparent rounded-lg shadow-xl overflow-hidden transform transition-all duration-150 ease-out ${
           isAnimated ? 'scale-100 translate-y-0' : 'scale-95 translate-y-2'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -79,8 +79,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             <div
               className={`p-2 rounded-md shrink-0 ${
                 variant === 'danger'
-                  ? 'bg-status-error/15 text-status-error border border-status-error/30'
-                  : 'bg-status-warning/15 text-status-warning border border-status-warning/30'
+                  ? 'bg-status-error/15 text-status-error border border-transparent'
+                  : 'bg-status-warning/15 text-status-warning border border-transparent'
               }`}
             >
               {icon === 'trash' ? (
@@ -103,7 +103,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             type="button"
             disabled={isLoading}
             onClick={onCancel}
-            className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-bg-surface-hover transition-colors -mr-1 -mt-1 disabled:opacity-50"
+            className="p-1 rounded-full text-text-tertiary hover:text-text-primary hover:bg-bg-surface-hover transition-colors -mr-1 -mt-1 disabled:opacity-50"
             title="Cancel (Esc)"
           >
             <X className="w-4 h-4" />
@@ -116,7 +116,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             type="button"
             disabled={isLoading}
             onClick={onCancel}
-            className="px-3 py-1.5 rounded bg-bg-surface hover:bg-bg-surface-hover text-text-secondary hover:text-text-primary border border-border text-xs font-medium transition-colors disabled:opacity-50"
+            className="px-3 py-1.5 rounded-full bg-bg-surface hover:bg-bg-surface-hover text-text-secondary hover:text-text-primary border border-transparent text-xs font-medium transition-colors disabled:opacity-50"
           >
             {cancelText}
           </button>
@@ -124,10 +124,10 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             type="button"
             disabled={isLoading}
             onClick={onConfirm}
-            className={`px-3.5 py-1.5 rounded text-xs font-medium transition-colors shadow-xs disabled:opacity-50 flex items-center space-x-1.5 ${
+            className={`px-3.5 py-1.5 rounded-sm text-xs font-medium transition-colors shadow-xs disabled:opacity-50 flex items-center space-x-1.5 ${
               variant === 'danger'
-                ? 'bg-status-error text-bg-base hover:bg-status-error/90'
-                : 'bg-accent-primary text-bg-base hover:bg-accent-primary-hover'
+                ? 'bg-status-error text-button-text hover:bg-status-error/90'
+                : 'bg-accent-primary text-button-text hover:bg-accent-primary-hover'
             }`}
           >
             {isLoading ? 'Deleting...' : confirmText}

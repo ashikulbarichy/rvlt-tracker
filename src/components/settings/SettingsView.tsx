@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SidebarToggle } from '../layout/SidebarToggle';
 import { User, ShieldCheck, Keyboard, Building, Users, Users2 } from 'lucide-react';
 import { ProfileSettings } from './ProfileSettings';
 import { SecuritySettings } from './SecuritySettings';
@@ -24,7 +25,7 @@ export const SettingsView: React.FC = () => {
       
       {/* Settings Navigation Sidebar */}
       <div className="w-[200px] bg-transparent border-r border-border shrink-0 p-4">
-        <h1 className="text-base font-karla font-semibold text-text-primary mb-4">Settings</h1>
+        <h1 className="flex items-center gap-2.5 text-base font-karla font-semibold text-text-primary mb-4"><SidebarToggle />Settings</h1>
         <nav className="space-y-0.5">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -33,7 +34,7 @@ export const SettingsView: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveSettingsTab(tab.id as any)}
-                className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded text-xs transition-colors whitespace-nowrap ${
+                className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-sm text-xs transition-colors whitespace-nowrap ${
                   isActive
                     ? 'bg-bg-surface text-text-primary font-medium'
                     : 'text-text-secondary hover:bg-bg-surface/50 hover:text-text-primary'

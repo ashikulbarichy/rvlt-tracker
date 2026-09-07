@@ -54,7 +54,7 @@ export const KeybindsSettings: React.FC = () => {
           </p>
         </div>
 
-        <div className="bg-bg-surface border border-border rounded-md p-4 space-y-6 shadow-sm">
+        <div className="bg-bg-surface-raised border border-transparent rounded-md p-4 space-y-6 shadow-sm">
           {SHORTCUT_GROUPS.map((group) => (
             <div key={group.category} className="space-y-2.5">
               <h3 className="text-[11px] font-semibold tracking-wider uppercase text-text-tertiary">
@@ -79,7 +79,7 @@ export const KeybindsSettings: React.FC = () => {
                         return (
                           <kbd
                             key={kIdx}
-                            className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-mono text-text-primary bg-bg-surface-raised border border-border-strong rounded shadow-sm"
+                            className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-mono text-text-primary bg-bg-surface-raised border border-transparent-strong rounded-sm shadow-sm"
                           >
                             {k}
                           </kbd>

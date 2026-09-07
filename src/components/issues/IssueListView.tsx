@@ -22,6 +22,7 @@ import {
   Clock
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { SidebarToggle } from '../../components/layout/SidebarToggle';
 import { useIssues } from '../../hooks/useIssues';
 import { useTeams } from '../../hooks/useTeams';
 import { useTeamMembers } from '../../hooks/useTeamMembers';
@@ -30,6 +31,7 @@ import { Issue } from '../../types/database';
 import { formatIssueIdentifier } from '../../lib/identifier';
 import { formatRelativeTime } from '../../lib/time';
 import { stripHtml } from '../../utils/htmlUtils';
+import { StatusBadge } from '../common/StatusBadge';
 
 interface IssueListViewProps {
   onlyMine?: boolean;
@@ -38,18 +40,50 @@ interface IssueListViewProps {
 type ViewMode = 'list' | 'grid' | 'kanban';
 type SortBy = 'newest' | 'oldest' | 'priority' | 'dueDate' | 'title';
 
+type Tab = 'All' | 'Mine' | 'Open' | 'Closed';
+
+// Persisted view preferences so filters/view survive page refreshes
+interface ViewPrefs {
+  activeTab?: Tab;
+  viewMode?: ViewMode;
+  isCompact?: boolean;
+  sortBy?: SortBy;
+  teamIds?: string[];
+}
+
+const VIEW_PREFS_KEY = 'rvlt-issue-view-prefs';
+
+const loadViewPrefs = (): ViewPrefs => {
+  try {
+    return JSON.parse(localStorage.getItem(VIEW_PREFS_KEY) || '{}');
+  } catch {
+    return {};
+  }
+};
+
 export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }) => {
   const { currentWorkspace, currentUser, userRole, setIsNewIssueModalOpen, setSelectedIssue, currentTeam } = useApp();
-  const [activeTab, setActiveTab] = useState<'All' | 'Mine' | 'Open' | 'Closed'>('All');
+  const savedPrefs = useRef(loadViewPrefs()).current;
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    const tab = savedPrefs.activeTab;
+    if (tab && ['All', 'Mine', 'Open', 'Closed'].includes(tab) && !(onlyMine && tab === 'Mine')) return tab;
+    return 'All';
+  });
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set());
+  const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(
+    () => new Set(Array.isArray(savedPrefs.teamIds) ? savedPrefs.teamIds : [])
+  );
   const [page, setPage] = useState(1);
   const limit = 100;
 
   // View Mode & Sort State
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [isCompact, setIsCompact] = useState(false);
-  const [sortBy, setSortBy] = useState<SortBy>('newest');
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    savedPrefs.viewMode && ['list', 'grid', 'kanban'].includes(savedPrefs.viewMode) ? savedPrefs.viewMode : 'list'
+  );
+  const [isCompact, setIsCompact] = useState(() => !!savedPrefs.isCompact);
+  const [sortBy, setSortBy] = useState<SortBy>(() =>
+    savedPrefs.sortBy && ['newest', 'oldest', 'priority', 'dueDate', 'title'].includes(savedPrefs.sortBy) ? savedPrefs.sortBy : 'newest'
+  );
   const [isTeamMenuOpen, setIsTeamMenuOpen] = useState(false);
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
 
@@ -76,6 +110,22 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Persist view preferences across refreshes
+  useEffect(() => {
+    try {
+      const prefs: ViewPrefs = {
+        activeTab,
+        viewMode,
+        isCompact,
+        sortBy,
+        teamIds: Array.from(selectedTeamIds),
+      };
+      localStorage.setItem(VIEW_PREFS_KEY, JSON.stringify(prefs));
+    } catch {
+      // Storage unavailable (private mode etc.) — preferences just won't persist
+    }
+  }, [activeTab, viewMode, isCompact, sortBy, selectedTeamIds]);
 
   const isAdmin = userRole === 'admin' || currentWorkspace?.created_by === currentUser?.id;
   const { teams } = useTeams(currentWorkspace?.id);
@@ -248,7 +298,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
 
     if (diffDays < 0) {
       return (
-        <span className="inline-flex items-center space-x-1 text-[10px] font-medium text-status-error bg-bg-surface-raised border border-border px-1.5 py-0.5 rounded">
+        <span className="inline-flex items-center space-x-1 text-[10px] font-medium text-status-error bg-status-error/10 border border-transparent px-1.5 py-0.5 rounded-full">
           <AlertTriangle className="w-3 h-3 text-status-error shrink-0" />
           <span>Overdue {Math.abs(diffDays)}d</span>
         </span>
@@ -257,7 +307,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
 
     if (diffDays === 0) {
       return (
-        <span className="inline-flex items-center space-x-1 text-[10px] font-medium text-status-warning bg-bg-surface-raised border border-border px-1.5 py-0.5 rounded">
+        <span className="inline-flex items-center space-x-1 text-[10px] font-medium text-status-warning bg-status-warning/10 border border-transparent px-1.5 py-0.5 rounded-full">
           <Clock className="w-3 h-3 text-status-warning shrink-0" />
           <span>Due Today</span>
         </span>
@@ -266,7 +316,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
 
     if (diffDays <= 2) {
       return (
-        <span className="inline-flex items-center space-x-1 text-[10px] font-medium text-status-warning bg-bg-surface-raised border border-border px-1.5 py-0.5 rounded">
+        <span className="inline-flex items-center space-x-1 text-[10px] font-medium text-status-warning bg-status-warning/10 border border-transparent px-1.5 py-0.5 rounded-full">
           <span>{diffDays}d left</span>
         </span>
       );
@@ -285,7 +335,8 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
       {/* Header section */}
       <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-karla font-semibold text-text-primary mb-0.5 sm:mb-1">
+          <h1 className="flex items-center gap-2.5 text-xl sm:text-2xl font-karla font-bold tracking-tight text-text-primary mb-0.5 sm:mb-1">
+            <SidebarToggle />
             {onlyMine ? 'My Issues' : 'Issues'}
           </h1>
           <p className="hidden sm:block text-text-secondary text-xs sm:text-sm">
@@ -296,7 +347,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
         </div>
         <button
           onClick={() => setIsNewIssueModalOpen(true)}
-          className="flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-md bg-accent-primary hover:bg-accent-primary-hover text-bg-base text-xs sm:text-sm font-medium transition-colors shadow-sm"
+          className="flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-accent-primary hover:bg-accent-primary-hover text-button-text text-xs sm:text-sm font-semibold transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           <span>New Issue</span>
@@ -305,7 +356,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
 
       {/* Notice for non-admin members with no assigned teams */}
       {!isAdmin && userAssignedTeams.length === 0 && (
-        <div className="mb-3 p-3 bg-status-warning/10 border border-status-warning/30 rounded-md flex items-start space-x-2.5">
+        <div className="mb-3 p-3 bg-status-warning/10 border border-transparent rounded-md flex items-start space-x-2.5">
           <AlertCircle className="w-4 h-4 text-status-warning shrink-0 mt-0.5" />
           <div className="text-xs text-text-secondary">
             <span className="font-semibold text-text-primary">No team assigned:</span> You are currently not assigned to any team in this workspace. You will only be able to view and manage issues once a workspace admin assigns you to a team.
@@ -336,8 +387,6 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
             ))}
           </div>
 
-          {/* Clean Vertical Divider */}
-          <div className="h-4 w-[1px] bg-border shrink-0" />
 
           {/* TWO ICON BUTTONS ON THE LEFT: Sort & View Mode */}
           <div className="flex items-center space-x-1">
@@ -349,9 +398,9 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                   setIsSortMenuOpen(!isSortMenuOpen);
                   setIsViewMenuOpen(false);
                 }}
-                className={`w-7 h-7 rounded text-xs transition-colors flex items-center justify-center ${
+                className={`w-7 h-7 rounded-sm text-xs transition-colors flex items-center justify-center ${
                   isSortMenuOpen || sortBy !== 'newest'
-                    ? 'bg-bg-surface text-text-primary border border-border shadow-xs'
+                    ? 'bg-bg-surface-hover text-text-primary border border-transparent shadow-xs'
                     : 'text-text-secondary hover:text-text-primary hover:bg-bg-surface'
                 }`}
                 title={`Sort issues (Current: ${sortOptions.find(o => o.id === sortBy)?.label})`}
@@ -360,7 +409,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
               </button>
 
               {isSortMenuOpen && (
-                <div className="absolute left-0 top-full mt-1.5 w-48 bg-bg-surface border border-border rounded-md shadow-lg py-1 z-30 font-sans">
+                <div className="absolute left-0 top-full mt-1.5 w-48 bg-bg-surface-raised border border-transparent rounded-md shadow-lg py-1 z-30 font-sans">
                   <div className="px-2.5 py-1 text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
                     Sort By
                   </div>
@@ -393,9 +442,9 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                   setIsViewMenuOpen(!isViewMenuOpen);
                   setIsSortMenuOpen(false);
                 }}
-                className={`w-7 h-7 rounded text-xs transition-colors flex items-center justify-center ${
+                className={`w-7 h-7 rounded-sm text-xs transition-colors flex items-center justify-center ${
                   isViewMenuOpen
-                    ? 'bg-bg-surface text-text-primary border border-border shadow-xs'
+                    ? 'bg-bg-surface-hover text-text-primary border border-transparent shadow-xs'
                     : 'text-text-secondary hover:text-text-primary hover:bg-bg-surface'
                 }`}
                 title={`View Type: ${viewMode}`}
@@ -406,7 +455,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
               </button>
 
               {isViewMenuOpen && (
-                <div className="absolute left-0 top-full mt-1.5 w-36 bg-bg-surface border border-border rounded-md shadow-lg py-1 z-30 font-sans">
+                <div className="absolute left-0 top-full mt-1.5 w-36 bg-bg-surface-raised border border-transparent rounded-md shadow-lg py-1 z-30 font-sans">
                   <div className="px-2.5 py-1 text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
                     View As
                   </div>
@@ -461,9 +510,9 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
               <button
                 type="button"
                 onClick={() => setIsCompact(!isCompact)}
-                className={`w-7 h-7 rounded text-xs transition-colors flex items-center justify-center ${
+                className={`w-7 h-7 rounded-sm text-xs transition-colors flex items-center justify-center ${
                   isCompact
-                    ? 'bg-bg-surface text-text-primary border border-border shadow-xs'
+                    ? 'bg-bg-surface-hover text-text-primary border border-transparent shadow-xs'
                     : 'text-text-secondary hover:text-text-primary hover:bg-bg-surface'
                 }`}
                 title={isCompact ? "Standard view" : "Compact view"}
@@ -485,7 +534,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-48 pl-8 pr-3 py-1 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
+              className="w-48 pl-8 pr-3 py-1 text-xs bg-bg-surface-raised border border-transparent rounded-full text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
             />
           </div>
 
@@ -499,24 +548,24 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                   setIsSortMenuOpen(false);
                   setIsViewMenuOpen(false);
                 }}
-                className={`flex items-center space-x-1.5 px-2.5 py-1 rounded text-xs transition-colors ${
+                className={`flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs transition-colors focus:outline-none ${
                   selectedTeamIds.size > 0
-                    ? 'bg-bg-surface-raised border border-border-strong text-text-primary'
-                    : 'bg-bg-surface border border-border text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover'
+                    ? 'bg-bg-surface-hover border border-transparent text-text-primary'
+                    : 'bg-bg-surface-raised border border-transparent text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover'
                 }`}
                 title="Filter by team"
               >
                 <Filter className="w-3.5 h-3.5" />
                 <span>Teams</span>
                 {selectedTeamIds.size > 0 && (
-                  <span className="bg-text-primary text-bg-base text-[10px] font-semibold w-4 h-4 rounded-full flex items-center justify-center">
+                  <span className="bg-text-primary text-button-text text-[10px] font-semibold w-4 h-4 rounded-full flex items-center justify-center">
                     {selectedTeamIds.size}
                   </span>
                 )}
               </button>
 
               {isTeamMenuOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-52 bg-bg-surface-raised border border-border rounded-md shadow-lg py-1 z-30 font-sans">
+                <div className="absolute right-0 top-full mt-1.5 w-52 bg-bg-surface-raised border border-transparent rounded-md shadow-lg py-1 z-30 font-sans">
                   <div className="px-2.5 py-1 text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
                     Filter by Team
                   </div>
@@ -529,10 +578,10 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                         : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
                     }`}
                   >
-                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+                    <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
                       selectedTeamIds.size === 0 ? 'bg-text-primary border-text-primary' : 'border-border-strong'
                     }`}>
-                      {selectedTeamIds.size === 0 && <Check className="w-2.5 h-2.5 text-bg-base" />}
+                      {selectedTeamIds.size === 0 && <Check className="w-2.5 h-2.5 text-button-text" />}
                     </div>
                     <span>All Teams</span>
                   </button>
@@ -547,10 +596,10 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                           : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
                       }`}
                     >
-                      <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+                      <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
                         selectedTeamIds.has(team.id) ? 'bg-text-primary border-text-primary' : 'border-border-strong'
                       }`}>
-                        {selectedTeamIds.has(team.id) && <Check className="w-2.5 h-2.5 text-bg-base" />}
+                        {selectedTeamIds.has(team.id) && <Check className="w-2.5 h-2.5 text-button-text" />}
                       </div>
                       <span className="truncate">{team.name}</span>
                       <span className="ml-auto text-text-tertiary font-mono text-[10px]">{team.key}</span>
@@ -581,15 +630,15 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
               <div
                 key={issue.id}
                 onClick={() => setSelectedIssue(issue)}
-                className={`group bg-transparent hover:bg-bg-surface-hover transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between ${
-                  isCompact ? 'p-2 gap-2' : 'border border-border rounded-lg shadow-xs hover:shadow-sm p-3.5 gap-3'
+                className={`group bg-bg-surface-raised hover:bg-bg-surface-hover transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between ${
+                  isCompact ? 'p-2 gap-2' : 'border border-transparent rounded-lg shadow-xs hover:shadow-sm p-3.5 gap-3'
                 }`}
               >
                 {/* Left Section: Identifier, Priority, Status */}
                 <div className="flex items-center min-w-0 flex-1">
                   <div className="flex items-center shrink-0">
                     <div className="w-24 shrink-0 flex items-center justify-start pr-2">
-                      <span className="inline-flex items-center justify-center text-center font-id text-[11px] font-semibold px-1.5 py-0.5 rounded bg-bg-surface border border-border group-hover:border-text-secondary transition-colors text-text-secondary">
+                      <span className="inline-flex items-center justify-center text-center font-id text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-bg-surface-raised border border-transparent transition-colors text-text-secondary">
                         {formatIssueIdentifier(issue, currentWorkspace)}
                       </span>
                     </div>
@@ -599,12 +648,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                     </div>
 
                     <div className="w-28 shrink-0 flex items-center">
-                        <span 
-                          className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium text-white"
-                          style={{ backgroundColor: issue.status?.color || '#726A5C' }}
-                        >
-                          <span>{issue.status?.name || 'Open'}</span>
-                        </span>
+                        <StatusBadge name={issue.status?.name || 'Open'} color={issue.status?.color} />
                     </div>
                   </div>
 
@@ -632,14 +676,14 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                           {issue.assignees.slice(0, 3).map((assignee: any, idx: number) => (
                             <img
                               key={assignee.id || idx}
-                              src={assignee.avatar_url || `https://ui-avatars.com/api/?name=${assignee.full_name || assignee.email}&background=EFE8DC&color=3A342C`}
+                              src={assignee.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(assignee.full_name || assignee.email)}&background=282828&color=B3B3B3&rounded=true`}
                               alt={assignee.full_name || 'Assignee'}
-                              className="w-6 h-6 rounded-full object-cover ring-2 ring-bg-base"
+                              className="w-6 h-6 rounded-full object-cover"
                             />
                           ))}
                         </div>
                         {issue.assignees.length > 3 && (
-                          <span className="text-[10px] font-semibold text-text-secondary bg-bg-surface-hover px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-semibold text-text-secondary bg-bg-surface-hover px-1.5 py-0.5 rounded-full">
                             +{issue.assignees.length - 3}
                           </span>
                         )}
@@ -652,7 +696,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                     ) : issue.assignee ? (
                       <div className="flex items-center space-x-1.5">
                         <img
-                          src={issue.assignee.avatar_url || `https://ui-avatars.com/api/?name=${issue.assignee.full_name}&background=EFE8DC&color=3A342C`}
+                          src={issue.assignee.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(issue.assignee.full_name)}&background=282828&color=B3B3B3&rounded=true`}
                           alt="Assignee"
                           className="w-6 h-6 rounded-full object-cover shrink-0"
                         />
@@ -662,7 +706,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                       </div>
                     ) : (
                       <div className="flex items-center space-x-1.5">
-                        <div className="w-6 h-6 rounded-full bg-bg-surface-hover flex items-center justify-center text-text-tertiary text-[10px] border border-border shrink-0">
+                        <div className="w-6 h-6 rounded-full bg-bg-surface-hover flex items-center justify-center text-text-tertiary text-[10px] border border-transparent shrink-0">
                           UN
                         </div>
                         <span className="text-xs text-text-tertiary">Unassigned</span>
@@ -694,11 +738,11 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                 <div
                   key={issue.id}
                   onClick={() => setSelectedIssue(issue)}
-                  className="group p-4 bg-transparent hover:bg-bg-surface-hover border border-border rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between"
+                  className="group p-4 bg-bg-surface-raised hover:bg-bg-surface-hover border border-transparent rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center justify-center text-center font-id text-xs font-semibold px-2 py-0.5 rounded bg-bg-surface border border-border group-hover:border-text-secondary transition-colors text-text-secondary">
+                      <span className="inline-flex items-center justify-center text-center font-id text-xs font-semibold px-2 py-0.5 rounded-full bg-bg-surface-raised border border-transparent transition-colors text-text-secondary">
                         {formatIssueIdentifier(issue, currentWorkspace)}
                       </span>
 
@@ -706,12 +750,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                         <div className="flex items-center" title={`Priority: ${priorityInfo.label}`}>
                           {priorityInfo.icon}
                         </div>
-                          <span 
-                            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
-                            style={{ backgroundColor: issue.status?.color || '#726A5C' }}
-                          >
-                            <span>{issue.status?.name || 'Open'}</span>
-                          </span>
+                          <StatusBadge name={issue.status?.name || 'Open'} color={issue.status?.color} size="xs" />
                       </div>
                     </div>
 
@@ -726,7 +765,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                     )}
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs text-text-secondary">
+                  <div className="mt-4 pt-3 flex items-center justify-between text-xs text-text-secondary">
                     {/* Assignees */}
                     <div className="flex items-center space-x-1.5 min-w-0">
                       {issue.assignees && issue.assignees.length > 0 ? (
@@ -734,9 +773,9 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                           {issue.assignees.slice(0, 3).map((a: any, idx: number) => (
                             <img
                               key={a.id || idx}
-                              src={a.avatar_url || `https://ui-avatars.com/api/?name=${a.full_name || a.email}&background=EFE8DC&color=3A342C`}
+                              src={a.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name || a.email)}&background=282828&color=B3B3B3&rounded=true`}
                               alt="Assignee"
-                              className="w-5 h-5 rounded-full object-cover ring-2 ring-bg-base"
+                              className="w-5 h-5 rounded-full object-cover"
                             />
                           ))}
                         </div>
@@ -782,19 +821,14 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
               return (
                 <div
                   key={column.id}
-                  className="w-72 bg-bg-surface/50 border border-border rounded-lg flex flex-col h-full max-h-full overflow-hidden"
+                  className="w-72 bg-black/20 border border-transparent rounded-lg flex flex-col h-full max-h-full overflow-hidden"
                 >
                   {/* Column Header */}
-                  <div className="p-3 border-b border-border flex items-center justify-between bg-bg-surface/80 shrink-0">
+                  <div className="p-3 flex items-center justify-between shrink-0">
                     <div className="flex items-center">
-                      <span 
-                        className="px-2 py-0.5 rounded text-xs font-semibold text-white font-karla"
-                        style={{ backgroundColor: (column as any).color || '#726A5C' }}
-                      >
-                        {column.name}
-                      </span>
+                      <StatusBadge name={column.name} color={(column as any).color} />
                     </div>
-                    <span className="px-1.5 py-0.2 text-[10px] font-mono bg-bg-surface/80 border border-border rounded-full text-text-secondary font-medium">
+                    <span className="min-w-[20px] px-1.5 py-0.5 text-[10px] font-mono bg-black/30 border border-transparent rounded-full text-text-secondary font-medium">
                       {columnIssues.length}
                     </span>
                   </div>
@@ -836,7 +870,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                     }}
                   >
                     {columnIssues.length === 0 ? (
-                      <div className="h-24 border border-dashed border-border rounded flex items-center justify-center text-[11px] text-text-tertiary">
+                      <div className="h-24 border border-dashed border-border rounded-sm flex items-center justify-center text-[11px] text-text-tertiary">
                         No issues
                       </div>
                     ) : (
@@ -850,12 +884,25 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                             onDragStart={(e) => {
                               e.dataTransfer.setData('text/plain', issue.id);
                               e.dataTransfer.effectAllowed = 'move';
+                              // Drag ghost: opaque rounded clone, otherwise the browser
+                              // snapshot shows sharp corners over the dark background
+                              const el = e.currentTarget as HTMLElement;
+                              const ghost = el.cloneNode(true) as HTMLElement;
+                              ghost.style.width = `${el.offsetWidth}px`;
+                              ghost.style.backgroundColor = 'var(--color-bg-surface-hover)';
+                              ghost.style.borderRadius = '12px';
+                              ghost.style.position = 'fixed';
+                              ghost.style.top = '-9999px';
+                              ghost.style.left = '-9999px';
+                              document.body.appendChild(ghost);
+                              e.dataTransfer.setDragImage(ghost, e.nativeEvent.offsetX, e.nativeEvent.offsetY);
+                              requestAnimationFrame(() => ghost.remove());
                             }}
                             onClick={() => setSelectedIssue(issue)}
-                            className="group p-3 bg-transparent hover:bg-bg-surface-hover border border-border rounded-md shadow-xs hover:shadow-sm transition-all cursor-pointer space-y-2 active:cursor-grabbing"
+                            className="group p-3 bg-bg-surface-raised hover:bg-bg-surface-hover border border-transparent rounded-md shadow-xs hover:shadow-sm transition-all cursor-pointer space-y-2 active:cursor-grabbing"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="inline-flex items-center justify-center text-center font-id text-[10px] font-semibold px-1.5 py-0.5 rounded bg-bg-surface border border-border group-hover:border-text-secondary transition-colors text-text-secondary">
+                              <span className="inline-flex items-center justify-center text-center font-id text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-black/30 border border-transparent transition-colors text-text-secondary">
                                 {formatIssueIdentifier(issue, currentWorkspace)}
                               </span>
 
@@ -868,16 +915,16 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                               {issue.title}
                             </h4>
 
-                            <div className="pt-2 border-t border-border/40 flex items-center justify-between text-[10px] text-text-secondary">
+                            <div className="pt-2 flex items-center justify-between text-[10px] text-text-secondary">
                               <div className="flex items-center space-x-1">
                                 {issue.assignees && issue.assignees.length > 0 ? (
                                   <div className="flex -space-x-1.5 overflow-hidden">
                                     {issue.assignees.slice(0, 2).map((a: any, idx: number) => (
                                       <img
                                         key={a.id || idx}
-                                        src={a.avatar_url || `https://ui-avatars.com/api/?name=${a.full_name || a.email}&background=EFE8DC&color=3A342C`}
+                                        src={a.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name || a.email)}&background=282828&color=B3B3B3&rounded=true`}
                                         alt="Assignee"
-                                        className="w-4 h-4 rounded-full object-cover ring-1 ring-bg-base"
+                                        className="w-4 h-4 rounded-full object-cover"
                                       />
                                     ))}
                                   </div>
@@ -914,7 +961,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="p-1 text-text-tertiary hover:text-text-primary disabled:opacity-50 transition-colors rounded hover:bg-bg-surface"
+              className="p-1 text-text-tertiary hover:text-text-primary disabled:opacity-50 transition-colors rounded-full hover:bg-bg-surface"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -922,7 +969,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={page * limit >= totalCount}
-              className="p-1 text-text-tertiary hover:text-text-primary disabled:opacity-50 transition-colors rounded hover:bg-bg-surface"
+              className="p-1 text-text-tertiary hover:text-text-primary disabled:opacity-50 transition-colors rounded-full hover:bg-bg-surface"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

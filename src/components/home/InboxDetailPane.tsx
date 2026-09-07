@@ -157,7 +157,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
             key={i} 
             className={
               isCurrentUser 
-                ? 'font-medium cursor-default px-1 py-0.5 rounded text-[11px] bg-status-warning/20 text-status-warning' 
+                ? 'font-medium cursor-default px-1 py-0.5 rounded-sm text-[11px] bg-status-warning/20 text-status-warning' 
                 : 'text-text-primary font-medium hover:underline cursor-default'
             }
           >
@@ -197,7 +197,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
 
     if (diffDays < 0) {
       return (
-        <span className="inline-flex items-center space-x-1.5 text-xs font-medium text-status-error bg-bg-surface-raised border border-border px-2 py-0.5 rounded">
+        <span className="inline-flex items-center space-x-1.5 text-xs font-medium text-status-error bg-bg-surface-raised border border-transparent px-2 py-0.5 rounded-full">
           <AlertCircle className="w-3.5 h-3.5 text-status-error shrink-0" />
           <span>Overdue {Math.abs(diffDays)}d ({formatted})</span>
         </span>
@@ -206,7 +206,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
 
     if (diffDays === 0) {
       return (
-        <span className="inline-flex items-center space-x-1.5 text-xs font-medium text-status-warning bg-bg-surface-raised border border-border px-2 py-0.5 rounded">
+        <span className="inline-flex items-center space-x-1.5 text-xs font-medium text-status-warning bg-bg-surface-raised border border-transparent px-2 py-0.5 rounded-full">
           <Clock className="w-3.5 h-3.5 text-status-warning shrink-0" />
           <span>Due Today ({formatted})</span>
         </span>
@@ -215,7 +215,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
 
     if (diffDays <= 2) {
       return (
-        <span className="inline-flex items-center space-x-1.5 text-xs font-medium text-status-warning bg-bg-surface-raised border border-border px-2 py-1 rounded">
+        <span className="inline-flex items-center space-x-1.5 text-xs font-medium text-status-warning bg-bg-surface-raised border border-transparent px-2 py-1 rounded-sm">
           <Clock className="w-3.5 h-3.5 text-status-warning shrink-0" />
           <span>{diffDays}d left ({formatted})</span>
         </span>
@@ -235,7 +235,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
       {/* Pane Subheader Toolbar */}
       <div className="px-6 py-3.5 border-b border-border bg-transparent flex items-center justify-between shrink-0">
         <div className="flex items-center space-x-2.5">
-          <span className="font-id text-xs font-semibold px-2 py-0.5 rounded bg-bg-surface border border-border text-text-secondary shrink-0">
+          <span className="font-id text-xs font-semibold px-2 py-0.5 rounded-full bg-bg-surface-raised border border-transparent text-text-secondary shrink-0">
             {formatIssueIdentifier(issue, currentWorkspace)}
           </span>
           <span className="text-xs text-text-tertiary">Task Overview</span>
@@ -245,7 +245,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
           {(userRole === 'admin' || issue.reporter_id === currentUser?.id) && (
             <button
               onClick={() => setShowDeleteIssueModal(true)}
-              className="p-1.5 rounded text-text-secondary hover:text-status-error hover:bg-bg-surface transition-colors"
+              className="p-1.5 rounded-full text-text-secondary hover:text-status-error hover:bg-bg-surface transition-colors"
               title="Delete Issue"
             >
               <Trash2 className="w-4 h-4" />
@@ -254,7 +254,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1.5 rounded text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors"
+              className="p-1.5 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors"
               title="Close"
             >
               <X className="w-4 h-4" />
@@ -270,7 +270,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
           {/* Unified Issue & Discussion Container */}
           <div className="space-y-4">
             {/* Primary Issue Card: Title + Metadata + Description Together */}
-            <div className="bg-bg-surface border border-border rounded-lg p-6 space-y-4 shadow-xs">
+            <div className="bg-bg-surface-raised border border-transparent rounded-lg p-6 space-y-4 shadow-xs">
               {/* Header with Title and Reporter info */}
               <div className="space-y-3 pb-4 border-b border-border/60">
                 <div>
@@ -286,7 +286,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
                     <div className="flex items-center justify-between text-xs text-text-secondary">
                       <div className="flex items-center space-x-2">
                         <img
-                          src={reporter?.avatar_url || `https://ui-avatars.com/api/?name=${reporterName}&background=EFE8DC&color=3A342C`}
+                          src={reporter?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(reporterName)}&background=282828&color=B3B3B3&rounded=true`}
                           alt="Reporter"
                           className="w-5 h-5 rounded-full object-cover shrink-0"
                         />
@@ -355,7 +355,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <img
-                          src={comment.author?.avatar_url || `https://ui-avatars.com/api/?name=${comment.author?.full_name}&background=EFE8DC&color=3A342C`}
+                          src={comment.author?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author?.full_name)}&background=282828&color=B3B3B3&rounded=true`}
                           alt="Author"
                           className="w-4 h-4 rounded-full object-cover shrink-0"
                         />
@@ -374,14 +374,14 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
                                 setEditingCommentId(comment.id);
                                 setEditCommentText(comment.body);
                               }}
-                              className="p-1 text-text-tertiary hover:text-text-primary rounded hover:bg-bg-surface-hover transition-colors"
+                              className="p-1 text-text-tertiary hover:text-text-primary rounded-full hover:bg-bg-surface-hover transition-colors"
                               title="Edit comment"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => setDeletingCommentId(comment.id)}
-                              className="p-1 text-text-tertiary hover:text-status-error rounded hover:bg-bg-surface-hover transition-colors"
+                              className="p-1 text-text-tertiary hover:text-status-error rounded-full hover:bg-bg-surface-hover transition-colors"
                               title="Delete comment"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -399,13 +399,13 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
                           value={editCommentText}
                           onChange={e => setEditCommentText(e.target.value)}
                           onPaste={handleEditCommentPaste}
-                          className="w-full text-xs bg-bg-surface-raised border border-border rounded p-2 text-text-primary focus:outline-none focus:border-text-secondary"
+                          className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-sm p-2 text-text-primary focus:outline-none focus:border-text-secondary"
                         />
                         <div className="flex justify-end space-x-2">
                           <button
                             type="button"
                             onClick={() => setEditingCommentId(null)}
-                            className="px-2.5 py-1 rounded text-xs text-text-secondary hover:bg-bg-surface-hover"
+                            className="px-2.5 py-1 rounded-full text-xs text-text-secondary hover:bg-bg-surface-hover"
                           >
                             Cancel
                           </button>
@@ -417,7 +417,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
                                 setEditingCommentId(null);
                               }
                             }}
-                            className="px-3 py-1 rounded bg-accent-primary text-bg-base text-xs font-medium hover:bg-accent-primary-hover"
+                            className="px-3 py-1 rounded-full bg-accent-primary text-button-text text-xs font-semibold hover:bg-accent-primary-hover"
                           >
                             Update
                           </button>
@@ -435,13 +435,13 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
               {/* Comment Input */}
               <form onSubmit={handleSendComment} className="flex items-start space-x-2.5 pt-2">
                 <img
-                  src={currentUser?.avatar_url || `https://ui-avatars.com/api/?name=${currentUser?.full_name}&background=EFE8DC&color=3A342C`}
+                  src={currentUser?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.full_name || 'User')}&background=282828&color=B3B3B3&rounded=true`}
                   alt="You"
                   className="w-5 h-5 rounded-full object-cover mt-1 shrink-0"
                 />
                 <div className="flex-1 relative">
                   {showMentionPicker && mentionContext === 'new' && filteredMentionables.length > 0 && (
-                    <div className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto bg-bg-surface-raised border border-border rounded-md shadow-lg z-50 py-1">
+                    <div className="absolute bottom-full left-0 mb-1 w-64 max-h-48 overflow-y-auto bg-bg-surface-raised border border-transparent rounded-md shadow-lg z-50 py-1">
                       {filteredMentionables.map(p => (
                         <button
                           key={p.id}
@@ -450,7 +450,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
                           className="w-full text-left px-3 py-2 text-xs hover:bg-bg-surface-hover flex items-center space-x-2 transition-colors"
                         >
                           <img
-                            src={p.avatar_url || `https://ui-avatars.com/api/?name=${p.full_name || p.email}&background=EFE8DC&color=3A342C`}
+                            src={p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.full_name || p.email)}&background=282828&color=B3B3B3&rounded=true`}
                             alt="Avatar"
                             className="w-5 h-5 rounded-full object-cover shrink-0"
                           />
@@ -467,12 +467,12 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
                     onChange={handleCommentChange}
                     onKeyDown={handleCommentKeyDown}
                     onPaste={handleCommentPaste}
-                    className="w-full text-xs bg-bg-surface border border-border rounded-md pl-2.5 pr-8 py-2 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                    className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-md pl-2.5 pr-8 py-2 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                   />
                   <button
                     type="submit"
                     disabled={!newCommentText.trim()}
-                    className="absolute right-2 bottom-2 p-1 rounded text-text-secondary hover:text-accent-primary disabled:opacity-40 transition-colors"
+                    className="absolute right-2 bottom-2 p-1 rounded-sm text-text-secondary hover:text-accent-primary disabled:opacity-40 transition-colors"
                   >
                     <Send className="w-3.5 h-3.5" />
                   </button>
@@ -490,7 +490,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
               Status
             </label>
             <div className="flex items-center space-x-2">
-              <span className="inline-flex items-center px-2.5 py-1 rounded bg-bg-surface border border-border text-xs font-medium text-text-primary">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-sm bg-bg-surface-raised border border-transparent text-xs font-medium text-text-primary">
                 {issue.status?.name || 'Backlog'}
               </span>
             </div>
@@ -502,7 +502,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
               Priority
             </label>
             <div>
-              <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-medium capitalize border ${priorityColors[issue.priority] || priorityColors.medium}`}>
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium capitalize border ${priorityColors[issue.priority] || priorityColors.medium}`}>
                 {issue.priority || 'medium'}
               </span>
             </div>
@@ -515,17 +515,17 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
             </label>
             <div className="space-y-1.5">
               {assignedProfiles.length === 0 ? (
-                <div className="text-xs text-text-tertiary px-2.5 py-1.5 bg-bg-surface border border-border rounded">
+                <div className="text-xs text-text-tertiary px-2.5 py-1.5 bg-bg-surface-raised border border-transparent rounded-sm">
                   No assignees
                 </div>
               ) : (
                 assignedProfiles.map(u => (
                   <div
                     key={u.id}
-                    className="flex items-center space-x-2 px-2.5 py-1.5 bg-bg-surface border border-border rounded text-xs"
+                    className="flex items-center space-x-2 px-2.5 py-1.5 bg-bg-surface-raised border border-transparent rounded-sm text-xs"
                   >
                     <img
-                      src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.full_name || u.email}&background=EFE8DC&color=3A342C`}
+                      src={u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || u.email)}&background=282828&color=B3B3B3&rounded=true`}
                       alt="Avatar"
                       className="w-4 h-4 rounded-full object-cover shrink-0"
                     />
@@ -551,7 +551,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
             <label className="text-xs font-medium text-text-secondary">
               Estimate (Points)
             </label>
-            <div className="text-xs text-text-primary px-2.5 py-1.5 bg-bg-surface border border-border rounded">
+            <div className="text-xs text-text-primary px-2.5 py-1.5 bg-bg-surface-raised border border-transparent rounded-sm">
               {issue.estimate !== null && issue.estimate !== undefined ? `${issue.estimate} points` : 'Not estimated'}
             </div>
           </div>

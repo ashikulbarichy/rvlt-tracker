@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { useIssues } from '../../hooks/useIssues';
 import { useNavigate } from 'react-router-dom';
 import { formatIssueIdentifier } from '../../lib/identifier';
+import { StatusBadge } from '../common/StatusBadge';
 
 export const GlobalSearchModal: React.FC = () => {
   const { isSearchModalOpen, setIsSearchModalOpen, currentWorkspace } = useApp();
@@ -58,7 +59,7 @@ export const GlobalSearchModal: React.FC = () => {
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-2xl bg-bg-surface rounded-xl shadow-2xl border border-border overflow-hidden flex flex-col max-h-[75vh] sm:max-h-[60vh] transform transition-all">
+      <div className="relative w-full max-w-2xl bg-bg-surface-raised rounded-xl shadow-2xl border border-transparent overflow-hidden flex flex-col max-h-[75vh] sm:max-h-[60vh] transform transition-all">
         {/* Search Input */}
         <div className="flex items-center px-4 py-3 border-b border-border">
           <Search className="w-5 h-5 text-text-secondary shrink-0" />
@@ -73,12 +74,12 @@ export const GlobalSearchModal: React.FC = () => {
           {localQuery && (
             <button 
               onClick={() => setLocalQuery('')}
-              className="p-1 rounded-md text-text-tertiary hover:text-text-primary hover:bg-bg-surface-hover transition-colors"
+              className="p-1 rounded-full text-text-tertiary hover:text-text-primary hover:bg-bg-surface-hover transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
           )}
-          <div className="hidden sm:flex items-center space-x-1 ml-2 px-2 py-1 bg-bg-surface-raised rounded text-[10px] font-medium text-text-tertiary border border-border">
+          <div className="hidden sm:flex items-center space-x-1 ml-2 px-2 py-1 bg-bg-surface-hover rounded-full text-[10px] font-medium text-text-tertiary border border-transparent">
             <span>ESC</span>
           </div>
         </div>
@@ -117,12 +118,7 @@ export const GlobalSearchModal: React.FC = () => {
                     </span>
                   </div>
                   <div className="flex items-center space-x-3 shrink-0 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span 
-                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
-                      style={{ backgroundColor: issue.status?.color || '#726A5C' }}
-                    >
-                      {issue.status?.name || 'Todo'}
-                    </span>
+                    <StatusBadge name={issue.status?.name || 'Todo'} color={issue.status?.color} size="xs" />
                   </div>
                 </button>
               ))}

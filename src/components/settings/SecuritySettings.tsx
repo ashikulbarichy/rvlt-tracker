@@ -91,10 +91,10 @@ export const SecuritySettings: React.FC = () => {
           <p className="text-xs text-text-secondary mt-0.5">Manage your account authentication and security preferences.</p>
         </div>
 
-        <form onSubmit={handlePasswordChange} className="bg-bg-surface border border-border rounded-md p-4 space-y-4 shadow-sm">
+        <form onSubmit={handlePasswordChange} className="bg-bg-surface-raised border border-transparent rounded-md p-4 space-y-4 shadow-sm">
           {passwordStatusMessage && (
             <div
-              className={`p-2.5 rounded text-xs font-medium border ${
+              className={`p-2.5 rounded-sm text-xs font-medium border ${
                 passwordStatusMessage.type === 'success'
                   ? 'bg-status-success/15 border-status-success text-text-primary'
                   : 'bg-status-error/15 border-status-error text-status-error'
@@ -113,7 +113,7 @@ export const SecuritySettings: React.FC = () => {
                   type={showCurrentPassword ? 'text' : 'password'}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full px-2.5 py-1.5 pr-8 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
+                  className="w-full px-2.5 py-1.5 pr-8 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
                   placeholder="Enter current password"
                   required
                 />
@@ -136,7 +136,7 @@ export const SecuritySettings: React.FC = () => {
                     type={showNewPassword ? 'text' : 'password'}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-2.5 py-1.5 pr-8 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
+                    className="w-full px-2.5 py-1.5 pr-8 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
                     placeholder="At least 8 characters"
                     required
                   />
@@ -157,7 +157,7 @@ export const SecuritySettings: React.FC = () => {
                   type={showNewPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
+                  className="w-full px-2.5 py-1.5 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
                   placeholder="Re-enter new password"
                   required
                 />
@@ -174,7 +174,7 @@ export const SecuritySettings: React.FC = () => {
             <button
               type="submit"
               disabled={isUpdatingPassword || !currentPassword || !newPassword || !confirmPassword}
-              className="px-3 py-1.5 text-xs font-medium text-bg-base bg-accent-primary rounded hover:bg-accent-primary-hover focus:outline-none focus:ring-1 focus:ring-accent-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1.5"
+              className="px-3 py-1.5 text-xs font-semibold text-button-text bg-accent-primary rounded-full hover:bg-accent-primary-hover focus:outline-none focus:ring-1 focus:ring-accent-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-1.5"
             >
               <Lock className="w-3 h-3" />
               <span>{isUpdatingPassword ? 'Updating...' : 'Update password'}</span>

@@ -20,7 +20,7 @@ export const ProfileSettings: React.FC = () => {
     }
   }, [currentUser]);
 
-  const defaultAvatar = currentUser?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.full_name || currentUser?.email || 'User')}&background=EFE8DC&color=3A342C`;
+  const defaultAvatar = currentUser?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.full_name || currentUser?.email || 'User')}&background=282828&color=B3B3B3&rounded=true`;
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -127,10 +127,10 @@ export const ProfileSettings: React.FC = () => {
         <p className="text-xs text-text-secondary">Update your personal information and avatar.</p>
       </div>
 
-      <form onSubmit={handleSave} className="bg-bg-surface border border-border rounded-md p-4 space-y-4 shadow-sm">
+      <form onSubmit={handleSave} className="bg-bg-surface-raised border border-transparent rounded-md p-4 space-y-4 shadow-sm">
         {statusMessage && (
           <div
-            className={`p-2.5 rounded text-xs font-medium border ${
+            className={`p-2.5 rounded-sm text-xs font-medium border ${
               statusMessage.type === 'success'
                 ? 'bg-status-success/15 border-status-success text-text-primary'
                 : 'bg-status-error/15 border-status-error text-status-error'
@@ -143,7 +143,7 @@ export const ProfileSettings: React.FC = () => {
         {/* Profile Avatar Section */}
         <div className="pb-4 border-b border-border flex items-center space-x-4">
           <div className="relative shrink-0">
-            <div className="w-14 h-14 rounded-full overflow-hidden border border-border bg-bg-surface shrink-0">
+            <div className="w-14 h-14 rounded-full overflow-hidden border border-transparent bg-bg-surface shrink-0">
               <img
                 src={defaultAvatar}
                 alt={currentUser?.full_name || 'Avatar'}
@@ -171,7 +171,7 @@ export const ProfileSettings: React.FC = () => {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploadingAvatar}
-                className="flex items-center space-x-1 px-2.5 py-1 text-xs font-medium text-text-primary bg-bg-surface hover:bg-bg-surface-hover border border-border rounded transition-colors disabled:opacity-50"
+                className="flex items-center space-x-1 px-2.5 py-1 text-xs font-medium text-text-primary bg-bg-surface hover:bg-bg-surface-hover border border-transparent rounded-full transition-colors disabled:opacity-50"
               >
                 <Camera className="w-3 h-3 text-text-secondary" />
                 <span>{isUploadingAvatar ? 'Uploading...' : 'Change photo'}</span>
@@ -182,7 +182,7 @@ export const ProfileSettings: React.FC = () => {
                   type="button"
                   onClick={handleRemoveAvatar}
                   disabled={isUploadingAvatar || isSaving}
-                  className="px-2.5 py-1 text-xs font-medium text-status-error hover:bg-status-error/10 rounded transition-colors"
+                  className="px-2.5 py-1 text-xs font-medium text-status-error hover:bg-status-error/10 rounded-full transition-colors"
                 >
                   Remove
                 </button>
@@ -201,7 +201,7 @@ export const ProfileSettings: React.FC = () => {
               type="text"
               value={currentUser?.email || ''}
               disabled
-              className="w-full px-2.5 py-1.5 text-xs bg-bg-surface/50 border border-border rounded text-text-tertiary focus:outline-none cursor-not-allowed"
+              className="w-full px-2.5 py-1.5 text-xs bg-bg-surface/50 border border-transparent rounded-sm text-text-tertiary focus:outline-none cursor-not-allowed"
             />
             <p className="mt-1 text-[11px] text-text-tertiary">Your email address is managed by Supabase Auth.</p>
           </div>
@@ -213,7 +213,7 @@ export const ProfileSettings: React.FC = () => {
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-2.5 py-1.5 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
+              className="w-full px-2.5 py-1.5 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
               placeholder="e.g. Jane Doe"
             />
           </div>
@@ -223,7 +223,7 @@ export const ProfileSettings: React.FC = () => {
           <button
             type="submit"
             disabled={isSaving || fullName === currentUser?.full_name}
-            className="px-3 py-1.5 text-xs font-medium text-bg-base bg-accent-primary rounded hover:bg-accent-primary-hover focus:outline-none focus:ring-1 focus:ring-accent-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1.5 text-xs font-semibold text-button-text bg-accent-primary rounded-full hover:bg-accent-primary-hover focus:outline-none focus:ring-1 focus:ring-accent-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isSaving ? 'Saving...' : 'Save changes'}
           </button>

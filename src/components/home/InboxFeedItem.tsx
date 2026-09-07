@@ -2,6 +2,7 @@ import React from 'react';
 import { Issue, Notification, Profile } from '../../types/database';
 import { AlertCircle, Clock, MessageSquare, Flame, AlertTriangle, ChevronsUp, Equal, ChevronDown, Minus, X } from 'lucide-react';
 import { formatIssueIdentifier } from '../../lib/identifier';
+import { StatusBadge } from '../common/StatusBadge';
 
 export interface FeedItemData {
   id: string;
@@ -28,21 +29,21 @@ export const InboxFeedItem: React.FC<InboxFeedItemProps> = ({ item, isSelected, 
     switch (item.urgencyType) {
       case 'overdue':
         return (
-          <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-status-error/15 text-status-error border border-status-error/30">
+          <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-status-error/15 text-status-error border border-transparent ">
             <AlertCircle className="w-3 h-3 shrink-0" />
             <span>{item.urgencyLabel || 'Overdue'}</span>
           </span>
         );
       case 'due_today':
         return (
-          <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-status-warning/15 text-status-warning border border-status-warning/30">
+          <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-status-warning/15 text-status-warning border border-transparent ">
             <Clock className="w-3 h-3 shrink-0" />
             <span>{item.urgencyLabel || 'Due Today'}</span>
           </span>
         );
       case 'due_soon':
         return (
-          <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-status-warning/10 text-status-warning">
+          <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-status-warning/10 text-status-warning">
             <Clock className="w-3 h-3 shrink-0" />
             <span>{item.urgencyLabel || 'Due Soon'}</span>
           </span>
@@ -51,7 +52,7 @@ export const InboxFeedItem: React.FC<InboxFeedItemProps> = ({ item, isSelected, 
         return null;
       case 'comment':
         return (
-          <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-status-info/15 text-status-info">
+          <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-status-info/15 text-status-info">
             <MessageSquare className="w-3 h-3 shrink-0" />
             <span>Activity</span>
           </span>
@@ -105,7 +106,7 @@ export const InboxFeedItem: React.FC<InboxFeedItemProps> = ({ item, isSelected, 
           {onRemove && (
             <button
               onClick={onRemove}
-              className="text-text-tertiary hover:text-status-error transition-colors p-0.5 rounded hover:bg-bg-surface-hover"
+              className="text-text-tertiary hover:text-status-error transition-colors p-0.5 rounded-sm hover:bg-bg-surface-hover"
               title="Remove notification"
             >
               <X className="w-3.5 h-3.5" />
@@ -129,26 +130,21 @@ export const InboxFeedItem: React.FC<InboxFeedItemProps> = ({ item, isSelected, 
       {/* Bottom row: Status & Assignees */}
       {issue && (
         <div className="flex items-center justify-between">
-          <span 
-            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
-            style={{ backgroundColor: issue.status?.color || '#726A5C' }}
-          >
-            {issue.status?.name || 'Todo'}
-          </span>
+          <StatusBadge name={issue.status?.name || 'Todo'} color={issue.status?.color} size="xs" />
 
           {issue.assignees && issue.assignees.length > 0 ? (
             <div className="flex -space-x-1.5 overflow-hidden">
               {issue.assignees.slice(0, 2).map((a: Profile, idx: number) => (
                 <img
                   key={a.id || idx}
-                  src={a.avatar_url || `https://ui-avatars.com/api/?name=${a.full_name || a.email}&background=EFE8DC&color=3A342C`}
+                  src={a.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name || a.email)}&background=282828&color=B3B3B3&rounded=true`}
                   alt={a.full_name || 'Assignee'}
-                  className="w-4 h-4 rounded-full object-cover ring-1 ring-bg-base"
+                  className="w-4 h-4 rounded-full object-cover"
                   title={a.full_name || a.email}
                 />
               ))}
               {issue.assignees.length > 2 && (
-                <span className="w-4 h-4 rounded-full bg-border text-[9px] font-medium text-text-primary flex items-center justify-center ring-1 ring-bg-base">
+                <span className="w-4 h-4 rounded-full bg-border text-[9px] font-medium text-text-primary flex items-center justify-center">
                   +{issue.assignees.length - 2}
                 </span>
               )}

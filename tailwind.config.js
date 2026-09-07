@@ -8,35 +8,36 @@ export default {
     extend: {
       colors: {
         bg: {
-          base: 'var(--color-bg-base)',
-          surface: 'var(--color-bg-surface)',
-          'surface-raised': 'var(--color-bg-surface-raised)',
-          'surface-hover': 'var(--color-bg-surface-hover)',
+          base: 'rgb(var(--rgb-bg-base) / <alpha-value>)',
+          surface: 'rgb(var(--rgb-bg-surface) / <alpha-value>)',
+          'surface-raised': 'rgb(var(--rgb-bg-surface-raised) / <alpha-value>)',
+          'surface-hover': 'rgb(var(--rgb-bg-surface-hover) / <alpha-value>)',
         },
         border: {
-          DEFAULT: 'var(--color-border)',
-          strong: 'var(--color-border-strong)',
+          DEFAULT: 'rgb(var(--rgb-border) / <alpha-value>)',
+          strong: 'rgb(var(--rgb-border-strong) / <alpha-value>)',
         },
         text: {
-          primary: 'var(--color-text-primary)',
-          secondary: 'var(--color-text-secondary)',
-          tertiary: 'var(--color-text-tertiary)',
+          primary: 'rgb(var(--rgb-text-primary) / <alpha-value>)',
+          secondary: 'rgb(var(--rgb-text-secondary) / <alpha-value>)',
+          tertiary: 'rgb(var(--rgb-text-tertiary) / <alpha-value>)',
         },
         accent: {
-          primary: 'var(--color-accent-primary)',
-          'primary-hover': 'var(--color-accent-primary-hover)',
-          muted: 'var(--color-accent-muted)',
+          primary: 'rgb(var(--rgb-accent-primary) / <alpha-value>)',
+          'primary-hover': 'rgb(var(--rgb-accent-primary-hover) / <alpha-value>)',
+          muted: 'rgb(var(--rgb-accent-muted) / <alpha-value>)',
         },
         status: {
-          success: 'var(--color-success)',
-          warning: 'var(--color-warning)',
-          error: 'var(--color-error)',
-          info: 'var(--color-info)',
+          success: 'rgb(var(--rgb-success) / <alpha-value>)',
+          warning: 'rgb(var(--rgb-warning) / <alpha-value>)',
+          attention: 'rgb(var(--rgb-attention) / <alpha-value>)',
+          error: 'rgb(var(--rgb-error) / <alpha-value>)',
+          info: 'rgb(var(--rgb-info) / <alpha-value>)',
         },
         button: {
-          primary: 'var(--color-button-primary)',
-          'primary-hover': 'var(--color-button-primary-hover)',
-          text: 'var(--color-button-text)',
+          primary: 'rgb(var(--rgb-accent-primary) / <alpha-value>)',
+          'primary-hover': 'rgb(var(--rgb-accent-primary-hover) / <alpha-value>)',
+          text: 'rgb(var(--rgb-button-text) / <alpha-value>)',
         }
       },
       fontFamily: {
@@ -53,8 +54,10 @@ export default {
         extrabold: 'var(--font-weight-extrabold)',
       },
       borderRadius: {
-        sm: '6px',
-        md: '10px',
+        sm: '8px',
+        md: '12px',
+        lg: '14px',
+        xl: '16px',
       },
       spacing: {
         '18': '4.5rem',

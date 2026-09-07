@@ -57,7 +57,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between space-x-1.5 bg-bg-surface border border-border rounded text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${sizeClasses}`}
+        className={`flex items-center justify-between space-x-1.5 bg-bg-surface-raised border border-transparent rounded-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${sizeClasses}`}
       >
         <span className="truncate font-medium">{selectedOption?.label}</span>
         <ChevronDown
@@ -68,7 +68,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 z-50 mt-1 min-w-full bg-bg-surface border border-border rounded shadow-lg py-1">
+        <div className="absolute left-0 z-50 mt-1 min-w-full bg-bg-surface-raised border border-transparent rounded-sm shadow-lg p-1.5 space-y-0.5">
           {options.map(opt => {
             const isSelected = opt.value === value;
             return (
@@ -79,7 +79,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                   onChange(opt.value);
                   setIsOpen(false);
                 }}
-                className={`w-full text-left px-2.5 py-1.5 text-[11px] flex items-center justify-between transition-colors ${
+                className={`w-full text-left px-2.5 py-1.5 text-xs rounded-sm flex items-center justify-between transition-colors ${
                   isSelected
                     ? 'bg-bg-surface-hover text-text-primary font-medium'
                     : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'

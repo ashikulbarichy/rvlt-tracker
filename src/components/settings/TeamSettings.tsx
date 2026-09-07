@@ -196,14 +196,14 @@ export const TeamSettings: React.FC = () => {
             <div className="flex items-center space-x-2">
               <button
                 onClick={handleEditClick}
-                className="flex items-center space-x-1.5 px-2.5 py-1 text-xs text-text-secondary hover:text-text-primary hover:bg-bg-surface rounded border border-border transition-colors"
+                className="flex items-center space-x-1.5 px-2.5 py-1 text-xs text-text-secondary hover:text-text-primary hover:bg-bg-surface rounded-full border border-transparent transition-colors"
               >
                 <Edit2 className="w-3.5 h-3.5" />
                 <span>Edit Team</span>
               </button>
               <button
                 onClick={() => handleDelete(selectedTeam.id, selectedTeam.name)}
-                className="flex items-center space-x-1.5 px-2.5 py-1 text-xs text-status-error hover:bg-status-error/10 rounded border border-status-error/30 transition-colors"
+                className="flex items-center space-x-1.5 px-2.5 py-1 text-xs text-status-error hover:bg-status-error/10 rounded-sm border border-transparent transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Delete</span>
@@ -213,9 +213,9 @@ export const TeamSettings: React.FC = () => {
         </div>
 
         {/* Team Overview Card */}
-        <div className="p-5 bg-bg-surface border border-border rounded-lg shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-5 bg-bg-surface-raised border border-transparent rounded-lg shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start space-x-3.5 min-w-0">
-            <div className="w-10 h-10 rounded-lg bg-bg-surface border border-border flex items-center justify-center text-text-primary shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-bg-surface-raised border border-transparent flex items-center justify-center text-text-primary shrink-0">
               <TeamIconComponent className="w-5 h-5" />
             </div>
             <div className="min-w-0">
@@ -223,7 +223,7 @@ export const TeamSettings: React.FC = () => {
                 <h1 className="text-lg font-karla font-semibold text-text-primary truncate">
                   {selectedTeam.name}
                 </h1>
-                <span className="px-2 py-0.5 text-[10px] font-mono font-medium bg-bg-surface text-text-secondary border border-border rounded">
+                <span className="px-2 py-0.5 text-[10px] font-mono font-medium bg-bg-surface text-text-secondary border border-transparent rounded-full">
                   {selectedTeam.key}
                 </span>
               </div>
@@ -234,14 +234,14 @@ export const TeamSettings: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-3 shrink-0">
-            <div className="px-3 py-1.5 bg-transparent border border-text-primary rounded text-center">
+            <div className="px-3 py-1.5 bg-transparent border border-text-primary rounded-full text-center">
               <div className="text-xs font-semibold text-text-primary">{assignedMembers.length}</div>
               <div className="text-[10px] text-text-tertiary uppercase tracking-wider">Members</div>
             </div>
             {isAdmin && unassignedMembers.length > 0 && (
               <button
                 onClick={() => setIsAddMemberModalOpen(true)}
-                className="flex items-center space-x-1.5 px-3 py-2 text-xs font-medium text-bg-base bg-accent-primary hover:bg-accent-primary-hover rounded transition-colors shadow-xs"
+                className="flex items-center space-x-1.5 px-3 py-2 text-xs font-semibold text-button-text bg-accent-primary hover:bg-accent-primary-hover rounded-full transition-colors shadow-xs"
               >
                 <UserPlus className="w-3.5 h-3.5" />
                 <span>Add Member</span>
@@ -270,7 +270,7 @@ export const TeamSettings: React.FC = () => {
                   placeholder="Filter team members..."
                   value={searchMemberQuery}
                   onChange={e => setSearchMemberQuery(e.target.value)}
-                  className="w-56 pl-8 pr-3 py-1 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                  className="w-56 pl-8 pr-3 py-1 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                 />
               </div>
             )}
@@ -278,7 +278,7 @@ export const TeamSettings: React.FC = () => {
 
           {/* Members Cards List */}
           {assignedMembers.length === 0 ? (
-            <div className="p-10 text-center text-xs text-text-secondary bg-bg-surface border border-border rounded-lg space-y-2">
+            <div className="p-10 text-center text-xs text-text-secondary bg-bg-surface-raised border border-transparent rounded-lg space-y-2">
               <Users className="w-8 h-8 text-text-tertiary mx-auto opacity-60" />
               <div className="font-semibold text-text-primary">No members assigned yet</div>
               <p className="text-[11px] text-text-tertiary">
@@ -288,7 +288,7 @@ export const TeamSettings: React.FC = () => {
                 <div className="pt-2">
                   <button
                     onClick={() => setIsAddMemberModalOpen(true)}
-                    className="px-3 py-1.5 text-xs font-medium text-bg-base bg-accent-primary hover:bg-accent-primary-hover rounded transition-colors"
+                    className="px-3 py-1.5 text-xs font-semibold text-button-text bg-accent-primary hover:bg-accent-primary-hover rounded-full transition-colors"
                   >
                     Add First Member
                   </button>
@@ -304,7 +304,7 @@ export const TeamSettings: React.FC = () => {
                 return (
                   <div
                     key={m.user_id}
-                    className="p-3.5 bg-transparent hover:bg-bg-surface-hover border border-border rounded-lg shadow-xs transition-all flex items-center justify-between gap-3"
+                    className="p-3.5 bg-bg-surface-raised hover:bg-bg-surface-hover border border-transparent rounded-lg shadow-xs transition-all flex items-center justify-between gap-3"
                   >
                     <div className="flex items-center space-x-3 min-w-0">
                       <div className="relative shrink-0">
@@ -312,7 +312,7 @@ export const TeamSettings: React.FC = () => {
                             isCreator ? 'border-white ring-2 ring-white' : 'border-border'
                           }`}>
                           <img
-                            src={m.profile?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.profile?.full_name || m.profile?.email || 'User')}&background=EFE8DC&color=3A342C`}
+                            src={m.profile?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.profile?.full_name || m.profile?.email || 'User')}&background=282828&color=B3B3B3&rounded=true`}
                             alt="Avatar"
                             className="w-full h-full object-cover"
                           />
@@ -332,7 +332,7 @@ export const TeamSettings: React.FC = () => {
                           <span className="text-xs font-semibold text-text-primary truncate">
                             {m.profile?.full_name || 'User'}
                           </span>
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-medium bg-bg-surface text-text-secondary border border-border uppercase">
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-bg-surface text-text-secondary border border-transparent uppercase">
                             {m.role || 'Member'}
                           </span>
                         </div>
@@ -355,7 +355,7 @@ export const TeamSettings: React.FC = () => {
                           });
                         }}
                         disabled={isToggling}
-                        className="p-1.5 text-text-tertiary hover:text-status-error hover:bg-status-error/10 rounded transition-colors shrink-0"
+                        className="p-1.5 text-text-tertiary hover:text-status-error hover:bg-status-error/10 rounded-full transition-colors shrink-0"
                         title="Remove from team"
                       >
                         {isToggling ? (
@@ -377,7 +377,7 @@ export const TeamSettings: React.FC = () => {
         {/* Add Member Modal */}
         {isAddMemberModalOpen && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 font-sans">
-            <div className="bg-bg-surface border border-border rounded-lg max-w-md w-full p-5 shadow-lg space-y-4">
+            <div className="bg-bg-surface-raised border border-transparent rounded-lg max-w-md w-full p-5 shadow-lg space-y-4">
               <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
                 <div>
                   <h3 className="text-sm font-karla font-semibold text-text-primary">
@@ -389,7 +389,7 @@ export const TeamSettings: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setIsAddMemberModalOpen(false)}
-                  className="text-text-tertiary hover:text-text-primary p-1 rounded"
+                  className="text-text-tertiary hover:text-text-primary p-1 rounded-sm"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -407,11 +407,11 @@ export const TeamSettings: React.FC = () => {
                     return (
                       <div
                         key={m.user_id}
-                        className="flex items-center justify-between p-2.5 bg-bg-surface border border-border rounded-md hover:bg-bg-surface transition-colors"
+                        className="flex items-center justify-between p-2.5 bg-bg-surface-raised border border-transparent rounded-full hover:bg-bg-surface transition-colors"
                       >
                         <div className="flex items-center space-x-2.5 min-w-0">
                           <img
-                            src={m.profile?.avatar_url || `https://ui-avatars.com/api/?name=${m.profile?.full_name || 'User'}&background=EFE8DC&color=3A342C`}
+                            src={m.profile?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.profile?.full_name || 'User')}&background=282828&color=B3B3B3&rounded=true`}
                             alt="Avatar"
                             className="w-6 h-6 rounded-full object-cover shrink-0"
                           />
@@ -434,7 +434,7 @@ export const TeamSettings: React.FC = () => {
                             }
                           }}
                           disabled={isToggling}
-                          className="px-2.5 py-1 bg-accent-primary hover:bg-accent-primary-hover text-bg-base text-xs font-medium rounded transition-colors disabled:opacity-50"
+                          className="px-2.5 py-1 bg-accent-primary hover:bg-accent-primary-hover text-button-text text-xs font-semibold rounded-full transition-colors disabled:opacity-50"
                         >
                           {isToggling ? 'Adding...' : 'Add'}
                         </button>
@@ -447,7 +447,7 @@ export const TeamSettings: React.FC = () => {
               <div className="pt-2 border-t border-border/60 flex justify-end">
                 <button
                   onClick={() => setIsAddMemberModalOpen(false)}
-                  className="px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-surface rounded transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-surface rounded-full transition-colors"
                 >
                   Done
                 </button>
@@ -459,12 +459,12 @@ export const TeamSettings: React.FC = () => {
         {/* Edit Team Modal */}
         {isEditModalOpen && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 font-sans">
-            <div className="bg-bg-surface border border-border rounded-lg max-w-md w-full p-5 shadow-lg space-y-4">
+            <div className="bg-bg-surface-raised border border-transparent rounded-lg max-w-md w-full p-5 shadow-lg space-y-4">
               <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
                 <h3 className="text-sm font-karla font-semibold text-text-primary">Edit Team</h3>
                 <button
                   onClick={() => setIsEditModalOpen(false)}
-                  className="text-text-tertiary hover:text-text-primary p-1 rounded"
+                  className="text-text-tertiary hover:text-text-primary p-1 rounded-sm"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -493,7 +493,7 @@ export const TeamSettings: React.FC = () => {
                       }}
                       required
                       placeholder="e.g. Frontend Engineering"
-                      className="w-full px-2.5 py-1.5 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                      className="w-full px-2.5 py-1.5 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                     />
                   </div>
 
@@ -506,7 +506,7 @@ export const TeamSettings: React.FC = () => {
                       required
                       maxLength={5}
                       placeholder="e.g. ENG"
-                      className="w-full px-2.5 py-1.5 text-xs font-mono uppercase bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                      className="w-full px-2.5 py-1.5 text-xs font-mono uppercase bg-bg-surface-raised border border-transparent rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                     />
                   </div>
                 </div>
@@ -518,7 +518,7 @@ export const TeamSettings: React.FC = () => {
                     onChange={(e) => setTeamDesc(e.target.value)}
                     rows={2}
                     placeholder="Team scope and deliverables..."
-                    className="w-full px-2.5 py-1.5 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                    className="w-full px-2.5 py-1.5 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                   />
                 </div>
 
@@ -526,14 +526,14 @@ export const TeamSettings: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsEditModalOpen(false)}
-                    className="px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-surface rounded transition-colors"
+                    className="px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-surface rounded-full transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSaving || !teamName || !teamKey}
-                    className="px-3 py-1.5 text-xs font-medium text-bg-base bg-accent-primary hover:bg-accent-primary-hover rounded disabled:opacity-50 transition-colors"
+                    className="px-3 py-1.5 text-xs font-semibold text-button-text bg-accent-primary hover:bg-accent-primary-hover rounded-full disabled:opacity-50 transition-colors"
                   >
                     {isSaving ? 'Saving...' : 'Save Changes'}
                   </button>
@@ -562,7 +562,7 @@ export const TeamSettings: React.FC = () => {
         {isAdmin && (
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center space-x-1.5 px-3.5 py-2 text-sm font-medium text-bg-base bg-accent-primary rounded-md hover:bg-accent-primary-hover transition-colors shadow-sm"
+            className="flex items-center space-x-1.5 px-3.5 py-2 text-sm font-semibold text-button-text bg-accent-primary rounded-full hover:bg-accent-primary-hover transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             <span>Create Team</span>
@@ -586,7 +586,7 @@ export const TeamSettings: React.FC = () => {
       {isLoading ? (
         <div className="p-12 text-center text-xs text-text-secondary">Loading teams...</div>
       ) : teams?.length === 0 ? (
-        <div className="p-16 text-center text-xs text-text-secondary space-y-2 bg-bg-surface/50 border border-border rounded-lg">
+        <div className="p-16 text-center text-xs text-text-secondary space-y-2 bg-bg-surface/50 border border-transparent rounded-lg">
           <Users2 className="w-8 h-8 text-text-tertiary mx-auto opacity-60" />
           <div className="font-semibold text-text-primary">No teams configured yet</div>
           <p className="text-[11px] text-text-tertiary">
@@ -605,11 +605,11 @@ export const TeamSettings: React.FC = () => {
               <div
                 key={team.id}
                 onClick={() => setSelectedTeam(team)}
-                className="group p-4 bg-transparent hover:bg-bg-surface-hover border border-border rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between"
+                className="group p-4 bg-bg-surface-raised hover:bg-bg-surface-hover border border-transparent rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between"
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="w-7 h-7 rounded bg-bg-surface border border-border flex items-center justify-center text-text-primary shrink-0">
+                    <div className="w-7 h-7 rounded-sm bg-bg-surface-raised border border-transparent flex items-center justify-center text-text-primary shrink-0">
                       {(() => {
                         const Icon = (Icons as any)[team.icon || 'Hexagon'] || Icons.Hexagon;
                         return <Icon className="w-4 h-4" />;
@@ -640,9 +640,9 @@ export const TeamSettings: React.FC = () => {
                         {teamMembersList.slice(0, 3).map((m, idx) => (
                           <img
                             key={m.user_id || idx}
-                            src={m.profile?.avatar_url || `https://ui-avatars.com/api/?name=${m.profile?.full_name || 'User'}&background=EFE8DC&color=3A342C`}
+                            src={m.profile?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.profile?.full_name || 'User')}&background=282828&color=B3B3B3&rounded=true`}
                             alt="Member"
-                            className="w-5 h-5 rounded-full object-cover ring-2 ring-bg-base"
+                            className="w-5 h-5 rounded-full object-cover"
                           />
                         ))}
                       </div>
@@ -668,12 +668,12 @@ export const TeamSettings: React.FC = () => {
       {/* Create Team Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 font-sans">
-          <div className="bg-bg-surface border border-border rounded-lg max-w-md w-full p-5 shadow-lg space-y-4">
+          <div className="bg-bg-surface-raised border border-transparent rounded-lg max-w-md w-full p-5 shadow-lg space-y-4">
             <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
               <h3 className="text-sm font-karla font-semibold text-text-primary">Create New Team</h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="text-text-tertiary hover:text-text-primary p-1 rounded"
+                className="text-text-tertiary hover:text-text-primary p-1 rounded-sm"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -702,7 +702,7 @@ export const TeamSettings: React.FC = () => {
                     }}
                     required
                     placeholder="e.g. Frontend Engineering"
-                    className="w-full px-2.5 py-1.5 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                    className="w-full px-2.5 py-1.5 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                   />
                 </div>
 
@@ -715,7 +715,7 @@ export const TeamSettings: React.FC = () => {
                     required
                     maxLength={5}
                     placeholder="e.g. ENG"
-                    className="w-full px-2.5 py-1.5 text-xs font-mono uppercase bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                    className="w-full px-2.5 py-1.5 text-xs font-mono uppercase bg-bg-surface-raised border border-transparent rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                   />
                 </div>
               </div>
@@ -727,7 +727,7 @@ export const TeamSettings: React.FC = () => {
                   onChange={(e) => setTeamDesc(e.target.value)}
                   rows={2}
                   placeholder="Team scope and deliverables..."
-                  className="w-full px-2.5 py-1.5 text-xs bg-bg-surface border border-border rounded text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                  className="w-full px-2.5 py-1.5 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                 />
               </div>
 
@@ -735,14 +735,14 @@ export const TeamSettings: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-surface rounded transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-surface rounded-full transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving || !teamName || !teamKey}
-                  className="px-3 py-1.5 text-xs font-medium text-bg-base bg-accent-primary hover:bg-accent-primary-hover rounded disabled:opacity-50 transition-colors"
+                  className="px-3 py-1.5 text-xs font-semibold text-button-text bg-accent-primary hover:bg-accent-primary-hover rounded-full disabled:opacity-50 transition-colors"
                 >
                   {isSaving ? 'Creating...' : 'Create Team'}
                 </button>

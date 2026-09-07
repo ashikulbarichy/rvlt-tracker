@@ -124,12 +124,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   };
 
   return (
-    <div className="w-full flex flex-col border border-border rounded bg-transparent overflow-hidden focus-within:border-text-secondary focus-within:ring-1 focus-within:ring-text-secondary transition-colors">
+    <div className="w-full flex flex-col border border-transparent rounded-sm bg-transparent overflow-hidden focus-within:border-text-secondary focus-within:ring-1 focus-within:ring-text-secondary transition-colors">
       <div className="flex items-center space-x-1 p-1 border-b border-border bg-bg-surface flex-wrap gap-y-1">
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`p-1.5 rounded transition-colors ${editor.isActive('bold') ? 'bg-border text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'}`}
+          className={`p-1.5 rounded-full transition-colors ${editor.isActive('bold') ? 'bg-border text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'}`}
           title="Bold (Ctrl+B)"
         >
           <Bold className="w-4 h-4" />
@@ -137,7 +137,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`p-1.5 rounded transition-colors ${editor.isActive('italic') ? 'bg-border text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'}`}
+          className={`p-1.5 rounded-full transition-colors ${editor.isActive('italic') ? 'bg-border text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'}`}
           title="Italic (Ctrl+I)"
         >
           <Italic className="w-4 h-4" />
@@ -148,7 +148,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`p-1.5 rounded transition-colors ${editor.isActive('bulletList') ? 'bg-border text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'}`}
+          className={`p-1.5 rounded-full transition-colors ${editor.isActive('bulletList') ? 'bg-border text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'}`}
           title="Bullet List (Ctrl+Shift+8)"
         >
           <List className="w-4 h-4" />
@@ -157,7 +157,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <button
           type="button"
           onClick={handleLink}
-          className={`p-1.5 rounded transition-colors ${editor.isActive('link') ? 'bg-border text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'}`}
+          className={`p-1.5 rounded-full transition-colors ${editor.isActive('link') ? 'bg-border text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'}`}
           title="Add Link"
         >
           <LinkIcon className="w-4 h-4" />
@@ -176,7 +176,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="p-1.5 rounded text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary transition-colors disabled:opacity-50"
+          className="p-1.5 rounded-full text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary transition-colors disabled:opacity-50"
           title="Insert Image"
         >
           {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
