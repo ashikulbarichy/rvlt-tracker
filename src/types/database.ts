@@ -29,6 +29,8 @@ export interface Workspace {
   slug: string;
   issue_prefix?: string;
   test_case_prefix?: string;
+  /** Days a closed issue stays visible before it auto-archives. 1-365, defaults to 7. */
+  archive_after_days?: number;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -133,6 +135,13 @@ export interface Issue {
   estimate: number | null;
   created_at: string;
   updated_at: string;
+  /** Set by a trigger when the issue enters a completed/canceled state; cleared on reopen. */
+  closed_at: string | null;
+  /** Stamped on manual unarchive; exempts the issue from auto-archiving forever. */
+  unarchived_at: string | null;
+  /** Soft delete. Non-null means the issue is in the trash. */
+  deleted_at: string | null;
+  deleted_by: string | null;
   state?: WorkflowState;
   status?: WorkflowState;
   assignee?: Profile;

@@ -10,7 +10,8 @@ import { useProjects } from '../../hooks/useProjects';
 import { useTeams } from '../../hooks/useTeams';
 import { useProfiles } from '../../hooks/useProfiles';
 import { useWorkflowStates } from '../../hooks/useWorkflowStates';
-import { useIssues } from '../../hooks/useIssues';
+import { useIssues, DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/useIssues';
+import { useIssueFilterParams } from '../../hooks/useIssueFilterParams';
 import { Project, ProjectStatus, IssuePriority } from '../../types/database';
 import { CustomSelect } from '../common/CustomSelect';
 import { DatePicker } from '../common/DatePicker';
@@ -59,6 +60,19 @@ export const ProjectsView: React.FC = () => {
     }
   });
   const [sortBy, setSortBy] = useState<'name' | 'target_date' | 'progress' | 'status'>('name');
+  const [isIssueStatusMenuOpen, setIsIssueStatusMenuOpen] = useState(false);
+  const issueStatusMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close the issue status menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (issueStatusMenuRef.current && !issueStatusMenuRef.current.contains(e.target as Node)) {
+        setIsIssueStatusMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Persist view mode across refreshes
   useEffect(() => {
@@ -293,10 +307,32 @@ export const ProjectsView: React.FC = () => {
     });
   }, [enrichedProjects, selectedTeamId, searchQuery, sortBy]);
 
+  // Filter state for the project's issue list. A separate scope from the main issue
+  // list, so each surface remembers its own filter.
+  const validIssueStatusIds = useMemo(
+    () => (workflowStates || []).map(s => s.id),
+    [workflowStates]
+  );
+
+  const {
+    bucket: issueBucket,
+    statusIds: issueStatusIds,
+    setBucket: setIssueBucket,
+    toggleStatusId: toggleIssueStatusId,
+    clearFilters: clearIssueFilters,
+  } = useIssueFilterParams({
+    workspaceSlug: currentWorkspace?.slug,
+    validStatusIds: validIssueStatusIds,
+    scope: 'project-issues',
+  });
+
   // Query issues for the active selected project
-  const { issues: projectIssues } = useIssues({
+  const { issues: projectIssues, totalCount: projectIssueCount } = useIssues({
     workspaceId: currentWorkspace?.id,
-    projectId: selectedProject?.id
+    projectId: selectedProject?.id,
+    bucket: issueBucket,
+    statusIds: issueStatusIds,
+    archiveAfterDays: currentWorkspace?.archive_after_days ?? DEFAULT_ARCHIVE_AFTER_DAYS,
   });
 
   const getStatusBadge = (st: ProjectStatus) => {
@@ -744,8 +780,91 @@ export const ProjectsView: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <Layers className="w-4 h-4 text-text-secondary" />
                     <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider">
-                      Project Issues ({projectIssues?.length || 0})
+                      Project Issues ({projectIssueCount})
                     </h3>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    {/* Bucket switcher */}
+                    <div className="flex items-center space-x-1">
+                      {(['open', 'closed', 'archived', 'all'] as const).map(b => (
+                        <button
+                          key={b}
+                          type="button"
+                          onClick={() => setIssueBucket(b)}
+                          className={`px-2 py-0.5 rounded-full text-[11px] font-medium capitalize transition-colors ${
+                            issueBucket === b && issueStatusIds.length === 0
+                              ? 'bg-bg-surface-hover text-text-primary'
+                              : 'text-text-secondary hover:text-text-primary'
+                          }`}
+                        >
+                          {b}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Status filter */}
+                    <div className="relative shrink-0" ref={issueStatusMenuRef}>
+                      <button
+                        type="button"
+                        title="Filter by status"
+                        onClick={() => setIsIssueStatusMenuOpen(!isIssueStatusMenuOpen)}
+                        className={`flex items-center space-x-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors ${
+                          issueStatusIds.length > 0
+                            ? 'bg-bg-surface-hover text-text-primary'
+                            : 'text-text-secondary hover:text-text-primary'
+                        }`}
+                      >
+                        <Filter className="w-3 h-3" />
+                        <span>{issueStatusIds.length > 0 ? issueStatusIds.length : 'Status'}</span>
+                      </button>
+
+                      {isIssueStatusMenuOpen && (
+                        <div className="absolute right-0 top-full mt-1.5 w-52 bg-bg-surface-raised border border-transparent rounded-md shadow-lg py-1 z-30 max-h-64 overflow-y-auto">
+                          <button
+                            onClick={() => clearIssueFilters()}
+                            className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 text-xs text-left transition-colors ${
+                              issueStatusIds.length === 0
+                                ? 'text-text-primary font-medium'
+                                : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
+                            }`}
+                          >
+                            <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
+                              issueStatusIds.length === 0 ? 'bg-text-primary border-text-primary' : 'border-border-strong'
+                            }`}>
+                              {issueStatusIds.length === 0 && <Check className="w-2.5 h-2.5 text-button-text" />}
+                            </div>
+                            <span>Any status (open)</span>
+                          </button>
+
+                          <div className="my-1 h-px bg-border" />
+
+                          {(workflowStates || []).length === 0 ? (
+                            <div className="px-2.5 py-2 text-xs text-text-tertiary">No workflow states yet.</div>
+                          ) : (
+                            (workflowStates || []).map(state => (
+                              <button
+                                key={state.id}
+                                onClick={() => toggleIssueStatusId(state.id)}
+                                className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 text-xs text-left transition-colors ${
+                                  issueStatusIds.includes(state.id)
+                                    ? 'text-text-primary font-medium'
+                                    : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
+                                }`}
+                              >
+                                <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
+                                  issueStatusIds.includes(state.id) ? 'bg-text-primary border-text-primary' : 'border-border-strong'
+                                }`}>
+                                  {issueStatusIds.includes(state.id) && <Check className="w-2.5 h-2.5 text-button-text" />}
+                                </div>
+                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: state.color }} />
+                                <span className="truncate">{state.name}</span>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <button
@@ -760,7 +879,9 @@ export const ProjectsView: React.FC = () => {
                 <div className="border border-transparent rounded-md bg-bg-surface-raised overflow-hidden">
                   {(!projectIssues || projectIssues.length === 0) ? (
                     <div className="p-6 text-center text-xs text-text-secondary">
-                      No issues created for this project yet. Click "Add Issue" to assign tasks to this project.
+                      {issueBucket === 'open' && issueStatusIds.length === 0
+                        ? 'No open issues for this project. Click "Add Issue" to assign tasks to this project.'
+                        : 'No issues match this filter. Try another status, or switch to All.'}
                     </div>
                   ) : (
                     projectIssues.map(issue => (

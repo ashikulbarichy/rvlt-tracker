@@ -579,9 +579,9 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
       {/* Delete Issue In-App Confirmation Modal */}
       <ConfirmModal
         isOpen={showDeleteIssueModal}
-        title="Delete Issue"
-        message={`Are you sure you want to delete this issue "${issue.title}"? This action will permanently remove the issue and its activity.`}
-        confirmText="Delete Issue"
+        title="Move Issue to Trash"
+        message={`Move "${issue.title}" to the trash? It leaves every issue list, and a workspace admin can restore it from the Trash tab or delete it for good.`}
+        confirmText="Move to Trash"
         variant="danger"
         onConfirm={() => {
           deleteIssue({ id: issue.id, workspace_id: issue.workspace_id });

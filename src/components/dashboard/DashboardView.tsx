@@ -1,7 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { SidebarToggle } from '../../components/layout/SidebarToggle';
-import { useIssues } from '../../hooks/useIssues';
+import { useIssues, DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/useIssues';
 import { 
   CheckCircle2, 
   Clock, 
@@ -13,28 +13,31 @@ import {
 export const DashboardView: React.FC = () => {
   const { currentWorkspace, currentUser } = useApp();
 
-  // Metric 1: My Open Issues (assigned to me, not closed)
-  // Our hook currently fetches all and we can filter on the client, or we could pass assigneeId.
-  // To be performant, we pass assigneeId.
+  const archiveAfterDays = currentWorkspace?.archive_after_days ?? DEFAULT_ARCHIVE_AFTER_DAYS;
+
+  // Metric 1: My Open Issues (assigned to me, not closed). The 'open' bucket filters
+  // server-side, so this count excludes closed, archived and trashed issues.
   const { totalCount: myOpenCount, issues: myRecentIssues, isLoading: isLoadingMine } = useIssues({
     workspaceId: currentWorkspace?.id,
     assigneeId: currentUser?.id,
+    bucket: 'open',
+    archiveAfterDays,
     page: 1,
     limit: 5 // Get recent 5 for the list
   });
 
-  // Metric 2: Workspace Total Issues (just to show scale)
+  // Metric 2: Workspace Total Issues (just to show scale). 'active' is everything that
+  // is not archived and not trashed, so archiving an issue removes it from this total.
   const { totalCount: totalWorkspaceCount } = useIssues({
     workspaceId: currentWorkspace?.id,
+    bucket: 'active',
+    archiveAfterDays,
     page: 1,
     limit: 1 // We only need the count
   });
 
-  // Since our hook doesn't support complex 'NOT IN (closed_status)' directly via params right now, 
-  // we filter the small subset returned for the UI list.
-  const activeIssues = myRecentIssues.filter(issue => 
-    issue.status?.category !== 'completed' && issue.status?.category !== 'canceled'
-  );
+  // The 'open' bucket already excludes closed issues server-side.
+  const activeIssues = myRecentIssues;
 
   const getGreeting = () => {
     const hour = new Date().getHours();

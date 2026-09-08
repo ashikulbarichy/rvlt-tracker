@@ -2,12 +2,59 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { Issue, Profile } from '../types/database';
 
+/**
+ * Which slice of the issue lifecycle a query returns.
+ *
+ * `archived` is derived, never stored: an issue is archived once it has been closed for
+ * longer than the workspace's `archive_after_days` and nobody has unarchived it. Every
+ * bucket except `trash` excludes soft-deleted issues.
+ */
+export type IssueBucket =
+  | 'open'
+  | 'closed'
+  /** Open plus recently closed — everything that is not archived. Used for stats. */
+  | 'active'
+  | 'archived'
+  | 'trash'
+  | 'all';
+
+export const DEFAULT_ARCHIVE_AFTER_DAYS = 7;
+
+/** Beyond the 365-day maximum window, so a manual archive stays archived at any setting. */
+const MANUAL_ARCHIVE_BACKDATE_DAYS = 400;
+
+/**
+ * Cutoff for "closed long enough to be archived", quantized to the start of the current
+ * hour. The quantizing is load-bearing: an unquantized `new Date()` changes on every
+ * render, which changes the query key below, which refetches forever.
+ */
+export function archiveCutoffIso(archiveAfterDays = DEFAULT_ARCHIVE_AFTER_DAYS): string {
+  const d = new Date();
+  d.setMinutes(0, 0, 0);
+  d.setDate(d.getDate() - archiveAfterDays);
+  return d.toISOString();
+}
+
+function daysAgoIso(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString();
+}
+
 interface UseIssuesOptions {
   workspaceId?: string;
   projectId?: string;
   teamId?: string;
   assigneeId?: string;
   statusId?: string;
+  /** Multi-select status filter. Takes precedence over the single `statusId`. */
+  statusIds?: string[];
+  /**
+   * Defaults to `all` so the nine existing callers keep their current behaviour. The
+   * issue and project lists pass `open` explicitly.
+   */
+  bucket?: IssueBucket;
+  archiveAfterDays?: number;
   page?: number;
   limit?: number;
   searchQuery?: string;
@@ -15,9 +62,17 @@ interface UseIssuesOptions {
 
 export function useIssues(options: UseIssuesOptions) {
   const queryClient = useQueryClient();
-  const { workspaceId, projectId, teamId, assigneeId, statusId, page = 1, limit = 24, searchQuery } = options;
+  const {
+    workspaceId, projectId, teamId, assigneeId, statusId, statusIds,
+    bucket = 'all', archiveAfterDays = DEFAULT_ARCHIVE_AFTER_DAYS,
+    page = 1, limit = 24, searchQuery,
+  } = options;
 
-  const queryKey = ['issues', { workspaceId, projectId, teamId, assigneeId, statusId, page, limit, searchQuery }];
+  const cutoff = archiveCutoffIso(archiveAfterDays);
+  // Sorted so ['a','b'] and ['b','a'] share a cache entry.
+  const statusKey = statusIds && statusIds.length > 0 ? [...statusIds].sort().join(',') : undefined;
+
+  const queryKey = ['issues', { workspaceId, projectId, teamId, assigneeId, statusId, statusKey, bucket, cutoff, page, limit, searchQuery }];
 
   const { data, isLoading, error } = useQuery({
     queryKey,
@@ -37,13 +92,49 @@ export function useIssues(options: UseIssuesOptions) {
 
       if (projectId) query = query.eq('project_id', projectId);
       if (teamId) query = query.eq('team_id', teamId);
-      if (statusId) query = query.eq('state_id', statusId);
       if (searchQuery) query = query.ilike('title', `%${searchQuery}%`);
+
+      // Bucket filters run server-side so `count: 'exact'` and range() stay correct.
+      // Filtering the returned array instead would give wrong page counts.
+      if (bucket !== 'trash') query = query.is('deleted_at', null);
+
+      switch (bucket) {
+        case 'open':
+          query = query.is('closed_at', null);
+          break;
+        case 'closed':
+          // Closed but not yet archived, or explicitly exempted from archiving.
+          query = query
+            .not('closed_at', 'is', null)
+            .or(`closed_at.gte.${cutoff},unarchived_at.not.is.null`);
+          break;
+        case 'active':
+          // The complement of 'archived': never closed, closed recently, or exempted.
+          query = query.or(
+            `closed_at.is.null,closed_at.gte.${cutoff},unarchived_at.not.is.null`
+          );
+          break;
+        case 'archived':
+          query = query.lt('closed_at', cutoff).is('unarchived_at', null);
+          break;
+        case 'trash':
+          query = query.not('deleted_at', 'is', null);
+          break;
+        case 'all':
+          break;
+      }
+
+      if (statusIds && statusIds.length > 0) {
+        query = query.in('state_id', statusIds);
+      } else if (statusId) {
+        query = query.eq('state_id', statusId);
+      }
 
       const from = (page - 1) * limit;
       const to = from + limit - 1;
-      
-      query = query.order('created_at', { ascending: false }).range(from, to);
+
+      const orderColumn = bucket === 'trash' ? 'deleted_at' : 'created_at';
+      query = query.order(orderColumn, { ascending: false }).range(from, to);
 
       const { data, error, count } = await query;
       
@@ -326,18 +417,87 @@ export function useIssues(options: UseIssuesOptions) {
     }
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async ({ id, workspace_id }: { id: string, workspace_id: string }) => {
+  /** Shared shape for every lifecycle mutation below. */
+  type IssueRef = { id: string; workspace_id: string };
+
+  const invalidateIssues = () => {
+    queryClient.invalidateQueries({ queryKey: ['issues'] });
+  };
+
+  /**
+   * Manual archive. Backdates closed_at well past the 365-day maximum window so the
+   * issue stays archived even if an admin later widens archive_after_days. This does
+   * overwrite the real close date — see the spec's Notes.
+   */
+  const archiveMutation = useMutation({
+    mutationFn: async ({ id }: IssueRef) => {
+      const { error } = await supabase
+        .from('issues')
+        .update({
+          closed_at: daysAgoIso(MANUAL_ARCHIVE_BACKDATE_DAYS),
+          unarchived_at: null,
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: invalidateIssues,
+  });
+
+  /** Exempts the issue from auto-archiving permanently. */
+  const unarchiveMutation = useMutation({
+    mutationFn: async ({ id }: IssueRef) => {
+      const { error } = await supabase
+        .from('issues')
+        .update({ unarchived_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: invalidateIssues,
+  });
+
+  /** Soft delete — recoverable from the trash bucket. */
+  const trashMutation = useMutation({
+    mutationFn: async ({ id }: IssueRef) => {
+      const { data: authData } = await supabase.auth.getUser();
+
+      const { error } = await supabase
+        .from('issues')
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: authData?.user?.id || null,
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: invalidateIssues,
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: async ({ id }: IssueRef) => {
+      const { error } = await supabase
+        .from('issues')
+        .update({ deleted_at: null, deleted_by: null })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: invalidateIssues,
+  });
+
+  /** Irreversible. RLS restricts this to workspace admins. */
+  const permanentDeleteMutation = useMutation({
+    mutationFn: async ({ id }: IssueRef) => {
       const { error } = await supabase
         .from('issues')
         .delete()
         .eq('id', id);
-        
+
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['issues'] });
-    }
+    onSuccess: invalidateIssues,
   });
 
   return {
@@ -347,6 +507,15 @@ export function useIssues(options: UseIssuesOptions) {
     error,
     createIssue: createMutation.mutate,
     updateIssue: updateMutation.mutate,
-    deleteIssue: deleteMutation.mutate,
+    /**
+     * Soft delete, not a hard one. Existing callers keep working and their deletions
+     * became recoverable; permanent removal is `deleteIssuePermanently` (admins only).
+     */
+    deleteIssue: trashMutation.mutate,
+    archiveIssue: archiveMutation.mutate,
+    unarchiveIssue: unarchiveMutation.mutate,
+    trashIssue: trashMutation.mutate,
+    restoreIssue: restoreMutation.mutate,
+    deleteIssuePermanently: permanentDeleteMutation.mutate,
   };
 }

@@ -897,9 +897,9 @@ export const IssueDetailModal: React.FC = () => {
         {/* Delete Issue In-App Confirmation Modal */}
         <ConfirmModal
           isOpen={showDeleteIssueModal}
-          title="Delete Issue"
-          message={`Are you sure you want to delete this issue "${activeIssue.title}"? This action will permanently remove the issue and its activity history.`}
-          confirmText="Delete Issue"
+          title="Move Issue to Trash"
+          message={`Move "${activeIssue.title}" to the trash? It leaves every issue list, and a workspace admin can restore it from the Trash tab or delete it for good.`}
+          confirmText="Move to Trash"
           variant="danger"
           onConfirm={() => {
             deleteIssue({ id: activeIssue.id, workspace_id: activeIssue.workspace_id });

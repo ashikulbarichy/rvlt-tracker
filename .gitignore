@@ -38,3 +38,9 @@ tsconfig.tsbuildinfo
 *.env
 *.env.*
 !.env.example
+
+# Claude Code spec kit (local only — never pushed)
+CLAUDE.md
+SETUP.md
+.claude/
+specs/

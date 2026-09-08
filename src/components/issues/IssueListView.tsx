@@ -19,11 +19,16 @@ import {
   Minus,
   Filter,
   AlignJustify,
-  Clock
+  Clock,
+  Archive,
+  ArchiveRestore,
+  RotateCcw,
+  Trash2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { SidebarToggle } from '../../components/layout/SidebarToggle';
-import { useIssues } from '../../hooks/useIssues';
+import { useIssues, IssueBucket, DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/useIssues';
+import { useIssueFilterParams } from '../../hooks/useIssueFilterParams';
 import { useTeams } from '../../hooks/useTeams';
 import { useTeamMembers } from '../../hooks/useTeamMembers';
 import { useWorkflowStates } from '../../hooks/useWorkflowStates';
@@ -32,6 +37,7 @@ import { formatIssueIdentifier } from '../../lib/identifier';
 import { formatRelativeTime } from '../../lib/time';
 import { stripHtml } from '../../utils/htmlUtils';
 import { StatusBadge } from '../common/StatusBadge';
+import { ConfirmModal } from '../common/ConfirmModal';
 
 interface IssueListViewProps {
   onlyMine?: boolean;
@@ -40,11 +46,21 @@ interface IssueListViewProps {
 type ViewMode = 'list' | 'grid' | 'kanban';
 type SortBy = 'newest' | 'oldest' | 'priority' | 'dueDate' | 'title';
 
-type Tab = 'All' | 'Mine' | 'Open' | 'Closed';
+type Tab = 'All' | 'Mine' | 'Open' | 'Closed' | 'Archived' | 'Trash';
 
-// Persisted view preferences so filters/view survive page refreshes
+/** Tab labels map onto query buckets; "Mine" is an assignee filter, not a bucket. */
+const TAB_BUCKETS: Record<Tab, IssueBucket> = {
+  All: 'all',
+  Mine: 'all',
+  Open: 'open',
+  Closed: 'closed',
+  Archived: 'archived',
+  Trash: 'trash',
+};
+
+// Persisted view preferences so filters/view survive page refreshes.
+// activeTab is no longer here — the filter lives in the URL, see useIssueFilterParams.
 interface ViewPrefs {
-  activeTab?: Tab;
   viewMode?: ViewMode;
   isCompact?: boolean;
   sortBy?: SortBy;
@@ -64,12 +80,9 @@ const loadViewPrefs = (): ViewPrefs => {
 export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }) => {
   const { currentWorkspace, currentUser, userRole, setIsNewIssueModalOpen, setSelectedIssue, currentTeam } = useApp();
   const savedPrefs = useRef(loadViewPrefs()).current;
-  const [activeTab, setActiveTab] = useState<Tab>(() => {
-    const tab = savedPrefs.activeTab;
-    if (tab && ['All', 'Mine', 'Open', 'Closed'].includes(tab) && !(onlyMine && tab === 'Mine')) return tab;
-    return 'All';
-  });
   const [searchQuery, setSearchQuery] = useState('');
+  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
+  const [pendingPermanentDelete, setPendingPermanentDelete] = useState<Issue | null>(null);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(
     () => new Set(Array.isArray(savedPrefs.teamIds) ? savedPrefs.teamIds : [])
   );
@@ -93,6 +106,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
   const sortMenuRef = useRef<HTMLDivElement>(null);
   const viewMenuRef = useRef<HTMLDivElement>(null);
   const teamMenuRef = useRef<HTMLDivElement>(null);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
 
   // Close menus on outside click
   useEffect(() => {
@@ -106,6 +120,9 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
       if (teamMenuRef.current && !teamMenuRef.current.contains(e.target as Node)) {
         setIsTeamMenuOpen(false);
       }
+      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) {
+        setIsStatusMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -115,7 +132,6 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
   useEffect(() => {
     try {
       const prefs: ViewPrefs = {
-        activeTab,
         viewMode,
         isCompact,
         sortBy,
@@ -125,7 +141,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
     } catch {
       // Storage unavailable (private mode etc.) — preferences just won't persist
     }
-  }, [activeTab, viewMode, isCompact, sortBy, selectedTeamIds]);
+  }, [viewMode, isCompact, sortBy, selectedTeamIds]);
 
   const isAdmin = userRole === 'admin' || currentWorkspace?.created_by === currentUser?.id;
   const { teams } = useTeams(currentWorkspace?.id);
@@ -138,16 +154,42 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
     ? (teams || [])
     : (userAssignedTeams.length > 0 ? userAssignedTeams : (teams || []));
 
-  // Derive filters based on active tab or onlyMine
+  const validStatusIds = React.useMemo(
+    () => (workflowStates || []).map(s => s.id),
+    [workflowStates]
+  );
+
+  const {
+    bucket, statusIds, mine, setFilter, toggleStatusId, clearFilters,
+  } = useIssueFilterParams({ workspaceSlug: currentWorkspace?.slug, validStatusIds });
+
+  // The tab row is a view onto the URL filter, not separate state.
+  const activeTab: Tab = statusIds.length > 0
+    ? 'All'
+    : mine
+      ? 'Mine'
+      : (Object.keys(TAB_BUCKETS) as Tab[]).find(t => t !== 'Mine' && TAB_BUCKETS[t] === bucket) || 'Open';
+
+  const selectTab = (tab: Tab) => {
+    setPage(1);
+    setFilter({ bucket: TAB_BUCKETS[tab], mine: tab === 'Mine', statusIds: [] });
+  };
+
+  // Derive filters based on the active tab or the onlyMine route
   let assigneeId;
-  if ((onlyMine || activeTab === 'Mine') && currentUser) {
+  if ((onlyMine || mine) && currentUser) {
     assigneeId = currentUser.id;
   }
 
-  const { issues, totalCount, isLoading, updateIssue } = useIssues({
+  const archiveAfterDays = currentWorkspace?.archive_after_days ?? DEFAULT_ARCHIVE_AFTER_DAYS;
+
+  const { issues, totalCount, isLoading, updateIssue, archiveIssue, unarchiveIssue, restoreIssue, deleteIssuePermanently } = useIssues({
     workspaceId: currentWorkspace?.id,
     teamId: firstSelectedTeamId,
     assigneeId,
+    bucket,
+    statusIds,
+    archiveAfterDays,
     page,
     limit,
     searchQuery
@@ -210,8 +252,8 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
     }
 
     if (selectedTeamIds.size > 0 && !selectedTeamIds.has(issue.team_id)) return false;
-    if (activeTab === 'Open') return issue.status?.category !== 'completed' && issue.status?.category !== 'canceled';
-    if (activeTab === 'Closed') return issue.status?.category === 'completed' || issue.status?.category === 'canceled';
+    // Open/Closed/Archived/Trash are filtered server-side by bucket now, so that the
+    // total count and pagination stay correct. No category checks here.
     return true;
   }).sort((a, b) => {
     if (sortBy === 'newest') {
@@ -236,9 +278,13 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
     return 0;
   });
 
-  const availableTabs = onlyMine
-    ? ['All', 'Open', 'Closed']
-    : ['All', 'Mine', 'Open', 'Closed'];
+  const availableTabs: Tab[] = onlyMine
+    ? ['Open', 'Closed', 'Archived', 'Trash', 'All']
+    : ['Open', 'Closed', 'Archived', 'Trash', 'Mine', 'All'];
+
+  // Archived and trash carry per-row lifecycle actions, which only the list rows render.
+  const effectiveViewMode: ViewMode =
+    bucket === 'archived' || bucket === 'trash' ? 'list' : viewMode;
 
   const sortOptions = [
     { id: 'newest', label: 'Newest first' },
@@ -372,7 +418,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
             {availableTabs.map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab as any)}
+                onClick={() => selectTab(tab)}
                 className={`text-xs font-medium transition-colors relative py-1 shrink-0 ${
                   activeTab === tab
                     ? 'text-text-primary font-semibold'
@@ -385,6 +431,89 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                 )}
               </button>
             ))}
+          </div>
+
+          {/* Status filter — multi-select across the team's workflow states */}
+          <div className="relative shrink-0" ref={statusMenuRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsStatusMenuOpen(!isStatusMenuOpen);
+                setIsSortMenuOpen(false);
+                setIsViewMenuOpen(false);
+              }}
+              title="Filter by status"
+              className={`flex items-center space-x-1.5 px-2 py-1 rounded-md text-xs transition-colors ${
+                statusIds.length > 0
+                  ? 'bg-bg-surface-hover text-text-primary font-medium'
+                  : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
+              }`}
+            >
+              <Filter className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">
+                {statusIds.length > 0 ? `Status · ${statusIds.length}` : 'Status'}
+              </span>
+            </button>
+
+            {isStatusMenuOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-56 bg-bg-surface-raised border border-transparent rounded-md shadow-lg py-1 z-30 font-sans max-h-72 overflow-y-auto">
+                <div className="px-2.5 py-1 text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
+                  Filter by Status
+                </div>
+
+                <button
+                  onClick={() => clearFilters()}
+                  className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 text-xs text-left transition-colors ${
+                    statusIds.length === 0
+                      ? 'text-text-primary font-medium'
+                      : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
+                  }`}
+                >
+                  <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
+                    statusIds.length === 0 ? 'bg-text-primary border-text-primary' : 'border-border-strong'
+                  }`}>
+                    {statusIds.length === 0 && <Check className="w-2.5 h-2.5 text-button-text" />}
+                  </div>
+                  <span>Any status (open)</span>
+                </button>
+
+                <div className="my-1 h-px bg-border" />
+
+                {(!workflowStates || workflowStates.length === 0) ? (
+                  <div className="px-2.5 py-2 text-xs text-text-tertiary">
+                    {firstSelectedTeamId
+                      ? 'No workflow states for this team.'
+                      : 'Select a single team to filter by status.'}
+                  </div>
+                ) : (
+                  workflowStates.map(state => (
+                    <button
+                      key={state.id}
+                      onClick={() => {
+                        setPage(1);
+                        toggleStatusId(state.id);
+                      }}
+                      className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 text-xs text-left transition-colors ${
+                        statusIds.includes(state.id)
+                          ? 'text-text-primary font-medium'
+                          : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
+                      }`}
+                    >
+                      <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
+                        statusIds.includes(state.id) ? 'bg-text-primary border-text-primary' : 'border-border-strong'
+                      }`}>
+                        {statusIds.includes(state.id) && <Check className="w-2.5 h-2.5 text-button-text" />}
+                      </div>
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: state.color }}
+                      />
+                      <span className="truncate">{state.name}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
 
@@ -617,7 +746,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
         <div className="flex-1 p-12 text-center text-xs text-text-secondary">Loading issues...</div>
       ) : filteredIssues.length === 0 ? (
         <div className="flex-1 p-12 text-center text-xs text-text-secondary">No issues found.</div>
-      ) : viewMode === 'list' ? (
+      ) : effectiveViewMode === 'list' ? (
         /* --------------------------------------------------------
            1. LIST VIEW (Full-width individual cards on canvas)
            -------------------------------------------------------- */
@@ -663,8 +792,64 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                   )}
                 </div>
 
-                {/* Right Section: Assignees, Due Date, Timestamp */}
+                {/* Right Section: Lifecycle Actions, Assignees, Due Date, Timestamp */}
                 <div className="flex items-center shrink-0 sm:self-center pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
+                  {/* Lifecycle actions. stopPropagation so they don't open the issue. */}
+                  <div className="shrink-0 flex items-center space-x-1 pr-2">
+                    {bucket === 'trash' ? (
+                      <>
+                        <button
+                          type="button"
+                          title="Restore from trash"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            restoreIssue({ id: issue.id, workspace_id: issue.workspace_id });
+                          }}
+                          className="p-1.5 rounded-md text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary transition-colors"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </button>
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            title="Delete permanently"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPendingPermanentDelete(issue);
+                            }}
+                            className="p-1.5 rounded-md text-text-secondary hover:bg-bg-surface-hover hover:text-status-error transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </>
+                    ) : bucket === 'archived' ? (
+                      <button
+                        type="button"
+                        title="Unarchive — this issue will not auto-archive again"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          unarchiveIssue({ id: issue.id, workspace_id: issue.workspace_id });
+                        }}
+                        className="p-1.5 rounded-md text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary transition-colors"
+                      >
+                        <ArchiveRestore className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        title="Archive now"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          archiveIssue({ id: issue.id, workspace_id: issue.workspace_id });
+                        }}
+                        className="p-1.5 rounded-md text-text-secondary opacity-0 group-hover:opacity-100 hover:bg-bg-surface-hover hover:text-text-primary transition-all"
+                      >
+                        <Archive className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
                   <div className="w-28 shrink-0 flex justify-end">
                     {renderIssueDueDateBadge(issue.due_date, issue.status?.category === 'completed' || issue.status?.category === 'canceled')}
                   </div>
@@ -724,7 +909,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
             );
           })}
         </div>
-      ) : viewMode === 'grid' ? (
+      ) : effectiveViewMode === 'grid' ? (
         /* --------------------------------------------------------
            2. GRID VIEW (Multi-column responsive issue cards)
            -------------------------------------------------------- */
@@ -976,6 +1161,27 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
           </div>
         </div>
       )}
+
+      {/* Permanent delete — admins only, and irreversible, so it names the issue. */}
+      <ConfirmModal
+        isOpen={!!pendingPermanentDelete}
+        title="Delete Issue Permanently"
+        message={pendingPermanentDelete
+          ? `Permanently delete ${formatIssueIdentifier(pendingPermanentDelete, currentWorkspace)} "${pendingPermanentDelete.title}"? This removes the issue and its activity history for good. It cannot be restored from the trash afterwards.`
+          : ''}
+        confirmText="Delete Permanently"
+        variant="danger"
+        onConfirm={() => {
+          if (pendingPermanentDelete) {
+            deleteIssuePermanently({
+              id: pendingPermanentDelete.id,
+              workspace_id: pendingPermanentDelete.workspace_id,
+            });
+          }
+          setPendingPermanentDelete(null);
+        }}
+        onCancel={() => setPendingPermanentDelete(null)}
+      />
     </div>
   );
 };

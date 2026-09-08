@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useWorkspaces } from '../../hooks/useWorkspaces';
+import { DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/useIssues';
 
 export const WorkspaceSettings: React.FC = () => {
   const { currentWorkspace, userRole, currentUser } = useApp();
@@ -9,6 +10,7 @@ export const WorkspaceSettings: React.FC = () => {
   const [workspaceName, setWorkspaceName] = useState('');
   const [issuePrefix, setIssuePrefix] = useState('XXX');
   const [testCasePrefix, setTestCasePrefix] = useState('TC');
+  const [archiveAfterDays, setArchiveAfterDays] = useState(String(DEFAULT_ARCHIVE_AFTER_DAYS));
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -17,6 +19,7 @@ export const WorkspaceSettings: React.FC = () => {
       setWorkspaceName(currentWorkspace.name);
       setIssuePrefix(currentWorkspace.issue_prefix || 'XXX');
       setTestCasePrefix(currentWorkspace.test_case_prefix || 'TC');
+      setArchiveAfterDays(String(currentWorkspace.archive_after_days ?? DEFAULT_ARCHIVE_AFTER_DAYS));
     }
   }, [currentWorkspace]);
 
@@ -32,6 +35,14 @@ export const WorkspaceSettings: React.FC = () => {
     const cleanIssuePrefix = (issuePrefix || 'XXX').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     const cleanTestCasePrefix = (testCasePrefix || 'TC').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
 
+    // The database enforces 1-365 with a check constraint; fail before the round trip.
+    const parsedDays = Number.parseInt(archiveAfterDays, 10);
+    if (!Number.isInteger(parsedDays) || parsedDays < 1 || parsedDays > 365) {
+      setIsSaving(false);
+      setStatusMessage({ type: 'error', text: 'Auto-archive window must be a whole number of days between 1 and 365.' });
+      return;
+    }
+
     if (currentWorkspace) {
       updateWorkspace(
         {
@@ -39,6 +50,7 @@ export const WorkspaceSettings: React.FC = () => {
           name: workspaceName.trim(),
           issue_prefix: cleanIssuePrefix,
           test_case_prefix: cleanTestCasePrefix,
+          archive_after_days: parsedDays,
         },
         {
           onSuccess: () => {
@@ -77,7 +89,8 @@ export const WorkspaceSettings: React.FC = () => {
     !!currentWorkspace &&
     (workspaceName !== currentWorkspace.name ||
       issuePrefix !== (currentWorkspace.issue_prefix || 'ISS') ||
-      testCasePrefix !== (currentWorkspace.test_case_prefix || 'TC'));
+      testCasePrefix !== (currentWorkspace.test_case_prefix || 'TC') ||
+      archiveAfterDays !== String(currentWorkspace.archive_after_days ?? DEFAULT_ARCHIVE_AFTER_DAYS));
 
   return (
     <div className="max-w-xl font-sans">
@@ -191,6 +204,30 @@ export const WorkspaceSettings: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="pt-3 border-t border-border">
+          <label className="block text-[11px] font-medium text-text-primary mb-1">
+            Auto-archive closed issues after
+          </label>
+          <div className="flex items-center space-x-2">
+            <input
+              type="number"
+              min={1}
+              max={365}
+              step={1}
+              value={archiveAfterDays}
+              onChange={(e) => setArchiveAfterDays(e.target.value)}
+              disabled={!isAdmin}
+              className="w-20 px-2.5 py-1.5 text-xs font-mono bg-bg-surface-raised border border-transparent rounded-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary disabled:opacity-60"
+            />
+            <span className="text-xs text-text-secondary">days</span>
+          </div>
+          <p className="mt-1.5 text-[10px] text-text-secondary">
+            {isAdmin
+              ? 'Issues in a completed or canceled state drop out of the default list after this long. Nothing is deleted — they stay under the Archived tab and can be unarchived at any time.'
+              : 'Only workspace admins can change the auto-archive window.'}
+          </p>
         </div>
 
         <div className="pt-3 border-t border-border flex justify-end">
