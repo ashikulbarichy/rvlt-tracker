@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import { Issue, Profile } from '../types/database';
+import { Issue, Profile, WorkflowState } from '../types/database';
 
 /**
  * Which slice of the issue lifecycle a query returns.
@@ -420,6 +420,12 @@ export function useIssues(options: UseIssuesOptions) {
   /** Shared shape for every lifecycle mutation below. */
   type IssueRef = { id: string; workspace_id: string };
 
+  /** What the cached issue queries hold, for the optimistic patch below. */
+  type CachedIssues = { data: Issue[]; count: number } | undefined;
+
+  /** Enough of a workflow state to repaint the badge before the server answers. */
+  type StatusPatch = Pick<WorkflowState, 'id' | 'name' | 'color'>;
+
   const invalidateIssues = () => {
     queryClient.invalidateQueries({ queryKey: ['issues'] });
   };
@@ -487,6 +493,62 @@ export function useIssues(options: UseIssuesOptions) {
     onSuccess: invalidateIssues,
   });
 
+  /**
+   * Change an issue's workflow state, patching every cached issue query so the badge
+   * updates at once and rolling back if the write fails.
+   *
+   * Kept separate from `updateIssue` on purpose: that one is called by the kanban drag
+   * handler, the detail modal and several other places, and none of them should silently
+   * acquire optimistic behaviour.
+   */
+  const setStatusMutation = useMutation({
+    mutationFn: async ({ id, state_id }: IssueRef & { state_id: string; status?: StatusPatch }) => {
+      const { error } = await supabase
+        .from('issues')
+        .update({ state_id })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onMutate: async ({ id, state_id, status }) => {
+      // Stop in-flight refetches from overwriting the patch we're about to apply.
+      await queryClient.cancelQueries({ queryKey: ['issues'] });
+
+      const snapshot = queryClient.getQueriesData<CachedIssues>({ queryKey: ['issues'] });
+
+      queryClient.setQueriesData<CachedIssues>({ queryKey: ['issues'] }, (old) => {
+        if (!old || !Array.isArray(old.data)) return old;
+        return {
+          ...old,
+          data: old.data.map(issue =>
+            issue.id === id
+              ? {
+                  ...issue,
+                  state_id,
+                  // `status` and `state` are the same joined row; both drive the badge.
+                  status: status ? { ...issue.status, ...status } as WorkflowState : issue.status,
+                  state: status ? { ...issue.state, ...status } as WorkflowState : issue.state,
+                }
+              : issue
+          ),
+        };
+      });
+
+      return { snapshot };
+    },
+    onError: (_err, _vars, context) => {
+      // Put every cache entry back exactly as it was.
+      context?.snapshot.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+    },
+    onSettled: () => {
+      // Reconciles the patch with the server. If the new state is completed/canceled the
+      // closed_at trigger fires and the row may legitimately leave the current bucket.
+      invalidateIssues();
+    },
+  });
+
   /** Irreversible. RLS restricts this to workspace admins. */
   const permanentDeleteMutation = useMutation({
     mutationFn: async ({ id }: IssueRef) => {
@@ -512,6 +574,8 @@ export function useIssues(options: UseIssuesOptions) {
      * became recoverable; permanent removal is `deleteIssuePermanently` (admins only).
      */
     deleteIssue: trashMutation.mutate,
+    setIssueStatus: setStatusMutation.mutate,
+    setIssueStatusAsync: setStatusMutation.mutateAsync,
     archiveIssue: archiveMutation.mutate,
     unarchiveIssue: unarchiveMutation.mutate,
     trashIssue: trashMutation.mutate,

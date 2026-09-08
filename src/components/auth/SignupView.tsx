@@ -62,7 +62,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onSwitchToLogin }) => {
           <div className="w-12 h-12 bg-status-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-6 h-6 text-status-success" />
           </div>
-          <h2 className="text-2xl font-karla text-text-primary mb-2">Welcome to Reevolt Track</h2>
+          <h2 className="text-2xl font-karla text-text-primary mb-2">Welcome to Reevolt Tasks</h2>
           <p className="text-sm text-text-secondary mb-8 leading-relaxed">
             Your account has been created successfully. You can now log in to access your workspace.
           </p>
@@ -83,7 +83,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onSwitchToLogin }) => {
         
         {/* Header */}
         <div className="text-center mb-10">
-          <img src="/favicon.svg" alt="Logo" className="w-16 h-16 rounded-xl mx-auto drop-shadow-sm mb-4" />
+          <img src="/logo.svg" alt="Reevolt Tasks logo" className="w-16 h-16 rounded-xl mx-auto drop-shadow-sm mb-4" />
           <h1 className="text-3xl font-karla text-text-primary mb-2">Create an account</h1>
           <p className="text-sm text-text-secondary">Join your workspace to start tracking issues.</p>
         </div>

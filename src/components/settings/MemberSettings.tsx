@@ -288,7 +288,7 @@ export const MemberSettings: React.FC = () => {
                     <div className="p-3 bg-status-error/10 border border-transparent rounded-lg flex items-start space-x-2.5">
                       <AlertCircle className="w-4 h-4 text-status-error shrink-0 mt-0.5" />
                       <div className="text-xs text-text-secondary">
-                        No registered user found with <span className="font-mono text-text-primary">{trimmedEmail}</span>. The user must sign up to Reevolt Track before they can be added to this workspace.
+                        No registered user found with <span className="font-mono text-text-primary">{trimmedEmail}</span>. The user must sign up to Reevolt Tasks before they can be added to this workspace.
                       </div>
                     </div>
                   )}

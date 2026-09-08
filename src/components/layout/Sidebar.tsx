@@ -193,8 +193,8 @@ export const Sidebar: React.FC = () => {
           title="Switch workspace"
         >
           <img
-            src="/favicon.svg"
-            alt="Reevolt Track Logo"
+            src="/logo.svg"
+            alt="Reevolt Tasks logo"
             className="w-7 h-7 rounded-md shrink-0 drop-shadow-sm mr-3"
           />
           <span className="font-karla font-medium text-sm text-text-primary tracking-wide leading-tight truncate">

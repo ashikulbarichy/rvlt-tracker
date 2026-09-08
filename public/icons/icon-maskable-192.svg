@@ -1,10 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" fill="none">
-  <!-- Maskable full bleed -->
+  <!-- Reevolt Tasks — maskable icon, 192px. Full-bleed background; the launcher may crop
+       to a circle, so the glyph stays inside the central 80% safe zone (r = 76.8 from
+       centre). This mark's half-diagonal at this scale is ~58, comfortably within it. -->
   <rect width="192" height="192" fill="#121212" />
-  <rect x="44" y="44" width="104" height="104" rx="20" fill="#1A1A1A" stroke="#333333" stroke-width="6" />
-  <path d="M72 96 L88 112 L120 76" 
-        stroke="#4C8DFF" 
-        stroke-width="12" 
-        stroke-linecap="round" 
-        stroke-linejoin="round" />
+
+  <g transform="translate(57.9 52) scale(0.09999)" fill="#ffffff">
+    <polygon points="762.21 220.02 762.21 220.64 656.77 278.35 618.85 299.1 384.07 163.51 149 299.24 149 571.68 386.33 708.72 385.41 749.04 382.45 879.34 381.1 880.12 149 746.13 0 660.1 0 220.02 381.1 0 524.21 82.62 762.21 220.02"/>
+    <polygon points="762.21 220.64 762.21 392.68 656.77 453.55 630.18 468.9 530.11 526.67 530.11 794.08 382.45 879.34 385.41 749.04 386.33 708.72 392.88 422.77 618.85 299.1 656.77 278.35 762.21 220.64"/>
+  </g>
 </svg>

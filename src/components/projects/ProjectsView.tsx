@@ -9,7 +9,7 @@ import { SidebarToggle } from '../../components/layout/SidebarToggle';
 import { useProjects } from '../../hooks/useProjects';
 import { useTeams } from '../../hooks/useTeams';
 import { useProfiles } from '../../hooks/useProfiles';
-import { useWorkflowStates } from '../../hooks/useWorkflowStates';
+import { useWorkflowStates, groupWorkflowStatesByName } from '../../hooks/useWorkflowStates';
 import { useIssues, DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/useIssues';
 import { useIssueFilterParams } from '../../hooks/useIssueFilterParams';
 import { Project, ProjectStatus, IssuePriority } from '../../types/database';
@@ -18,6 +18,7 @@ import { DatePicker } from '../common/DatePicker';
 import { formatIssueIdentifier } from '../../lib/identifier';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { StatusBadge } from '../common/StatusBadge';
+import { StatusPicker } from '../common/StatusPicker';
 
 // Priority label colors (match the priority icon colors used across the app)
 const PRIORITY_COLORS: Record<string, string> = {
@@ -27,9 +28,114 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: '#509BF5',
 };
 
+/**
+ * Turn a Postgres error into something worth showing a person.
+ *
+ * projects has `unique (workspace_id, team_id, key)`, so editing either the key or the
+ * team can collide (SQLSTATE 23505) and the message needs to say which.
+ */
+const describeProjectWriteError = (err: unknown, field: keyof Project, val: unknown): string => {
+  const e = err as { code?: string; message?: string } | null;
+
+  if (e?.code === '23505') {
+    if (field === 'key') {
+      return `A project with key "${String(val)}" already exists in this team. Pick a different key.`;
+    }
+    if (field === 'team_id') {
+      return 'That team already has a project with this key. Change the project key first, then move it.';
+    }
+    return 'That value is already taken by another project.';
+  }
+
+  return e?.message || `Failed to update ${String(field)}.`;
+};
+
+/**
+ * Text that commits on blur and Enter, and reverts on Escape. Used for the project
+ * name, key and description so all three behave identically.
+ */
+const EditableText: React.FC<{
+  value: string;
+  onCommit: (next: string) => void;
+  /** Read-only: renders as text, no input at all. */
+  disabled?: boolean;
+  /** Saving: keeps the input mounted but inert, so focus is not lost mid-write. */
+  busy?: boolean;
+  multiline?: boolean;
+  placeholder?: string;
+  className?: string;
+  /** Normalise before comparing and committing, e.g. uppercasing the key. */
+  normalise?: (raw: string) => string;
+}> = ({ value, onCommit, disabled = false, busy = false, multiline = false, placeholder, className = '', normalise }) => {
+  const [draft, setDraft] = React.useState(value);
+  const [isEditing, setIsEditing] = React.useState(false);
+
+  // Re-sync when the stored value changes underneath us (another save, or a
+  // different project selected) but never while the user is mid-edit.
+  React.useEffect(() => {
+    if (!isEditing) setDraft(value);
+  }, [value, isEditing]);
+
+  if (disabled) {
+    return (
+      <span className={className}>
+        {value || placeholder}
+      </span>
+    );
+  }
+
+  const commit = () => {
+    setIsEditing(false);
+    const next = normalise ? normalise(draft) : draft;
+    setDraft(next);
+    // An unchanged field must not write at all.
+    if (next === value) return;
+    onCommit(next);
+  };
+
+  const cancel = () => {
+    setDraft(value);
+    setIsEditing(false);
+  };
+
+  const shared = {
+    value: draft,
+    placeholder,
+    disabled: busy,
+    onFocus: () => setIsEditing(true),
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft(e.target.value),
+    onBlur: commit,
+    className,
+  };
+
+  if (multiline) {
+    return (
+      <textarea
+        {...shared}
+        rows={5}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+          // Enter inserts a newline here; blur or Escape ends the edit.
+        }}
+      />
+    );
+  }
+
+  return (
+    <input
+      {...shared}
+      type="text"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+      }}
+    />
+  );
+};
+
 export const ProjectsView: React.FC = () => {
   const { currentWorkspace, currentUser, userRole, currentTeam, setSelectedIssue, setIsNewIssueModalOpen } = useApp();
-  const { projects, isLoading, createProject, updateProject, deleteProject } = useProjects({
+  const { projects, isLoading, createProject, updateProjectAsync, deleteProject } = useProjects({
     workspaceId: currentWorkspace?.id
   });
   const { teams } = useTeams(currentWorkspace?.id);
@@ -167,6 +273,11 @@ export const ProjectsView: React.FC = () => {
   const [targetDate, setTargetDate] = useState('');
   const [status, setStatus] = useState<ProjectStatus>('in_progress');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // The drawer's errorMessage renders inside the drawer, so the detail panel needs
+  // its own slot for inline-edit failures.
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [savingField, setSavingField] = useState<keyof Project | null>(null);
+  const [pendingTeamChange, setPendingTeamChange] = useState<{ teamId: string; teamName: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Sync state when opening detail view
@@ -230,17 +341,59 @@ export const ProjectsView: React.FC = () => {
     }
   };
 
-  const handleUpdateProjectField = async (field: keyof Project, val: any) => {
-    if (!selectedProject || !isAdmin) return;
+  /**
+   * Writes one project field and only then patches local state.
+   *
+   * Uses updateProjectAsync deliberately: updateProject is mutation.mutate, which
+   * returns void, so awaiting it resolves at once and a rejection never reaches the
+   * catch below. The previous version patched local state unconditionally and logged
+   * to a catch that could not fire.
+   */
+  const handleUpdateProjectField = async (field: keyof Project, val: unknown) => {
+    if (!selectedProject || !isAdmin || savingField) return;
+
+    setSavingField(field);
+    setDetailError(null);
+
     try {
-      await updateProject({
-        id: selectedProject.id,
-        [field]: val
-      });
-      setSelectedProject(prev => prev ? { ...prev, [field]: val } : null);
-    } catch (err: any) {
-      console.error('Failed to update project field:', err);
+      await updateProjectAsync({ id: selectedProject.id, [field]: val });
+      setSelectedProject(prev => (prev ? { ...prev, [field]: val } as Project : null));
+    } catch (err: unknown) {
+      setDetailError(describeProjectWriteError(err, field, val));
+    } finally {
+      setSavingField(null);
     }
+  };
+
+  const handleCommitName = (next: string) => {
+    if (!next.trim()) {
+      setDetailError('Project name cannot be empty.');
+      return;
+    }
+    handleUpdateProjectField('name', next.trim());
+  };
+
+  const handleCommitKey = (next: string) => {
+    if (!next) {
+      setDetailError('Project key cannot be empty.');
+      return;
+    }
+    handleUpdateProjectField('key', next);
+  };
+
+  /** Moving the project does not move its issues, so this is confirmed first. */
+  const handleRequestTeamChange = (teamId: string) => {
+    if (!selectedProject || teamId === selectedProject.team_id) return;
+    const teamName = teams?.find(tm => tm.id === teamId)?.name || 'that team';
+    setPendingTeamChange({ teamId, teamName });
+  };
+
+  const handleSetIssueStatus = (issueId: string, workspaceId: string, state: { id: string; name: string; color: string }) => {
+    setDetailError(null);
+    setIssueStatus(
+      { id: issueId, workspace_id: workspaceId, state_id: state.id, status: state },
+      { onError: (err: unknown) => setDetailError(describeProjectWriteError(err, 'status', state.name)) }
+    );
   };
 
   const completedStateIds = useMemo(() => {
@@ -309,6 +462,11 @@ export const ProjectsView: React.FC = () => {
 
   // Filter state for the project's issue list. A separate scope from the main issue
   // list, so each surface remembers its own filter.
+  const issueStatusGroups = useMemo(
+    () => groupWorkflowStatesByName(workflowStates),
+    [workflowStates]
+  );
+
   const validIssueStatusIds = useMemo(
     () => (workflowStates || []).map(s => s.id),
     [workflowStates]
@@ -318,7 +476,7 @@ export const ProjectsView: React.FC = () => {
     bucket: issueBucket,
     statusIds: issueStatusIds,
     setBucket: setIssueBucket,
-    toggleStatusId: toggleIssueStatusId,
+    toggleStatusGroup: toggleIssueStatusGroup,
     clearFilters: clearIssueFilters,
   } = useIssueFilterParams({
     workspaceSlug: currentWorkspace?.slug,
@@ -326,8 +484,12 @@ export const ProjectsView: React.FC = () => {
     scope: 'project-issues',
   });
 
+  const selectedIssueStatusGroupCount = issueStatusGroups.filter(
+    g => g.ids.some(id => issueStatusIds.includes(id))
+  ).length;
+
   // Query issues for the active selected project
-  const { issues: projectIssues, totalCount: projectIssueCount } = useIssues({
+  const { issues: projectIssues, totalCount: projectIssueCount, setIssueStatus } = useIssues({
     workspaceId: currentWorkspace?.id,
     projectId: selectedProject?.id,
     bucket: issueBucket,
@@ -695,13 +857,24 @@ export const ProjectsView: React.FC = () => {
 
               <div className="w-px h-4 bg-border shrink-0" />
 
-              <span className="font-sans text-xs font-semibold px-2 py-0.5 rounded-full bg-bg-surface-raised border border-transparent text-text-secondary shrink-0">
-                {selectedProject.key}
-              </span>
+              <EditableText
+                value={selectedProject.key}
+                onCommit={handleCommitKey}
+                disabled={!isAdmin}
+                busy={savingField === 'key'}
+                normalise={(raw) => raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')}
+                placeholder="KEY"
+                className="font-sans text-xs font-semibold px-2 py-0.5 w-20 rounded-full bg-bg-surface-raised border border-transparent text-text-secondary shrink-0 focus:outline-none focus:border-text-secondary focus:text-text-primary"
+              />
 
-              <h2 className="text-sm font-semibold text-text-primary truncate">
-                {selectedProject.name}
-              </h2>
+              <EditableText
+                value={selectedProject.name}
+                onCommit={handleCommitName}
+                disabled={!isAdmin}
+                busy={savingField === 'name'}
+                placeholder="Project name"
+                className="text-sm font-semibold text-text-primary truncate bg-transparent border border-transparent rounded-sm px-1 -mx-1 min-w-0 flex-1 focus:outline-none focus:bg-bg-surface-raised focus:border-text-secondary"
+              />
             </div>
 
             <div className="flex items-center space-x-2 shrink-0">
@@ -730,6 +903,21 @@ export const ProjectsView: React.FC = () => {
           <div className="flex-1 overflow-y-auto flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-border min-h-0 no-scrollbar scrollbar-none">
             {/* Left Column: Description & Issues list for this project */}
             <div className="flex-1 min-w-0 p-4 sm:p-6 md:p-8 space-y-6 overflow-y-auto no-scrollbar scrollbar-none">
+              {detailError && (
+                <div className="flex items-start space-x-2 bg-status-error/10 border border-status-error/30 rounded-md px-3 py-2">
+                  <AlertCircle className="w-4 h-4 text-status-error shrink-0 mt-0.5" />
+                  <span className="text-xs text-text-primary flex-1">{detailError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setDetailError(null)}
+                    className="text-text-tertiary hover:text-text-primary shrink-0"
+                    title="Dismiss"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
               {/* Project Progress Banner */}
               <div className="bg-bg-surface-raised border border-transparent rounded-lg p-5 space-y-3">
                 <div className="flex items-center justify-between">
@@ -769,9 +957,15 @@ export const ProjectsView: React.FC = () => {
                 <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider">
                   Description & Scope
                 </h3>
-                <div className="bg-bg-surface-raised border border-transparent rounded-md p-4 text-xs text-text-primary leading-relaxed whitespace-pre-wrap">
-                  {selectedProject.description || 'No description provided for this project.'}
-                </div>
+                <EditableText
+                  value={selectedProject.description || ''}
+                  onCommit={(next) => handleUpdateProjectField('description', next.trim() || null)}
+                  disabled={!isAdmin}
+                  busy={savingField === 'description'}
+                  multiline
+                  placeholder="No description provided for this project."
+                  className="w-full bg-bg-surface-raised border border-transparent rounded-md p-4 text-xs text-text-primary leading-relaxed whitespace-pre-wrap resize-y focus:outline-none focus:border-text-secondary placeholder:text-text-tertiary"
+                />
               </div>
 
               {/* Issues in this project */}
@@ -816,7 +1010,7 @@ export const ProjectsView: React.FC = () => {
                         }`}
                       >
                         <Filter className="w-3 h-3" />
-                        <span>{issueStatusIds.length > 0 ? issueStatusIds.length : 'Status'}</span>
+                        <span>{selectedIssueStatusGroupCount > 0 ? selectedIssueStatusGroupCount : 'Status'}</span>
                       </button>
 
                       {isIssueStatusMenuOpen && (
@@ -839,28 +1033,31 @@ export const ProjectsView: React.FC = () => {
 
                           <div className="my-1 h-px bg-border" />
 
-                          {(workflowStates || []).length === 0 ? (
+                          {issueStatusGroups.length === 0 ? (
                             <div className="px-2.5 py-2 text-xs text-text-tertiary">No workflow states yet.</div>
                           ) : (
-                            (workflowStates || []).map(state => (
-                              <button
-                                key={state.id}
-                                onClick={() => toggleIssueStatusId(state.id)}
-                                className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 text-xs text-left transition-colors ${
-                                  issueStatusIds.includes(state.id)
-                                    ? 'text-text-primary font-medium'
-                                    : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
-                                }`}
-                              >
-                                <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
-                                  issueStatusIds.includes(state.id) ? 'bg-text-primary border-text-primary' : 'border-border-strong'
-                                }`}>
-                                  {issueStatusIds.includes(state.id) && <Check className="w-2.5 h-2.5 text-button-text" />}
-                                </div>
-                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: state.color }} />
-                                <span className="truncate">{state.name}</span>
-                              </button>
-                            ))
+                            issueStatusGroups.map(group => {
+                              const isSelected = group.ids.some(id => issueStatusIds.includes(id));
+                              return (
+                                <button
+                                  key={group.key}
+                                  onClick={() => toggleIssueStatusGroup(group.ids)}
+                                  className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 text-xs text-left transition-colors ${
+                                    isSelected
+                                      ? 'text-text-primary font-medium'
+                                      : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
+                                  }`}
+                                >
+                                  <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
+                                    isSelected ? 'bg-text-primary border-text-primary' : 'border-border-strong'
+                                  }`}>
+                                    {isSelected && <Check className="w-2.5 h-2.5 text-button-text" />}
+                                  </div>
+                                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: group.color }} />
+                                  <span className="truncate">{group.name}</span>
+                                </button>
+                              );
+                            })
                           )}
                         </div>
                       )}
@@ -901,9 +1098,25 @@ export const ProjectsView: React.FC = () => {
 
                         <div className="flex items-center shrink-0">
                           <div className="w-24 flex justify-end">
-                            {issue.status && (
-                              <StatusBadge name={issue.status.name} color={issue.status.color} />
-                            )}
+                            <StatusPicker
+                              value={issue.state_id}
+                              // The issue's OWN team, not the project's: an issue can sit on a
+                              // different team, and a state from the wrong team would write a
+                              // state_id its board cannot render.
+                              options={(workflowStates || [])
+                                .filter(s => s.team_id === issue.team_id)
+                                .sort((a, b) => a.position - b.position)
+                                .map(s => ({ id: s.id, name: s.name, color: s.color }))}
+                              onSelect={(stateId) => {
+                                const next = (workflowStates || []).find(s => s.id === stateId);
+                                if (next) {
+                                  handleSetIssueStatus(issue.id, issue.workspace_id, {
+                                    id: next.id, name: next.name, color: next.color,
+                                  });
+                                }
+                              }}
+                              emptyMessage="This issue's team has no workflow states."
+                            />
                           </div>
                           <span
                             className="w-16 text-right text-[10px] font-medium capitalize"
@@ -929,6 +1142,7 @@ export const ProjectsView: React.FC = () => {
                 {isAdmin ? (
                   <CustomSelect
                     value={selectedProject.status}
+                    disabled={savingField === 'status'}
                     onChange={(val) => handleUpdateProjectField('status', val as ProjectStatus)}
                     options={[
                       { value: 'planned', label: 'Planning' },
@@ -950,9 +1164,20 @@ export const ProjectsView: React.FC = () => {
                 <label className="text-xs font-medium text-text-secondary">
                   Team
                 </label>
-                <div className="text-xs font-medium text-text-primary px-2.5 py-1.5 bg-bg-surface-raised border border-transparent rounded-sm">
-                  {teams?.find(t => t.id === selectedProject.team_id)?.name || 'General Workspace'}
-                </div>
+                {isAdmin ? (
+                  <CustomSelect
+                    value={selectedProject.team_id}
+                    disabled={savingField === 'team_id'}
+                    onChange={handleRequestTeamChange}
+                    options={(teams || []).map(tm => ({ value: tm.id, label: tm.name }))}
+                    size="sm"
+                    className="w-full"
+                  />
+                ) : (
+                  <div className="text-xs font-medium text-text-primary px-2.5 py-1.5 bg-bg-surface-raised border border-transparent rounded-sm">
+                    {teams?.find(tm => tm.id === selectedProject.team_id)?.name || 'General Workspace'}
+                  </div>
+                )}
               </div>
 
               {/* Project Lead */}
@@ -960,7 +1185,22 @@ export const ProjectsView: React.FC = () => {
                 <label className="text-xs font-medium text-text-secondary">
                   Project Lead
                 </label>
-                {(() => {
+                {isAdmin ? (
+                  <CustomSelect
+                    value={selectedProject.lead_id || ''}
+                    disabled={savingField === 'lead_id'}
+                    onChange={(val) => handleUpdateProjectField('lead_id', val || null)}
+                    options={[
+                      { value: '', label: 'No lead' },
+                      ...(profiles || []).map(pr => ({
+                        value: pr.id,
+                        label: pr.full_name || pr.email,
+                      })),
+                    ]}
+                    size="sm"
+                    className="w-full"
+                  />
+                ) : (() => {
                   const lead = profiles?.find(p => p.id === selectedProject.lead_id);
                   return lead ? (
                     <div className="flex items-center space-x-2 px-3 py-1.5 bg-bg-surface-raised border border-transparent rounded-full text-xs">
@@ -984,12 +1224,20 @@ export const ProjectsView: React.FC = () => {
                 <label className="text-xs font-medium text-text-secondary">
                   Target Date
                 </label>
-                <div className="pt-0.5">
-                  {renderTargetDateBadge(
-                    selectedProject.target_date,
-                    (activeProjectEnriched as any)?.daysLeft,
-                    (activeProjectEnriched as any)?.isOverdue,
-                    selectedProject.status === 'completed'
+                <div className="pt-0.5 space-y-2">
+                  {isAdmin ? (
+                    <DatePicker
+                      value={selectedProject.target_date || ''}
+                      onChange={(val) => handleUpdateProjectField('target_date', val || null)}
+                      placeholder="No target date"
+                    />
+                  ) : (
+                    renderTargetDateBadge(
+                      selectedProject.target_date,
+                      (activeProjectEnriched as any)?.daysLeft,
+                      (activeProjectEnriched as any)?.isOverdue,
+                      selectedProject.status === 'completed'
+                    )
                   )}
                 </div>
               </div>
@@ -1184,6 +1432,24 @@ export const ProjectsView: React.FC = () => {
           }
         }}
         onCancel={() => setDeletingProject(null)}
+      />
+
+      {/* Moving a project does not move its issues, and issue visibility is team-scoped
+          in RLS — so this is worth confirming rather than doing silently. */}
+      <ConfirmModal
+        isOpen={!!pendingTeamChange}
+        title="Move project to another team?"
+        message={pendingTeamChange
+          ? `Move "${selectedProject?.name}" to ${pendingTeamChange.teamName}? The project's issues do not move — they keep their own team. Because issues are only visible to their own team's members, people on ${pendingTeamChange.teamName} may not be able to see this project's existing issues.`
+          : ''}
+        confirmText="Move project"
+        onConfirm={() => {
+          if (pendingTeamChange) {
+            handleUpdateProjectField('team_id', pendingTeamChange.teamId);
+            setPendingTeamChange(null);
+          }
+        }}
+        onCancel={() => setPendingTeamChange(null)}
       />
     </div>
   );

@@ -170,9 +170,26 @@ export function useIssueFilterParams({
     setStatusIds(next);
   }, [statusIds, setStatusIds]);
 
+  /**
+   * Toggle a whole status group at once. One status name can map to several state ids
+   * (one per team), and they select and clear together.
+   */
+  const toggleStatusGroup = useCallback((ids: string[]) => {
+    // 'any present' rather than 'all present', so a shared URL carrying a partial group
+    // still reads as selected and one click clears the whole group.
+    const isSelected = ids.some(id => statusIds.includes(id));
+    const next = isSelected
+      ? statusIds.filter(existing => !ids.includes(existing))
+      : [...statusIds, ...ids.filter(id => !statusIds.includes(id))];
+    setStatusIds(next);
+  }, [statusIds, setStatusIds]);
+
   const clearFilters = useCallback(() => {
     apply({ bucket: DEFAULT_BUCKET, statusIds: [], mine: false });
   }, [apply]);
 
-  return { bucket, statusIds, mine, setFilter, setBucket, setStatusIds, toggleStatusId, clearFilters };
+  return {
+    bucket, statusIds, mine,
+    setFilter, setBucket, setStatusIds, toggleStatusId, toggleStatusGroup, clearFilters,
+  };
 }

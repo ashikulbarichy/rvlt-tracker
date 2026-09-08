@@ -1,6 +1,6 @@
 {
-  "name": "Reevolt Track",
-  "short_name": "Track",
+  "name": "Reevolt Tasks",
+  "short_name": "Tasks",
   "description": "High-performance issue & bug tracking platform",
   "start_url": "/",
   "scope": "/",
@@ -8,7 +8,11 @@
   "background_color": "#121212",
   "theme_color": "#121212",
   "orientation": "any",
-  "categories": ["productivity", "utilities", "business"],
+  "categories": [
+    "productivity",
+    "utilities",
+    "business"
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.svg",

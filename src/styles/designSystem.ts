@@ -1,5 +1,5 @@
 /**
- * Universal Design System Tokens & Style Presets for Reevolt Track
+ * Universal Design System Tokens & Style Presets for Reevolt Tasks
  * Adheres strictly to the Nordic/Japandi aesthetic rules:
  * Warm neutrals, 8px grid, Karla typography, muted accents.
  */

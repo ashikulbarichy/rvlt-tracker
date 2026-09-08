@@ -23,7 +23,8 @@ import {
   Archive,
   ArchiveRestore,
   RotateCcw,
-  Trash2
+  Trash2,
+  X
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { SidebarToggle } from '../../components/layout/SidebarToggle';
@@ -31,12 +32,13 @@ import { useIssues, IssueBucket, DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/
 import { useIssueFilterParams } from '../../hooks/useIssueFilterParams';
 import { useTeams } from '../../hooks/useTeams';
 import { useTeamMembers } from '../../hooks/useTeamMembers';
-import { useWorkflowStates } from '../../hooks/useWorkflowStates';
+import { useWorkflowStates, groupWorkflowStatesByName } from '../../hooks/useWorkflowStates';
 import { Issue } from '../../types/database';
 import { formatIssueIdentifier } from '../../lib/identifier';
 import { formatRelativeTime } from '../../lib/time';
 import { stripHtml } from '../../utils/htmlUtils';
 import { StatusBadge } from '../common/StatusBadge';
+import { StatusPicker } from '../common/StatusPicker';
 import { ConfirmModal } from '../common/ConfirmModal';
 
 interface IssueListViewProps {
@@ -83,6 +85,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
   const [searchQuery, setSearchQuery] = useState('');
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [pendingPermanentDelete, setPendingPermanentDelete] = useState<Issue | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(
     () => new Set(Array.isArray(savedPrefs.teamIds) ? savedPrefs.teamIds : [])
   );
@@ -154,13 +157,20 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
     ? (teams || [])
     : (userAssignedTeams.length > 0 ? userAssignedTeams : (teams || []));
 
+  // One option per distinct status name. Workflow states are per-team, so without this
+  // a two-team workspace lists every status twice.
+  const statusGroups = React.useMemo(
+    () => groupWorkflowStatesByName(workflowStates),
+    [workflowStates]
+  );
+
   const validStatusIds = React.useMemo(
     () => (workflowStates || []).map(s => s.id),
     [workflowStates]
   );
 
   const {
-    bucket, statusIds, mine, setFilter, toggleStatusId, clearFilters,
+    bucket, statusIds, mine, setFilter, toggleStatusGroup, clearFilters,
   } = useIssueFilterParams({ workspaceSlug: currentWorkspace?.slug, validStatusIds });
 
   // The tab row is a view onto the URL filter, not separate state.
@@ -169,6 +179,11 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
     : mine
       ? 'Mine'
       : (Object.keys(TAB_BUCKETS) as Tab[]).find(t => t !== 'Mine' && TAB_BUCKETS[t] === bucket) || 'Open';
+
+  // Count distinct statuses chosen, not the underlying per-team rows.
+  const selectedStatusGroupCount = statusGroups.filter(
+    g => g.ids.some(id => statusIds.includes(id))
+  ).length;
 
   const selectTab = (tab: Tab) => {
     setPage(1);
@@ -183,7 +198,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
 
   const archiveAfterDays = currentWorkspace?.archive_after_days ?? DEFAULT_ARCHIVE_AFTER_DAYS;
 
-  const { issues, totalCount, isLoading, updateIssue, archiveIssue, unarchiveIssue, restoreIssue, deleteIssuePermanently } = useIssues({
+  const { issues, totalCount, isLoading, updateIssue, setIssueStatus, archiveIssue, unarchiveIssue, restoreIssue, deleteIssuePermanently } = useIssues({
     workspaceId: currentWorkspace?.id,
     teamId: firstSelectedTeamId,
     assigneeId,
@@ -194,6 +209,37 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
     limit,
     searchQuery
   });
+
+  /**
+   * States offered for an issue are its OWN team's. workflowStates holds every state in
+   * the workspace when no single team is selected, and a state from another team would
+   * write a state_id this issue's board cannot render.
+   */
+  const statusOptionsForIssue = (issue: Issue) =>
+    (workflowStates || [])
+      .filter(s => s.team_id === issue.team_id)
+      .sort((a, b) => a.position - b.position)
+      .map(s => ({ id: s.id, name: s.name, color: s.color }));
+
+  const handleSetIssueStatus = (issue: Issue, stateId: string) => {
+    const next = (workflowStates || []).find(s => s.id === stateId);
+    if (!next) return;
+    setStatusError(null);
+    setIssueStatus(
+      {
+        id: issue.id,
+        workspace_id: issue.workspace_id,
+        state_id: next.id,
+        status: { id: next.id, name: next.name, color: next.color },
+      },
+      {
+        onError: (err: unknown) => {
+          const e = err as { message?: string } | null;
+          setStatusError(e?.message || 'Failed to change status.');
+        },
+      }
+    );
+  };
 
   const toggleTeamFilter = (teamId: string) => {
     setSelectedTeamIds(prev => {
@@ -410,6 +456,23 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
         </div>
       )}
 
+      {statusError && (
+        <div className="mb-3 p-3 bg-status-error/10 border border-status-error/30 rounded-md flex items-start space-x-2.5">
+          <AlertCircle className="w-4 h-4 text-status-error shrink-0 mt-0.5" />
+          <div className="text-xs text-text-primary flex-1">
+            <span className="font-semibold">Status not changed:</span> {statusError}
+          </div>
+          <button
+            type="button"
+            onClick={() => setStatusError(null)}
+            className="text-text-tertiary hover:text-text-primary shrink-0"
+            title="Dismiss"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Toolbar: Tabs, Left Icon Buttons (Sort, View Mode), Team Filter & Search */}
       <div className="flex flex-wrap items-center justify-between mb-3.5 shrink-0 gap-2.5 sm:gap-3">
         {/* Left Side: Tabs + 2 Icon Buttons */}
@@ -451,7 +514,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
             >
               <Filter className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">
-                {statusIds.length > 0 ? `Status · ${statusIds.length}` : 'Status'}
+                {selectedStatusGroupCount > 0 ? `Status · ${selectedStatusGroupCount}` : 'Status'}
               </span>
             </button>
 
@@ -479,38 +542,44 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
 
                 <div className="my-1 h-px bg-border" />
 
-                {(!workflowStates || workflowStates.length === 0) ? (
+                {statusGroups.length === 0 ? (
                   <div className="px-2.5 py-2 text-xs text-text-tertiary">
-                    {firstSelectedTeamId
-                      ? 'No workflow states for this team.'
-                      : 'Select a single team to filter by status.'}
+                    No workflow states in this workspace yet.
                   </div>
                 ) : (
-                  workflowStates.map(state => (
-                    <button
-                      key={state.id}
-                      onClick={() => {
-                        setPage(1);
-                        toggleStatusId(state.id);
-                      }}
-                      className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 text-xs text-left transition-colors ${
-                        statusIds.includes(state.id)
-                          ? 'text-text-primary font-medium'
-                          : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
-                      }`}
-                    >
-                      <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
-                        statusIds.includes(state.id) ? 'bg-text-primary border-text-primary' : 'border-border-strong'
-                      }`}>
-                        {statusIds.includes(state.id) && <Check className="w-2.5 h-2.5 text-button-text" />}
-                      </div>
-                      <span
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{ backgroundColor: state.color }}
-                      />
-                      <span className="truncate">{state.name}</span>
-                    </button>
-                  ))
+                  statusGroups.map(group => {
+                    const isSelected = group.ids.some(id => statusIds.includes(id));
+                    return (
+                      <button
+                        key={group.key}
+                        onClick={() => {
+                          setPage(1);
+                          toggleStatusGroup(group.ids);
+                        }}
+                        className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 text-xs text-left transition-colors ${
+                          isSelected
+                            ? 'text-text-primary font-medium'
+                            : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
+                        }`}
+                      >
+                        <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
+                          isSelected ? 'bg-text-primary border-text-primary' : 'border-border-strong'
+                        }`}>
+                          {isSelected && <Check className="w-2.5 h-2.5 text-button-text" />}
+                        </div>
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: group.color }}
+                        />
+                        <span className="truncate">{group.name}</span>
+                        {group.ids.length > 1 && (
+                          <span className="ml-auto text-text-tertiary text-[10px] shrink-0">
+                            {group.ids.length} teams
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })
                 )}
               </div>
             )}
@@ -777,7 +846,12 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                     </div>
 
                     <div className="w-28 shrink-0 flex items-center">
-                        <StatusBadge name={issue.status?.name || 'Open'} color={issue.status?.color} />
+                        <StatusPicker
+                          value={issue.state_id}
+                          options={statusOptionsForIssue(issue)}
+                          onSelect={(stateId) => handleSetIssueStatus(issue, stateId)}
+                          emptyMessage="This issue's team has no workflow states."
+                        />
                     </div>
                   </div>
 
@@ -935,7 +1009,13 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                         <div className="flex items-center" title={`Priority: ${priorityInfo.label}`}>
                           {priorityInfo.icon}
                         </div>
-                          <StatusBadge name={issue.status?.name || 'Open'} color={issue.status?.color} size="xs" />
+                          <StatusPicker
+                            value={issue.state_id}
+                            options={statusOptionsForIssue(issue)}
+                            onSelect={(stateId) => handleSetIssueStatus(issue, stateId)}
+                            size="xs"
+                            emptyMessage="This issue's team has no workflow states."
+                          />
                       </div>
                     </div>
 

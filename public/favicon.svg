@@ -1,15 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <!-- Minimalist Background Tile -->
+  <!-- Reevolt Tasks favicon. The glyph sits on a dark rounded tile so it stays visible
+       against a light browser tab strip, where a bare white mark would disappear. -->
   <rect width="512" height="512" rx="112" fill="#141416" />
   <rect x="6" y="6" width="500" height="500" rx="106" stroke="#27272A" stroke-width="8" fill="none" />
-  
-  <!-- Minimalist Box -->
-  <rect x="104" y="104" width="304" height="304" rx="64" fill="#1F1F23" stroke="#38383E" stroke-width="16" />
-  
-  <!-- Clean Tick / Checkmark -->
-  <path d="M188 262 L236 312 L328 196" 
-        stroke="#4C8DFF"
-        stroke-width="36" 
-        stroke-linecap="round" 
-        stroke-linejoin="round" />
+
+  <!-- Glyph at ~66% of the tile. Smaller than this and it stops reading at 16px, where
+       the rounded corners and inner border already eat into the usable area. -->
+  <g transform="translate(108.8 86) scale(0.38631)" fill="#ffffff">
+    <polygon points="762.21 220.02 762.21 220.64 656.77 278.35 618.85 299.1 384.07 163.51 149 299.24 149 571.68 386.33 708.72 385.41 749.04 382.45 879.34 381.1 880.12 149 746.13 0 660.1 0 220.02 381.1 0 524.21 82.62 762.21 220.02"/>
+    <polygon points="762.21 220.64 762.21 392.68 656.77 453.55 630.18 468.9 530.11 526.67 530.11 794.08 382.45 879.34 385.41 749.04 386.33 708.72 392.88 422.77 618.85 299.1 656.77 278.35 762.21 220.64"/>
+  </g>
 </svg>

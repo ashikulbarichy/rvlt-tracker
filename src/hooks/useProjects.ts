@@ -90,6 +90,12 @@ export function useProjects(options?: { workspaceId?: string; teamId?: string } 
     error,
     createProject: createMutation.mutate,
     updateProject: updateMutation.mutate,
+    /**
+     * Use this when you need to know whether the write succeeded. `updateProject` is
+     * `mutate`, which returns void — awaiting it resolves immediately and a rejection
+     * never reaches the caller's catch block.
+     */
+    updateProjectAsync: updateMutation.mutateAsync,
     deleteProject: deleteMutation.mutate,
   };
 }

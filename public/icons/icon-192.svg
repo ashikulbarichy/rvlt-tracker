@@ -1,15 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" fill="none">
-  <!-- Minimalist Background Tile -->
+  <!-- Reevolt Tasks — "any" purpose PWA icon, 192px. Tile background matches theme_color. -->
   <rect width="192" height="192" rx="42" fill="#121212" />
   <rect x="2" y="2" width="188" height="188" rx="40" stroke="#232323" stroke-width="3" fill="none" />
-  
-  <!-- Minimalist Box -->
-  <rect x="39" y="39" width="114" height="114" rx="24" fill="#1A1A1A" stroke="#333333" stroke-width="6" />
-  
-  <!-- Clean Tick / Checkmark in accent blue -->
-  <path d="M70 98 L88 116 L124 74" 
-        stroke="#4C8DFF" 
-        stroke-width="14" 
-        stroke-linecap="round" 
-        stroke-linejoin="round" />
+
+  <g transform="translate(48.35 41) scale(0.12498)" fill="#ffffff">
+    <polygon points="762.21 220.02 762.21 220.64 656.77 278.35 618.85 299.1 384.07 163.51 149 299.24 149 571.68 386.33 708.72 385.41 749.04 382.45 879.34 381.1 880.12 149 746.13 0 660.1 0 220.02 381.1 0 524.21 82.62 762.21 220.02"/>
+    <polygon points="762.21 220.64 762.21 392.68 656.77 453.55 630.18 468.9 530.11 526.67 530.11 794.08 382.45 879.34 385.41 749.04 386.33 708.72 392.88 422.77 618.85 299.1 656.77 278.35 762.21 220.64"/>
+  </g>
 </svg>

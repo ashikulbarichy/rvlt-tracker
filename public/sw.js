@@ -1,9 +1,10 @@
-const CACHE_NAME = 'reevolt-track-v1';
+const CACHE_NAME = 'reevolt-tasks-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
   '/favicon.svg',
+  '/logo.svg',
   '/icons/icon-192.svg',
   '/icons/icon-512.svg',
   '/icons/icon-maskable-192.svg',

@@ -28,7 +28,7 @@ export const Header: React.FC = () => {
 
         {/* Mobile Workspace / Brand indicator */}
         <div className="flex items-center space-x-2">
-          <img src="/favicon.svg" alt="Logo" className="w-5 h-5 rounded-sm" />
+          <img src="/logo.svg" alt="Reevolt Tasks logo" className="w-5 h-5 rounded-sm" />
           <span className="font-karla font-semibold text-sm text-text-primary truncate max-w-[140px] sm:max-w-[200px]">
             {currentWorkspace?.name || 'Track'}
           </span>

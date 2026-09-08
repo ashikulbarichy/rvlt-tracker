@@ -50,7 +50,7 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onComplete
         
         {/* Header */}
         <div className="text-center mb-8">
-          <img src="/favicon.svg" alt="Logo" className="w-14 h-14 rounded-xl mx-auto drop-shadow-sm mb-4" />
+          <img src="/logo.svg" alt="Reevolt Tasks logo" className="w-14 h-14 rounded-xl mx-auto drop-shadow-sm mb-4" />
           <h1 className="text-2xl sm:text-3xl font-karla font-bold tracking-tight text-text-primary mb-1.5">Reset Password</h1>
           <p className="text-xs sm:text-sm text-text-secondary">Enter your new secure password below</p>
         </div>
