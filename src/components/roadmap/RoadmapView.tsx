@@ -210,8 +210,11 @@ export const RoadmapView: React.FC = () => {
                   : teams?.find(t => t.id === selectedTeamId)?.name || 'Team'}
               </span>
             </button>
+            {/* Menu is z-50, not z-30: the timeline's sticky axis header is z-30 and its
+                sticky name column is z-40, and both come later in the DOM — at z-30 this
+                menu was painted over by the "Q1 FY 26/27 / Jul" header band. */}
             {isTeamMenuOpen && (
-              <div className="absolute left-0 mt-1 w-44 bg-bg-surface-raised border border-transparent rounded-md shadow-lg py-1 z-30">
+              <div className="absolute left-0 mt-1 w-44 bg-bg-surface-raised border border-transparent rounded-md shadow-lg py-1 z-50">
                 <button
                   onClick={() => { setSelectedTeamId('all'); setIsTeamMenuOpen(false); }}
                   className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-bg-surface-hover ${selectedTeamId === 'all' ? 'text-accent-primary font-medium' : 'text-text-secondary'}`}
