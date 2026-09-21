@@ -3,12 +3,21 @@ import { useWorkflowStates } from '../../hooks/useWorkflowStates';
 import { Loader2 } from 'lucide-react';
 import { WorkflowState } from '../../types/database';
 
-interface TeamWorkflowSettingsProps {
-  teamId: string;
+interface WorkspaceWorkflowSettingsProps {
+  /** Non-admins see the palette read-only; RLS enforces this independently. */
+  canEdit?: boolean;
 }
 
-export const TeamWorkflowSettings: React.FC<TeamWorkflowSettingsProps> = ({ teamId }) => {
-  const { workflowStates, isLoading, updateWorkflowState } = useWorkflowStates(teamId);
+/**
+ * Colours for the workspace's issue statuses.
+ *
+ * Workspace-level since migration 003: one set of statuses shared by every team, so this
+ * lives in workspace settings rather than under an individual team. Changing a colour
+ * here changes it on every board.
+ */
+export const WorkspaceWorkflowSettings: React.FC<WorkspaceWorkflowSettingsProps> = ({ canEdit = false }) => {
+  const { workflowStates, isLoading, updateWorkflowState } = useWorkflowStates();
+  const [error, setError] = React.useState<string | null>(null);
 
   const predefinedColors = [
     '#535353', // Backlog neutral
@@ -34,11 +43,15 @@ export const TeamWorkflowSettings: React.FC<TeamWorkflowSettingsProps> = ({ team
   }
 
   const handleColorChange = async (state: WorkflowState, newColor: string) => {
-    if (state.color === newColor) return;
+    if (!canEdit || state.color === newColor) return;
+    setError(null);
     try {
       await updateWorkflowState(state.id, { color: newColor });
-    } catch (error) {
-      console.error('Failed to update workflow state color:', error);
+    } catch (err: unknown) {
+      // The manage policy is is_workspace_admin, so a non-admin write fails here even if
+      // the UI were bypassed. Surface it rather than logging to a console nobody reads.
+      const e = err as { message?: string } | null;
+      setError(e?.message || 'Failed to update the status colour.');
     }
   };
 
@@ -47,9 +60,17 @@ export const TeamWorkflowSettings: React.FC<TeamWorkflowSettingsProps> = ({ team
       <div>
         <h2 className="text-sm font-karla font-semibold text-text-primary">Workflow States</h2>
         <p className="text-xs text-text-secondary">
-          Customize the color for each issue state to help identify them at a glance.
+          {canEdit
+            ? 'Shared across the whole workspace \u2014 changing a colour updates every team\u2019s board.'
+            : 'Status colours are shared across the workspace. Only admins can change them.'}
         </p>
       </div>
+
+      {error && (
+        <div className="text-xs text-status-error bg-status-error/10 border border-status-error/30 rounded-md px-3 py-2">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3">
         {workflowStates.map((state) => (
@@ -75,7 +96,8 @@ export const TeamWorkflowSettings: React.FC<TeamWorkflowSettingsProps> = ({ team
                 <button
                   key={color}
                   onClick={() => handleColorChange(state, color)}
-                  className={`w-5 h-5 rounded-full border transition-transform hover:scale-110 ${
+                  disabled={!canEdit}
+                  className={`w-5 h-5 rounded-full border transition-transform ${canEdit ? 'hover:scale-110' : 'cursor-default opacity-70'} ${
                     state.color === color
                       ? 'border-text-primary ring-1 ring-text-primary/50'
                       : 'border-border/60 hover:border-text-secondary'

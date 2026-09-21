@@ -60,7 +60,7 @@ export const NewIssueModal: React.FC = () => {
     : (userAssignedTeams.length > 0 ? userAssignedTeams : (teams || []));
   
   const { projects } = useProjects(teamId || undefined);
-  const { workflowStates } = useWorkflowStates(teamId || undefined);
+  const { workflowStates } = useWorkflowStates();
 
   // Set default team if none selected
   React.useEffect(() => {

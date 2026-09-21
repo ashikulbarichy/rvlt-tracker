@@ -256,26 +256,23 @@ export function useIssues(options: UseIssuesOptions) {
       // 2. Ensure valid state_id (required NOT NULL by schema)
       let finalStateId = newIssue.state_id;
       if (!finalStateId) {
-        let stateQuery = supabase
+        // Statuses are workspace-level as of migration 003 — no team filter.
+        const { data: stateData } = await supabase
           .from('workflow_states')
           .select('id')
-          .eq('workspace_id', newIssue.workspace_id);
-
-        if (finalTeamId) {
-          stateQuery = stateQuery.eq('team_id', finalTeamId);
-        }
-
-        const { data: stateData } = await stateQuery.order('position').limit(1);
+          .eq('workspace_id', newIssue.workspace_id)
+          .order('position')
+          .limit(1);
 
         if (stateData && stateData.length > 0) {
           finalStateId = stateData[0].id;
         } else {
           // Create default workflow states
           const defaultStates = [
-            { workspace_id: newIssue.workspace_id, team_id: finalTeamId, name: 'Backlog', color: '#726A5C', position: 0, category: 'backlog', is_default: true },
-            { workspace_id: newIssue.workspace_id, team_id: finalTeamId, name: 'Todo', color: '#6E8299', position: 1, category: 'unstarted', is_default: false },
-            { workspace_id: newIssue.workspace_id, team_id: finalTeamId, name: 'In Progress', color: '#C7963E', position: 2, category: 'started', is_default: false },
-            { workspace_id: newIssue.workspace_id, team_id: finalTeamId, name: 'Done', color: '#7C8B6F', position: 3, category: 'completed', is_default: false },
+            { workspace_id: newIssue.workspace_id, name: 'Backlog', color: '#535353', position: 0, category: 'backlog', is_default: true },
+            { workspace_id: newIssue.workspace_id, name: 'Todo', color: '#D48C45', position: 1, category: 'unstarted', is_default: false },
+            { workspace_id: newIssue.workspace_id, name: 'In Progress', color: '#1ED760', position: 2, category: 'started', is_default: false },
+            { workspace_id: newIssue.workspace_id, name: 'Done', color: '#B37FEB', position: 3, category: 'completed', is_default: false },
           ];
           const { data: createdStates } = await supabase
             .from('workflow_states')

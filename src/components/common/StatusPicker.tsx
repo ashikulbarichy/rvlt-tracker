@@ -12,6 +12,12 @@ interface StatusPickerProps {
   /** Currently selected option id. */
   value?: string | null;
   options: StatusOption[];
+  /**
+   * The row's own joined status, used when `value` is not present in `options` — e.g.
+   * an issue whose state_id belongs to another team. Without it the badge falls through
+   * to StatusBadge's "Todo" default and silently misreports the real status.
+   */
+  current?: StatusOption | null;
   onSelect: (id: string) => void;
   disabled?: boolean;
   size?: 'xs' | 'sm';
@@ -33,6 +39,7 @@ interface StatusPickerProps {
 export const StatusPicker: React.FC<StatusPickerProps> = ({
   value,
   options,
+  current,
   onSelect,
   disabled = false,
   size = 'sm',
@@ -42,7 +49,9 @@ export const StatusPicker: React.FC<StatusPickerProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const selected = options.find(o => o.id === value);
+  // Never render a label we could not resolve: fall back to the row's own status.
+  const selected = options.find(o => o.id === value) || (current && current.id === value ? current : undefined);
+  const isForeignState = !!value && options.length > 0 && !options.some(o => o.id === value);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -95,6 +104,12 @@ export const StatusPicker: React.FC<StatusPickerProps> = ({
 
       {isOpen && (
         <div className="absolute left-0 z-50 mt-1 min-w-[10rem] max-h-64 overflow-y-auto bg-bg-surface-raised border border-transparent rounded-sm shadow-lg p-1.5 space-y-0.5">
+          {isForeignState && (
+            <div className="px-2.5 py-1.5 mb-1 text-[10px] leading-snug text-status-warning border-b border-border">
+              This issue’s status belongs to another team. Choosing one below moves it onto
+              its own team’s workflow.
+            </div>
+          )}
           {options.length === 0 ? (
             <div className="px-2.5 py-1.5 text-xs text-text-tertiary">{emptyMessage}</div>
           ) : (

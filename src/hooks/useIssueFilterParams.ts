@@ -14,6 +14,8 @@ export interface IssueFilterState {
   statusIds: string[];
   /** The pre-existing "Mine" tab: an assignee filter, orthogonal to the bucket. */
   mine: boolean;
+  /** Team filter. Empty means all teams. */
+  teamIds: string[];
 }
 
 const BUCKETS: IssueBucket[] = ['open', 'closed', 'archived', 'trash', 'all'];
@@ -38,7 +40,7 @@ function readStored(storageKey: string | null): IssueFilterState | null {
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null) return null;
 
-    const candidate = parsed as { bucket?: unknown; statusIds?: unknown; mine?: unknown };
+    const candidate = parsed as { bucket?: unknown; statusIds?: unknown; mine?: unknown; teamIds?: unknown };
     const bucket = typeof candidate.bucket === 'string' && isBucket(candidate.bucket)
       ? candidate.bucket
       : DEFAULT_BUCKET;
@@ -46,7 +48,11 @@ function readStored(storageKey: string | null): IssueFilterState | null {
       ? candidate.statusIds.filter((id): id is string => typeof id === 'string')
       : [];
 
-    return { bucket, statusIds, mine: candidate.mine === true };
+    const teamIds = Array.isArray(candidate.teamIds)
+      ? candidate.teamIds.filter((id): id is string => typeof id === 'string')
+      : [];
+
+    return { bucket, statusIds, mine: candidate.mine === true, teamIds };
   } catch {
     return null;
   }
@@ -68,6 +74,13 @@ interface UseIssueFilterParamsOptions {
    * states are still loading, so unknown ids in the URL are kept rather than stripped.
    */
   validStatusIds?: string[];
+  /** Team ids that exist for this workspace; unknown ids in the URL are dropped. */
+  validTeamIds?: string[];
+  /**
+   * Set on /teams/:teamId/issues. Locks the team filter to this team and hides it from
+   * the URL, because the route already says which team you are looking at.
+   */
+  lockedTeamId?: string;
   /**
    * Distinguishes surfaces that each remember their own filter. The issue list and the
    * project detail panel are separate scopes, so switching between them doesn't drag
@@ -77,7 +90,7 @@ interface UseIssueFilterParamsOptions {
 }
 
 export function useIssueFilterParams({
-  workspaceSlug, validStatusIds, scope = 'issues',
+  workspaceSlug, validStatusIds, validTeamIds, lockedTeamId, scope = 'issues',
 }: UseIssueFilterParamsOptions) {
   const [searchParams, setSearchParams] = useSearchParams();
   const seeded = useRef(false);
@@ -86,7 +99,9 @@ export function useIssueFilterParams({
   const rawView = searchParams.get('view');
   const rawStatus = searchParams.get('status');
   const rawMine = searchParams.get('mine');
-  const hasFilterParams = rawView !== null || rawStatus !== null || rawMine !== null;
+  const rawTeam = searchParams.get('team');
+  const hasFilterParams =
+    rawView !== null || rawStatus !== null || rawMine !== null || rawTeam !== null;
 
   const statusListReady = Array.isArray(validStatusIds) && validStatusIds.length > 0;
   const requestedStatusIds = parseStatusParam(rawStatus);
@@ -97,6 +112,15 @@ export function useIssueFilterParams({
   const statusIds = statusListReady
     ? requestedStatusIds.filter(id => validStatusIds!.includes(id))
     : requestedStatusIds;
+
+  const teamListReady = Array.isArray(validTeamIds) && validTeamIds.length > 0;
+  const requestedTeamIds = parseStatusParam(rawTeam);
+  // The route wins outright when present: a locked team is not user-changeable.
+  const teamIds = lockedTeamId
+    ? [lockedTeamId]
+    : teamListReady
+      ? requestedTeamIds.filter(id => validTeamIds!.includes(id))
+      : requestedTeamIds;
 
   const writeParams = useCallback((next: IssueFilterState) => {
     const params = new URLSearchParams(searchParams);
@@ -111,8 +135,14 @@ export function useIssueFilterParams({
     } else {
       params.delete('mine');
     }
+    // A locked team comes from the route, so it never belongs in the query string.
+    if (!lockedTeamId && next.teamIds.length > 0) {
+      params.set('team', next.teamIds.join(','));
+    } else {
+      params.delete('team');
+    }
     return params;
-  }, [searchParams]);
+  }, [searchParams, lockedTeamId]);
 
   const apply = useCallback((next: IssueFilterState) => {
     // replace so a filter change doesn't add a history entry per click.
@@ -122,8 +152,8 @@ export function useIssueFilterParams({
 
   /** Merge a partial change onto the current filter. */
   const setFilter = useCallback((patch: Partial<IssueFilterState>) => {
-    apply({ bucket, statusIds, mine, ...patch });
-  }, [apply, bucket, statusIds, mine]);
+    apply({ bucket, statusIds, mine, teamIds, ...patch });
+  }, [apply, bucket, statusIds, mine, teamIds]);
 
   // Seed a bare URL once, from storage if we have it, otherwise the open default.
   useEffect(() => {
@@ -134,7 +164,7 @@ export function useIssueFilterParams({
     seeded.current = true;
 
     const stored = readStored(storageKey);
-    const next: IssueFilterState = stored ?? { bucket: DEFAULT_BUCKET, statusIds: [], mine: false };
+    const next: IssueFilterState = stored ?? { bucket: DEFAULT_BUCKET, statusIds: [], mine: false, teamIds: [] };
     setSearchParams(writeParams(next), { replace: true });
   }, [hasFilterParams, storageKey, writeParams, setSearchParams]);
 
@@ -152,6 +182,14 @@ export function useIssueFilterParams({
     }
     setSearchParams(params, { replace: true });
   }, [statusListReady, requestedStatusIds, statusIds, searchParams, setSearchParams]);
+
+  const setTeamIds = useCallback((ids: string[]) => {
+    setFilter({ teamIds: ids });
+  }, [setFilter]);
+
+  const toggleTeamId = useCallback((id: string) => {
+    setTeamIds(teamIds.includes(id) ? teamIds.filter(t => t !== id) : [...teamIds, id]);
+  }, [teamIds, setTeamIds]);
 
   const setBucket = useCallback((next: IssueBucket) => {
     // A bucket choice replaces any explicit status selection.
@@ -185,11 +223,13 @@ export function useIssueFilterParams({
   }, [statusIds, setStatusIds]);
 
   const clearFilters = useCallback(() => {
-    apply({ bucket: DEFAULT_BUCKET, statusIds: [], mine: false });
+    apply({ bucket: DEFAULT_BUCKET, statusIds: [], mine: false, teamIds: [] });
   }, [apply]);
 
   return {
-    bucket, statusIds, mine,
-    setFilter, setBucket, setStatusIds, toggleStatusId, toggleStatusGroup, clearFilters,
+    bucket, statusIds, mine, teamIds,
+    isTeamLocked: !!lockedTeamId,
+    setFilter, setBucket, setStatusIds, toggleStatusId, toggleStatusGroup,
+    setTeamIds, toggleTeamId, clearFilters,
   };
 }

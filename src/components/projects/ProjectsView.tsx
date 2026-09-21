@@ -9,7 +9,7 @@ import { SidebarToggle } from '../../components/layout/SidebarToggle';
 import { useProjects } from '../../hooks/useProjects';
 import { useTeams } from '../../hooks/useTeams';
 import { useProfiles } from '../../hooks/useProfiles';
-import { useWorkflowStates, groupWorkflowStatesByName } from '../../hooks/useWorkflowStates';
+import { useWorkflowStates } from '../../hooks/useWorkflowStates';
 import { useIssues, DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/useIssues';
 import { useIssueFilterParams } from '../../hooks/useIssueFilterParams';
 import { Project, ProjectStatus, IssuePriority } from '../../types/database';
@@ -462,8 +462,9 @@ export const ProjectsView: React.FC = () => {
 
   // Filter state for the project's issue list. A separate scope from the main issue
   // list, so each surface remembers its own filter.
+  // One row per status per workspace since 003 — nothing left to group.
   const issueStatusGroups = useMemo(
-    () => groupWorkflowStatesByName(workflowStates),
+    () => [...(workflowStates || [])].sort((a, b) => a.position - b.position),
     [workflowStates]
   );
 
@@ -476,7 +477,7 @@ export const ProjectsView: React.FC = () => {
     bucket: issueBucket,
     statusIds: issueStatusIds,
     setBucket: setIssueBucket,
-    toggleStatusGroup: toggleIssueStatusGroup,
+    toggleStatusId: toggleIssueStatusId,
     clearFilters: clearIssueFilters,
   } = useIssueFilterParams({
     workspaceSlug: currentWorkspace?.slug,
@@ -484,9 +485,7 @@ export const ProjectsView: React.FC = () => {
     scope: 'project-issues',
   });
 
-  const selectedIssueStatusGroupCount = issueStatusGroups.filter(
-    g => g.ids.some(id => issueStatusIds.includes(id))
-  ).length;
+  const selectedIssueStatusGroupCount = issueStatusIds.length;
 
   // Query issues for the active selected project
   const { issues: projectIssues, totalCount: projectIssueCount, setIssueStatus } = useIssues({
@@ -1037,11 +1036,11 @@ export const ProjectsView: React.FC = () => {
                             <div className="px-2.5 py-2 text-xs text-text-tertiary">No workflow states yet.</div>
                           ) : (
                             issueStatusGroups.map(group => {
-                              const isSelected = group.ids.some(id => issueStatusIds.includes(id));
+                              const isSelected = issueStatusIds.includes(group.id);
                               return (
                                 <button
-                                  key={group.key}
-                                  onClick={() => toggleIssueStatusGroup(group.ids)}
+                                  key={group.id}
+                                  onClick={() => toggleIssueStatusId(group.id)}
                                   className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 text-xs text-left transition-colors ${
                                     isSelected
                                       ? 'text-text-primary font-medium'
@@ -1100,13 +1099,11 @@ export const ProjectsView: React.FC = () => {
                           <div className="w-24 flex justify-end">
                             <StatusPicker
                               value={issue.state_id}
+                              current={issue.status ? { id: issue.state_id, name: issue.status.name, color: issue.status.color } : null}
                               // The issue's OWN team, not the project's: an issue can sit on a
                               // different team, and a state from the wrong team would write a
                               // state_id its board cannot render.
-                              options={(workflowStates || [])
-                                .filter(s => s.team_id === issue.team_id)
-                                .sort((a, b) => a.position - b.position)
-                                .map(s => ({ id: s.id, name: s.name, color: s.color }))}
+                              options={issueStatusGroups.map(s => ({ id: s.id, name: s.name, color: s.color }))}
                               onSelect={(stateId) => {
                                 const next = (workflowStates || []).find(s => s.id === stateId);
                                 if (next) {

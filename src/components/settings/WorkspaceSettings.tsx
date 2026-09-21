@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useWorkspaces } from '../../hooks/useWorkspaces';
 import { DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/useIssues';
+import { WorkspaceWorkflowSettings } from './WorkspaceWorkflowSettings';
 
 export const WorkspaceSettings: React.FC = () => {
   const { currentWorkspace, userRole, currentUser } = useApp();
@@ -240,6 +241,8 @@ export const WorkspaceSettings: React.FC = () => {
           </button>
         </div>
       </form>
+
+      {currentWorkspace && <WorkspaceWorkflowSettings canEdit={isAdmin} />}
     </div>
   );
 };

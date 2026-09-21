@@ -57,7 +57,7 @@ export const IssueDetailModal: React.FC = () => {
   const activeIssue = selectedIssue || displayedIssue;
 
   const { updateIssue, deleteIssue } = useIssues({ workspaceId: currentWorkspace?.id });
-  const { workflowStates } = useWorkflowStates(activeIssue?.team_id);
+  const { workflowStates } = useWorkflowStates();
   const { profiles } = useProfiles();
   const { comments, addComment, updateComment, deleteComment } = useComments(activeIssue?.id);
 

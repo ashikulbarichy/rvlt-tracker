@@ -69,7 +69,6 @@ export interface TeamMember {
 export interface WorkflowState {
   id: string;
   workspace_id: string;
-  team_id: string;
   name: string;
   color: string;
   position: number;

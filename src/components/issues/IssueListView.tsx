@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -32,7 +33,7 @@ import { useIssues, IssueBucket, DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/
 import { useIssueFilterParams } from '../../hooks/useIssueFilterParams';
 import { useTeams } from '../../hooks/useTeams';
 import { useTeamMembers } from '../../hooks/useTeamMembers';
-import { useWorkflowStates, groupWorkflowStatesByName } from '../../hooks/useWorkflowStates';
+import { useWorkflowStates } from '../../hooks/useWorkflowStates';
 import { Issue } from '../../types/database';
 import { formatIssueIdentifier } from '../../lib/identifier';
 import { formatRelativeTime } from '../../lib/time';
@@ -66,7 +67,6 @@ interface ViewPrefs {
   viewMode?: ViewMode;
   isCompact?: boolean;
   sortBy?: SortBy;
-  teamIds?: string[];
 }
 
 const VIEW_PREFS_KEY = 'rvlt-issue-view-prefs';
@@ -82,13 +82,12 @@ const loadViewPrefs = (): ViewPrefs => {
 export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }) => {
   const { currentWorkspace, currentUser, userRole, setIsNewIssueModalOpen, setSelectedIssue, currentTeam } = useApp();
   const savedPrefs = useRef(loadViewPrefs()).current;
+  // Set on /teams/:teamId/issues — that route is implicitly filtered to one team.
+  const { teamId: routeTeamId } = useParams<{ teamId?: string }>();
   const [searchQuery, setSearchQuery] = useState('');
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [pendingPermanentDelete, setPendingPermanentDelete] = useState<Issue | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
-  const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(
-    () => new Set(Array.isArray(savedPrefs.teamIds) ? savedPrefs.teamIds : [])
-  );
   const [page, setPage] = useState(1);
   const limit = 100;
 
@@ -134,44 +133,45 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
   // Persist view preferences across refreshes
   useEffect(() => {
     try {
-      const prefs: ViewPrefs = {
-        viewMode,
-        isCompact,
-        sortBy,
-        teamIds: Array.from(selectedTeamIds),
-      };
+      const prefs: ViewPrefs = { viewMode, isCompact, sortBy };
       localStorage.setItem(VIEW_PREFS_KEY, JSON.stringify(prefs));
     } catch {
       // Storage unavailable (private mode etc.) — preferences just won't persist
     }
-  }, [viewMode, isCompact, sortBy, selectedTeamIds]);
+  }, [viewMode, isCompact, sortBy]);
 
   const isAdmin = userRole === 'admin' || currentWorkspace?.created_by === currentUser?.id;
   const { teams } = useTeams(currentWorkspace?.id);
   const { getUserTeams } = useTeamMembers(currentWorkspace?.id);
-  const firstSelectedTeamId = selectedTeamIds.size === 1 ? Array.from(selectedTeamIds)[0] : undefined;
-  const { workflowStates } = useWorkflowStates(firstSelectedTeamId);
+  // Statuses are workspace-level since 003 — no team argument.
+  const { workflowStates } = useWorkflowStates();
 
   const userAssignedTeams = currentUser ? getUserTeams(currentUser.id) : [];
   const visibleTeams = isAdmin
     ? (teams || [])
     : (userAssignedTeams.length > 0 ? userAssignedTeams : (teams || []));
 
-  // One option per distinct status name. Workflow states are per-team, so without this
-  // a two-team workspace lists every status twice.
-  const statusGroups = React.useMemo(
-    () => groupWorkflowStatesByName(workflowStates),
+  // One row per status per workspace now, so the list is already distinct.
+  const statusOptions = React.useMemo(
+    () => [...(workflowStates || [])].sort((a, b) => a.position - b.position),
     [workflowStates]
   );
 
-  const validStatusIds = React.useMemo(
-    () => (workflowStates || []).map(s => s.id),
-    [workflowStates]
-  );
+  const validStatusIds = React.useMemo(() => statusOptions.map(s => s.id), [statusOptions]);
+  const validTeamIds = React.useMemo(() => (teams || []).map(tm => tm.id), [teams]);
 
   const {
-    bucket, statusIds, mine, setFilter, toggleStatusGroup, clearFilters,
-  } = useIssueFilterParams({ workspaceSlug: currentWorkspace?.slug, validStatusIds });
+    bucket, statusIds, mine, teamIds, isTeamLocked,
+    setFilter, toggleStatusId, toggleTeamId, setTeamIds, clearFilters,
+  } = useIssueFilterParams({
+    workspaceSlug: currentWorkspace?.slug,
+    validStatusIds,
+    validTeamIds,
+    lockedTeamId: routeTeamId,
+  });
+
+  const selectedTeamIds = React.useMemo(() => new Set(teamIds), [teamIds]);
+  const firstSelectedTeamId = teamIds.length === 1 ? teamIds[0] : undefined;
 
   // The tab row is a view onto the URL filter, not separate state.
   const activeTab: Tab = statusIds.length > 0
@@ -180,10 +180,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
       ? 'Mine'
       : (Object.keys(TAB_BUCKETS) as Tab[]).find(t => t !== 'Mine' && TAB_BUCKETS[t] === bucket) || 'Open';
 
-  // Count distinct statuses chosen, not the underlying per-team rows.
-  const selectedStatusGroupCount = statusGroups.filter(
-    g => g.ids.some(id => statusIds.includes(id))
-  ).length;
+  const selectedStatusCount = statusIds.length;
 
   const selectTab = (tab: Tab) => {
     setPage(1);
@@ -198,7 +195,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
 
   const archiveAfterDays = currentWorkspace?.archive_after_days ?? DEFAULT_ARCHIVE_AFTER_DAYS;
 
-  const { issues, totalCount, isLoading, updateIssue, setIssueStatus, archiveIssue, unarchiveIssue, restoreIssue, deleteIssuePermanently } = useIssues({
+  const { issues, totalCount, isLoading, setIssueStatus, archiveIssue, unarchiveIssue, restoreIssue, deleteIssuePermanently } = useIssues({
     workspaceId: currentWorkspace?.id,
     teamId: firstSelectedTeamId,
     assigneeId,
@@ -210,16 +207,11 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
     searchQuery
   });
 
-  /**
-   * States offered for an issue are its OWN team's. workflowStates holds every state in
-   * the workspace when no single team is selected, and a state from another team would
-   * write a state_id this issue's board cannot render.
-   */
-  const statusOptionsForIssue = (issue: Issue) =>
-    (workflowStates || [])
-      .filter(s => s.team_id === issue.team_id)
-      .sort((a, b) => a.position - b.position)
-      .map(s => ({ id: s.id, name: s.name, color: s.color }));
+  /** Every issue in the workspace shares one status list since 003. */
+  const issueStatusOptions = React.useMemo(
+    () => statusOptions.map(s => ({ id: s.id, name: s.name, color: s.color })),
+    [statusOptions]
+  );
 
   const handleSetIssueStatus = (issue: Issue, stateId: string) => {
     const next = (workflowStates || []).find(s => s.id === stateId);
@@ -242,15 +234,15 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
   };
 
   const toggleTeamFilter = (teamId: string) => {
-    setSelectedTeamIds(prev => {
-      const next = new Set(prev);
-      if (next.has(teamId)) {
-        next.delete(teamId);
-      } else {
-        next.add(teamId);
-      }
-      return next;
-    });
+    if (isTeamLocked) return;
+    setPage(1);
+    toggleTeamId(teamId);
+  };
+
+  const clearTeamFilter = () => {
+    if (isTeamLocked) return;
+    setPage(1);
+    setTeamIds([]);
   };
 
   const getPriorityIconInfo = (priority?: string) => {
@@ -340,36 +332,10 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
     { id: 'title', label: 'Title (A → Z)' },
   ];
 
-  // Derive unique columns for Kanban view (deduplicating states across multiple teams)
-  const kanbanColumns = React.useMemo(() => {
-    if (workflowStates && workflowStates.length > 0) {
-      if (firstSelectedTeamId) {
-        return workflowStates.sort((a, b) => a.position - b.position);
-      }
-
-      // If viewing across 'all' teams, deduplicate by unique normalized state name
-      const seen = new Set<string>();
-      const uniqueColumns: typeof workflowStates = [];
-
-      for (const state of workflowStates) {
-        const normalized = state.name.trim().toLowerCase();
-        if (!seen.has(normalized)) {
-          seen.add(normalized);
-          uniqueColumns.push(state);
-        }
-      }
-      return uniqueColumns.sort((a, b) => a.position - b.position);
-    }
-
-    return [
-      { id: 'backlog', name: 'Backlog', category: 'backlog', position: 0 },
-      { id: 'todo', name: 'To Do', category: 'unstarted', position: 1 },
-      { id: 'in_progress', name: 'In Progress', category: 'started', position: 2 },
-      { id: 'in_review', name: 'In Review', category: 'started', position: 3 },
-      { id: 'done', name: 'Done', category: 'completed', position: 4 },
-      { id: 'canceled', name: 'Canceled', category: 'canceled', position: 5 },
-    ];
-  }, [workflowStates, firstSelectedTeamId]);
+  // Columns are the workspace statuses, in order. No deduplication: since 003 there is
+  // exactly one row per status name per workspace, so a column maps to a single id and
+  // dropping a card can write it directly.
+  const kanbanColumns = statusOptions;
 
   const renderIssueDueDateBadge = (dueDateStr?: string | null, isCompleted?: boolean) => {
     if (!dueDateStr) return null;
@@ -514,7 +480,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
             >
               <Filter className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">
-                {selectedStatusGroupCount > 0 ? `Status · ${selectedStatusGroupCount}` : 'Status'}
+                {selectedStatusCount > 0 ? `Status · ${selectedStatusCount}` : 'Status'}
               </span>
             </button>
 
@@ -542,19 +508,19 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
 
                 <div className="my-1 h-px bg-border" />
 
-                {statusGroups.length === 0 ? (
+                {statusOptions.length === 0 ? (
                   <div className="px-2.5 py-2 text-xs text-text-tertiary">
                     No workflow states in this workspace yet.
                   </div>
                 ) : (
-                  statusGroups.map(group => {
-                    const isSelected = group.ids.some(id => statusIds.includes(id));
+                  statusOptions.map(state => {
+                    const isSelected = statusIds.includes(state.id);
                     return (
                       <button
-                        key={group.key}
+                        key={state.id}
                         onClick={() => {
                           setPage(1);
-                          toggleStatusGroup(group.ids);
+                          toggleStatusId(state.id);
                         }}
                         className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 text-xs text-left transition-colors ${
                           isSelected
@@ -569,14 +535,9 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                         </div>
                         <span
                           className="w-2 h-2 rounded-full shrink-0"
-                          style={{ backgroundColor: group.color }}
+                          style={{ backgroundColor: state.color }}
                         />
-                        <span className="truncate">{group.name}</span>
-                        {group.ids.length > 1 && (
-                          <span className="ml-auto text-text-tertiary text-[10px] shrink-0">
-                            {group.ids.length} teams
-                          </span>
-                        )}
+                        <span className="truncate">{state.name}</span>
                       </button>
                     );
                   })
@@ -769,7 +730,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                   </div>
                   {/* All Teams option */}
                   <button
-                    onClick={() => setSelectedTeamIds(new Set())}
+                    onClick={clearTeamFilter}
                     className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 text-xs text-left transition-colors ${
                       selectedTeamIds.size === 0
                         ? 'text-text-primary font-medium'
@@ -848,7 +809,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                     <div className="w-28 shrink-0 flex items-center">
                         <StatusPicker
                           value={issue.state_id}
-                          options={statusOptionsForIssue(issue)}
+                          options={issueStatusOptions}
                           onSelect={(stateId) => handleSetIssueStatus(issue, stateId)}
                           emptyMessage="This issue's team has no workflow states."
                         />
@@ -1011,7 +972,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                         </div>
                           <StatusPicker
                             value={issue.state_id}
-                            options={statusOptionsForIssue(issue)}
+                            options={issueStatusOptions}
                             onSelect={(stateId) => handleSetIssueStatus(issue, stateId)}
                             size="xs"
                             emptyMessage="This issue's team has no workflow states."
@@ -1071,13 +1032,13 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
           <div className="flex space-x-3.5 h-full min-w-max pr-2">
             {kanbanColumns.map((column) => {
               const columnIssues = filteredIssues.filter(issue => {
-                if (issue.status_id === column.id) return true;
+                if (issue.state_id === column.id) return true;
                 if (issue.status?.name && column.name) {
                   if (issue.status.name.trim().toLowerCase() === column.name.trim().toLowerCase()) {
                     return true;
                   }
                 }
-                if (!issue.status_id && !issue.status && (column.category === 'backlog' || column.name.toLowerCase() === 'backlog')) {
+                if (!issue.state_id && !issue.status && (column.category === 'backlog' || column.name.toLowerCase() === 'backlog')) {
                   return true;
                 }
                 return false;
@@ -1122,16 +1083,12 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                       e.preventDefault();
                       setDragOverColumnId(null);
                       const issueId = e.dataTransfer.getData('text/plain');
-                      if (issueId) {
-                        const issueToUpdate = filteredIssues.find(i => i.id === issueId);
-                        if (issueToUpdate && issueToUpdate.state_id !== column.id) {
-                          updateIssue({
-                            id: issueId,
-                            workspace_id: issueToUpdate.workspace_id,
-                            state_id: column.id
-                          });
-                        }
-                      }
+                      if (!issueId) return;
+                      const issueToUpdate = filteredIssues.find(i => i.id === issueId);
+                      if (!issueToUpdate) return;
+
+                      if (issueToUpdate.state_id === column.id) return;
+                      handleSetIssueStatus(issueToUpdate, column.id);
                     }}
                   >
                     {columnIssues.length === 0 ? (

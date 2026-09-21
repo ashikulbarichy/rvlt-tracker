@@ -5,7 +5,6 @@ import { useTeamMembers } from '../../hooks/useTeamMembers';
 import { useWorkspaceMembers } from '../../hooks/useWorkspaceMembers';
 import { Team } from '../../types/database';
 import { IconPicker } from '../common/IconPicker';
-import { TeamWorkflowSettings } from './TeamWorkflowSettings';
 import { ConfirmModal } from '../common/ConfirmModal';
 import * as Icons from 'lucide-react';
 import {
@@ -371,8 +370,6 @@ export const TeamSettings: React.FC = () => {
             </div>
           )}
         </div>
-
-        <TeamWorkflowSettings teamId={selectedTeam.id} />
 
         {/* Add Member Modal */}
         {isAddMemberModalOpen && (
