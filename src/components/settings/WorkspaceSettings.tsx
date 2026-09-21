@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useWorkspaces } from '../../hooks/useWorkspaces';
-import { DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/useIssues';
+import { DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/useTickets';
 import { WorkspaceWorkflowSettings } from './WorkspaceWorkflowSettings';
+import { WorkspaceTicketTypeSettings } from './WorkspaceTicketTypeSettings';
+import { WorkspaceDocTemplateSettings } from './WorkspaceDocTemplateSettings';
 
 export const WorkspaceSettings: React.FC = () => {
   const { currentWorkspace, userRole, currentUser } = useApp();
   const { updateWorkspace, createWorkspace } = useWorkspaces();
   
   const [workspaceName, setWorkspaceName] = useState('');
-  const [issuePrefix, setIssuePrefix] = useState('XXX');
+  const [ticketPrefix, setTicketPrefix] = useState('XXX');
   const [testCasePrefix, setTestCasePrefix] = useState('TC');
   const [archiveAfterDays, setArchiveAfterDays] = useState(String(DEFAULT_ARCHIVE_AFTER_DAYS));
   const [isSaving, setIsSaving] = useState(false);
@@ -18,7 +20,7 @@ export const WorkspaceSettings: React.FC = () => {
   useEffect(() => {
     if (currentWorkspace) {
       setWorkspaceName(currentWorkspace.name);
-      setIssuePrefix(currentWorkspace.issue_prefix || 'XXX');
+      setTicketPrefix(currentWorkspace.ticket_prefix || 'XXX');
       setTestCasePrefix(currentWorkspace.test_case_prefix || 'TC');
       setArchiveAfterDays(String(currentWorkspace.archive_after_days ?? DEFAULT_ARCHIVE_AFTER_DAYS));
     }
@@ -33,7 +35,7 @@ export const WorkspaceSettings: React.FC = () => {
     setIsSaving(true);
     setStatusMessage(null);
 
-    const cleanIssuePrefix = (issuePrefix || 'XXX').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const cleanTicketPrefix = (ticketPrefix || 'XXX').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     const cleanTestCasePrefix = (testCasePrefix || 'TC').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
 
     // The database enforces 1-365 with a check constraint; fail before the round trip.
@@ -49,7 +51,7 @@ export const WorkspaceSettings: React.FC = () => {
         {
           id: currentWorkspace.id,
           name: workspaceName.trim(),
-          issue_prefix: cleanIssuePrefix,
+          ticket_prefix: cleanTicketPrefix,
           test_case_prefix: cleanTestCasePrefix,
           archive_after_days: parsedDays,
         },
@@ -89,7 +91,7 @@ export const WorkspaceSettings: React.FC = () => {
   const isFormDirty =
     !!currentWorkspace &&
     (workspaceName !== currentWorkspace.name ||
-      issuePrefix !== (currentWorkspace.issue_prefix || 'ISS') ||
+      ticketPrefix !== (currentWorkspace.ticket_prefix || 'ISS') ||
       testCasePrefix !== (currentWorkspace.test_case_prefix || 'TC') ||
       archiveAfterDays !== String(currentWorkspace.archive_after_days ?? DEFAULT_ARCHIVE_AFTER_DAYS));
 
@@ -158,19 +160,19 @@ export const WorkspaceSettings: React.FC = () => {
               Identifier Prefixes
             </h3>
             <p className="text-[11px] text-text-secondary mb-3">
-              Customize the prefix used to generate unique human-readable keys for issues and test cases.
+              Customize the prefix used to generate unique human-readable keys for tickets and test cases.
             </p>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-medium text-text-primary mb-1">
-                  Default Issue Prefix
+                  Default Ticket Prefix
                 </label>
                 <input
                   type="text"
                   maxLength={6}
-                  value={issuePrefix}
-                  onChange={(e) => setIssuePrefix(e.target.value.toUpperCase())}
+                  value={ticketPrefix}
+                  onChange={(e) => setTicketPrefix(e.target.value.toUpperCase())}
                   disabled={!isAdmin}
                   className="w-full px-2.5 py-1.5 text-xs font-mono uppercase bg-bg-surface-raised border border-transparent rounded-sm text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                   placeholder="e.g. ISS or DEV"
@@ -178,7 +180,7 @@ export const WorkspaceSettings: React.FC = () => {
                 <div className="mt-1.5 flex items-center space-x-1.5 text-[10px] text-text-secondary">
                   <span>Preview:</span>
                   <span className="font-mono font-semibold px-1.5 py-0.5 rounded-full bg-bg-surface-raised border border-transparent text-text-primary">
-                    {(issuePrefix || 'XXX').toUpperCase()}-DEV-01
+                    {(ticketPrefix || 'XXX').toUpperCase()}-DEV-01
                   </span>
                 </div>
               </div>
@@ -199,7 +201,7 @@ export const WorkspaceSettings: React.FC = () => {
                 <div className="mt-1.5 flex items-center space-x-1.5 text-[10px] text-text-secondary">
                   <span>Preview:</span>
                   <span className="font-mono font-semibold px-1.5 py-0.5 rounded-full bg-bg-surface-raised border border-transparent text-text-primary">
-                    {(issuePrefix || 'XXX').toUpperCase()}-{(testCasePrefix || 'TC').toUpperCase()}-01
+                    {(ticketPrefix || 'XXX').toUpperCase()}-{(testCasePrefix || 'TC').toUpperCase()}-01
                   </span>
                 </div>
               </div>
@@ -209,7 +211,7 @@ export const WorkspaceSettings: React.FC = () => {
 
         <div className="pt-3 border-t border-border">
           <label className="block text-[11px] font-medium text-text-primary mb-1">
-            Auto-archive closed issues after
+            Auto-archive closed tickets after
           </label>
           <div className="flex items-center space-x-2">
             <input
@@ -226,7 +228,7 @@ export const WorkspaceSettings: React.FC = () => {
           </div>
           <p className="mt-1.5 text-[10px] text-text-secondary">
             {isAdmin
-              ? 'Issues in a completed or canceled state drop out of the default list after this long. Nothing is deleted — they stay under the Archived tab and can be unarchived at any time.'
+              ? 'Tickets in a completed or canceled state drop out of the default list after this long. Nothing is deleted — they stay under the Archived tab and can be unarchived at any time.'
               : 'Only workspace admins can change the auto-archive window.'}
           </p>
         </div>
@@ -243,6 +245,10 @@ export const WorkspaceSettings: React.FC = () => {
       </form>
 
       {currentWorkspace && <WorkspaceWorkflowSettings canEdit={isAdmin} />}
+
+      {currentWorkspace && <WorkspaceTicketTypeSettings canEdit={isAdmin} />}
+
+      {currentWorkspace && <WorkspaceDocTemplateSettings canEdit={isAdmin} />}
     </div>
   );
 };

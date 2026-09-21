@@ -1,11 +1,11 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { SidebarToggle } from '../../components/layout/SidebarToggle';
-import { useIssues, DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/useIssues';
+import { useTickets, DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/useTickets';
 import { 
   CheckCircle2, 
   Clock, 
-  AlertCircle,
+  Ticket,
   TrendingUp,
   Inbox
 } from 'lucide-react';
@@ -15,9 +15,9 @@ export const DashboardView: React.FC = () => {
 
   const archiveAfterDays = currentWorkspace?.archive_after_days ?? DEFAULT_ARCHIVE_AFTER_DAYS;
 
-  // Metric 1: My Open Issues (assigned to me, not closed). The 'open' bucket filters
-  // server-side, so this count excludes closed, archived and trashed issues.
-  const { totalCount: myOpenCount, issues: myRecentIssues, isLoading: isLoadingMine } = useIssues({
+  // Metric 1: My Open Tickets (assigned to me, not closed). The 'open' bucket filters
+  // server-side, so this count excludes closed, archived and trashed tickets.
+  const { totalCount: myOpenCount, tickets: myRecentTickets, isLoading: isLoadingMine } = useTickets({
     workspaceId: currentWorkspace?.id,
     assigneeId: currentUser?.id,
     bucket: 'open',
@@ -26,9 +26,9 @@ export const DashboardView: React.FC = () => {
     limit: 5 // Get recent 5 for the list
   });
 
-  // Metric 2: Workspace Total Issues (just to show scale). 'active' is everything that
-  // is not archived and not trashed, so archiving an issue removes it from this total.
-  const { totalCount: totalWorkspaceCount } = useIssues({
+  // Metric 2: Workspace Total Tickets (just to show scale). 'active' is everything that
+  // is not archived and not trashed, so archiving a ticket removes it from this total.
+  const { totalCount: totalWorkspaceCount } = useTickets({
     workspaceId: currentWorkspace?.id,
     bucket: 'active',
     archiveAfterDays,
@@ -36,8 +36,8 @@ export const DashboardView: React.FC = () => {
     limit: 1 // We only need the count
   });
 
-  // The 'open' bucket already excludes closed issues server-side.
-  const activeIssues = myRecentIssues;
+  // The 'open' bucket already excludes closed tickets server-side.
+  const activeTickets = myRecentTickets;
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -82,7 +82,7 @@ export const DashboardView: React.FC = () => {
             {isLoadingMine ? '-' : myOpenCount}
           </div>
           <div className="text-[11px] text-text-tertiary">
-            Total issues assigned to you
+            Total tickets assigned to you
           </div>
         </div>
 
@@ -96,7 +96,7 @@ export const DashboardView: React.FC = () => {
             {totalWorkspaceCount || '-'}
           </div>
           <div className="text-[11px] text-text-tertiary">
-            Total issues logged in this workspace
+            Total tickets logged in this workspace
           </div>
         </div>
 
@@ -110,7 +110,7 @@ export const DashboardView: React.FC = () => {
             12
           </div>
           <div className="text-[11px] text-text-tertiary">
-            Issues resolved by the team this week
+            Tickets resolved by the team this week
           </div>
         </div>
       </div>
@@ -118,10 +118,10 @@ export const DashboardView: React.FC = () => {
       {/* Main Content Area - Split Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         
-        {/* Left Column: My Active Issues */}
+        {/* Left Column: My Active Tickets */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-2.5">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">My Active Issues</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">My Active Tickets</h2>
             <button className="text-[11px] font-medium text-accent-primary hover:text-accent-primary-hover transition-colors">
               View all
             </button>
@@ -129,34 +129,34 @@ export const DashboardView: React.FC = () => {
           
           <div className="bg-bg-surface-raised border border-transparent rounded-md shadow-sm overflow-hidden">
             {isLoadingMine ? (
-              <div className="p-6 text-center text-xs text-text-secondary">Loading your issues...</div>
-            ) : activeIssues.length === 0 ? (
+              <div className="p-6 text-center text-xs text-text-secondary">Loading your tickets...</div>
+            ) : activeTickets.length === 0 ? (
               <div className="p-8 text-center flex flex-col items-center">
                 <Inbox className="w-6 h-6 text-text-tertiary mb-2" />
                 <p className="text-xs font-medium text-text-primary mb-0.5">You're all caught up!</p>
-                <p className="text-[11px] text-text-secondary">No active issues are assigned to you.</p>
+                <p className="text-[11px] text-text-secondary">No active tickets are assigned to you.</p>
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {activeIssues.map(issue => {
-                  const priorityInfo = getPriorityInfo(issue.priority);
+                {activeTickets.map(ticket => {
+                  const priorityInfo = getPriorityInfo(ticket.priority);
                   return (
-                    <div key={issue.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-bg-surface/30 transition-colors cursor-pointer">
+                    <div key={ticket.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-bg-surface/30 transition-colors cursor-pointer">
                       <div className="flex items-center space-x-3 min-w-0">
                         <div className={`w-2 h-2 rounded-full shrink-0 ${priorityInfo.color}`} />
                         <div className="min-w-0">
                           <div className="text-xs font-medium text-text-primary truncate">
-                            {issue.title}
+                            {ticket.title}
                           </div>
                           <div className="text-[11px] text-text-tertiary mt-0.5 flex items-center space-x-1.5">
-                            <span className="font-id bg-bg-surface px-1 py-0.5 rounded-full text-[10px]">{issue.identifier}</span>
+                            <span className="font-id bg-bg-surface px-1 py-0.5 rounded-full text-[10px]">{ticket.identifier}</span>
                             <span>•</span>
-                            <span>{issue.status?.name || 'Open'}</span>
+                            <span>{ticket.status?.name || 'Open'}</span>
                           </div>
                         </div>
                       </div>
                       <div className="shrink-0 ml-3">
-                        <AlertCircle className="w-3.5 h-3.5 text-text-tertiary" />
+                        <Ticket className="w-3.5 h-3.5 text-text-tertiary" />
                       </div>
                     </div>
                   );
@@ -204,7 +204,7 @@ export const DashboardView: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-text-primary">
-                  <span className="font-medium">Emma L.</span> created a new issue <span className="font-id text-xs">FJ-1045</span>
+                  <span className="font-medium">Emma L.</span> created a new ticket <span className="font-id text-xs">FJ-1045</span>
                 </p>
                 <p className="text-xs text-text-tertiary mt-0.5">1 day ago</p>
               </div>

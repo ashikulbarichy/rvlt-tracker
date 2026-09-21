@@ -587,7 +587,7 @@ export const TeamSettings: React.FC = () => {
           <Users2 className="w-8 h-8 text-text-tertiary mx-auto opacity-60" />
           <div className="font-semibold text-text-primary">No teams configured yet</div>
           <p className="text-[11px] text-text-tertiary">
-            Create a team to group issues, test suites, and members.
+            Create a team to group tickets, test suites, and members.
           </p>
         </div>
       ) : (

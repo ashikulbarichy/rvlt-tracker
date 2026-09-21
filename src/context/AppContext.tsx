@@ -4,10 +4,10 @@ import {
   Workspace,
   Team,
   Project,
-  Issue,
+  Ticket,
   Profile,
   UserRole,
-  IssuePriority
+  TicketPriority
 } from '../types/database';
 
 
@@ -26,8 +26,8 @@ interface AppContextType {
   
 
   
-  selectedIssue: Issue | null;
-  setSelectedIssue: (issue: Issue | null) => void;
+  selectedTicket: Ticket | null;
+  setSelectedTicket: (ticket: Ticket | null) => void;
   
   isMobileSidebarOpen: boolean;
   setIsMobileSidebarOpen: (open: boolean) => void;
@@ -41,8 +41,8 @@ interface AppContextType {
   setIsNotificationOpen: (open: boolean) => void;
   toggleNotifications: () => void;
   
-  isNewIssueModalOpen: boolean;
-  setIsNewIssueModalOpen: (open: boolean) => void;
+  isNewTicketModalOpen: boolean;
+  setIsNewTicketModalOpen: (open: boolean) => void;
   
   isNewTestCaseModalOpen: boolean;
   setIsNewTestCaseModalOpen: (open: boolean) => void;
@@ -56,8 +56,8 @@ interface AppContextType {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   
-  filterPriority: IssuePriority | 'all';
-  setFilterPriority: (priority: IssuePriority | 'all') => void;
+  filterPriority: TicketPriority | 'all';
+  setFilterPriority: (priority: TicketPriority | 'all') => void;
   
   filterAssigneeId: string | 'all';
   setFilterAssigneeId: (userId: string | 'all') => void;
@@ -194,14 +194,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
   const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
   const toggleNotifications = () => setIsNotificationOpen(prev => !prev);
 
-  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
-  const [isNewIssueModalOpen, setIsNewIssueModalOpen] = useState<boolean>(false);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState<boolean>(false);
   const [isNewTestCaseModalOpen, setIsNewTestCaseModalOpen] = useState<boolean>(false);
 
   const [isSearchModalOpen, setIsSearchModalOpen] = useState<boolean>(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [filterPriority, setFilterPriority] = useState<IssuePriority | 'all'>('all');
+  const [filterPriority, setFilterPriority] = useState<TicketPriority | 'all'>('all');
   const [filterAssigneeId, setFilterAssigneeId] = useState<string | 'all'>('all');
 
   // Global Keyboard Shortcuts Listener
@@ -241,10 +241,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
         return;
       }
 
-      // 3. Create new issue: 'c' or 'C'
+      // 3. Create new ticket: 'c' or 'C'
       if (e.key.toLowerCase() === 'c' && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
-        setIsNewIssueModalOpen(true);
+        setIsNewTicketModalOpen(true);
         return;
       }
 
@@ -276,7 +276,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
           navigate(`/${currentWorkspace.slug}`);
         } else if (k === 'i') {
           e.preventDefault();
-          navigate(`/${currentWorkspace.slug}/issues`);
+          navigate(`/${currentWorkspace.slug}/tickets`);
         } else if (k === 'p') {
           e.preventDefault();
           navigate(`/${currentWorkspace.slug}/projects`);
@@ -312,8 +312,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
         currentProject,
         setCurrentProject,
 
-        selectedIssue,
-        setSelectedIssue,
+        selectedTicket,
+        setSelectedTicket,
         isMobileSidebarOpen,
         setIsMobileSidebarOpen,
         toggleMobileSidebar,
@@ -323,8 +323,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
         isNotificationOpen,
         setIsNotificationOpen,
         toggleNotifications,
-        isNewIssueModalOpen,
-        setIsNewIssueModalOpen,
+        isNewTicketModalOpen,
+        setIsNewTicketModalOpen,
         isNewTestCaseModalOpen,
         setIsNewTestCaseModalOpen,
         isSearchModalOpen,

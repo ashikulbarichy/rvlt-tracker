@@ -1,13 +1,13 @@
 import React from 'react';
-import { Issue, Notification, Profile } from '../../types/database';
+import { Ticket, Notification, Profile } from '../../types/database';
 import { AlertCircle, Clock, MessageSquare, Flame, AlertTriangle, ChevronsUp, Equal, ChevronDown, Minus, X } from 'lucide-react';
-import { formatIssueIdentifier } from '../../lib/identifier';
+import { formatTicketIdentifier } from '../../lib/identifier';
 import { StatusBadge } from '../common/StatusBadge';
 
 export interface FeedItemData {
   id: string;
-  type: 'issue' | 'notification';
-  issue?: Issue;
+  type: 'ticket' | 'notification';
+  ticket?: Ticket;
   notification?: Notification;
   title: string;
   subtitle?: string;
@@ -77,7 +77,7 @@ export const InboxFeedItem: React.FC<InboxFeedItemProps> = ({ item, isSelected, 
     }
   };
 
-  const issue = item.issue;
+  const ticket = item.ticket;
 
   return (
     <div
@@ -87,10 +87,10 @@ export const InboxFeedItem: React.FC<InboxFeedItemProps> = ({ item, isSelected, 
       {/* Top row: Identifier / Type + Urgency Badge + Time */}
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center space-x-2 min-w-0">
-          {getPriorityIcon(issue?.priority)}
-          {issue && (
+          {getPriorityIcon(ticket?.priority)}
+          {ticket && (
             <span className="font-id text-[11px] font-semibold text-text-secondary">
-              {formatIssueIdentifier(issue)}
+              {formatTicketIdentifier(ticket)}
             </span>
           )}
           {getUrgencyBadge()}
@@ -128,13 +128,13 @@ export const InboxFeedItem: React.FC<InboxFeedItemProps> = ({ item, isSelected, 
       )}
 
       {/* Bottom row: Status & Assignees */}
-      {issue && (
+      {ticket && (
         <div className="flex items-center justify-between">
-          <StatusBadge name={issue.status?.name || 'Todo'} color={issue.status?.color} size="xs" />
+          <StatusBadge name={ticket.status?.name || 'Todo'} color={ticket.status?.color} size="xs" />
 
-          {issue.assignees && issue.assignees.length > 0 ? (
+          {ticket.assignees && ticket.assignees.length > 0 ? (
             <div className="flex -space-x-1.5 overflow-hidden">
-              {issue.assignees.slice(0, 2).map((a: Profile, idx: number) => (
+              {ticket.assignees.slice(0, 2).map((a: Profile, idx: number) => (
                 <img
                   key={a.id || idx}
                   src={a.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name || a.email)}&background=282828&color=B3B3B3&rounded=true`}
@@ -143,9 +143,9 @@ export const InboxFeedItem: React.FC<InboxFeedItemProps> = ({ item, isSelected, 
                   title={a.full_name || a.email}
                 />
               ))}
-              {issue.assignees.length > 2 && (
+              {ticket.assignees.length > 2 && (
                 <span className="w-4 h-4 rounded-full bg-border text-[9px] font-medium text-text-primary flex items-center justify-center">
-                  +{issue.assignees.length - 2}
+                  +{ticket.assignees.length - 2}
                 </span>
               )}
             </div>

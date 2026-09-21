@@ -79,7 +79,7 @@ export function useTeamMembers(workspaceId?: string, teamId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team_members', workspaceId] });
       queryClient.invalidateQueries({ queryKey: ['teams', workspaceId] });
-      queryClient.invalidateQueries({ queryKey: ['issues'] });
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
     },
   });
 
@@ -103,7 +103,7 @@ export function useTeamMembers(workspaceId?: string, teamId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team_members', workspaceId] });
       queryClient.invalidateQueries({ queryKey: ['teams', workspaceId] });
-      queryClient.invalidateQueries({ queryKey: ['issues'] });
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
     },
   });
 

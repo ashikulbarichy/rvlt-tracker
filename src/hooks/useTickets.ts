@@ -1,15 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import { Issue, Profile, WorkflowState } from '../types/database';
+import { Ticket, Profile, WorkflowState } from '../types/database';
 
 /**
- * Which slice of the issue lifecycle a query returns.
+ * Which slice of the ticket lifecycle a query returns.
  *
- * `archived` is derived, never stored: an issue is archived once it has been closed for
+ * `archived` is derived, never stored: a ticket is archived once it has been closed for
  * longer than the workspace's `archive_after_days` and nobody has unarchived it. Every
- * bucket except `trash` excludes soft-deleted issues.
+ * bucket except `trash` excludes soft-deleted tickets.
  */
-export type IssueBucket =
+export type TicketBucket =
   | 'open'
   | 'closed'
   /** Open plus recently closed — everything that is not archived. Used for stats. */
@@ -41,7 +41,7 @@ function daysAgoIso(days: number): string {
   return d.toISOString();
 }
 
-interface UseIssuesOptions {
+interface UseTicketsOptions {
   workspaceId?: string;
   projectId?: string;
   teamId?: string;
@@ -51,16 +51,16 @@ interface UseIssuesOptions {
   statusIds?: string[];
   /**
    * Defaults to `all` so the nine existing callers keep their current behaviour. The
-   * issue and project lists pass `open` explicitly.
+   * ticket and project lists pass `open` explicitly.
    */
-  bucket?: IssueBucket;
+  bucket?: TicketBucket;
   archiveAfterDays?: number;
   page?: number;
   limit?: number;
   searchQuery?: string;
 }
 
-export function useIssues(options: UseIssuesOptions) {
+export function useTickets(options: UseTicketsOptions) {
   const queryClient = useQueryClient();
   const {
     workspaceId, projectId, teamId, assigneeId, statusId, statusIds,
@@ -72,7 +72,7 @@ export function useIssues(options: UseIssuesOptions) {
   // Sorted so ['a','b'] and ['b','a'] share a cache entry.
   const statusKey = statusIds && statusIds.length > 0 ? [...statusIds].sort().join(',') : undefined;
 
-  const queryKey = ['issues', { workspaceId, projectId, teamId, assigneeId, statusId, statusKey, bucket, cutoff, page, limit, searchQuery }];
+  const queryKey = ['tickets', { workspaceId, projectId, teamId, assigneeId, statusId, statusKey, bucket, cutoff, page, limit, searchQuery }];
 
   const { data, isLoading, error } = useQuery({
     queryKey,
@@ -80,13 +80,14 @@ export function useIssues(options: UseIssuesOptions) {
       if (!workspaceId) return { data: [], count: 0 };
 
       let query = supabase
-        .from('issues')
+        .from('tickets')
         .select(`
           *,
           status:state_id(id, name, color, position, category),
+          type:type_id(id, name, color, position, counts_toward_progress),
           team:team_id(id, name, key),
           project:project_id(id, name, key),
-          workspace:workspace_id(id, name, issue_prefix)
+          workspace:workspace_id(id, name, ticket_prefix)
         `, { count: 'exact' })
         .eq('workspace_id', workspaceId);
 
@@ -141,8 +142,8 @@ export function useIssues(options: UseIssuesOptions) {
       if (error) throw error;
       if (!data || data.length === 0) return { data: [], count: 0 };
 
-      const issueIds = data.map(i => i.id);
-      const issueAssigneeMap: Record<string, string[]> = {};
+      const ticketIds = data.map(i => i.id);
+      const ticketAssigneeMap: Record<string, string[]> = {};
       const allAssigneeUserIds = new Set<string>();
 
       // Seed single assignee_id and reporter_id
@@ -151,22 +152,22 @@ export function useIssues(options: UseIssuesOptions) {
         if (i.reporter_id) allAssigneeUserIds.add(i.reporter_id);
       });
 
-      // Hydrate multi-assignees from public.issue_assignees
+      // Hydrate multi-assignees from public.ticket_assignees
       try {
         const { data: assigneesData } = await supabase
-          .from('issue_assignees')
-          .select('issue_id, user_id')
-          .in('issue_id', issueIds);
+          .from('ticket_assignees')
+          .select('ticket_id, user_id')
+          .in('ticket_id', ticketIds);
 
         if (assigneesData) {
           assigneesData.forEach(row => {
-            if (!issueAssigneeMap[row.issue_id]) issueAssigneeMap[row.issue_id] = [];
-            issueAssigneeMap[row.issue_id].push(row.user_id);
+            if (!ticketAssigneeMap[row.ticket_id]) ticketAssigneeMap[row.ticket_id] = [];
+            ticketAssigneeMap[row.ticket_id].push(row.user_id);
             allAssigneeUserIds.add(row.user_id);
           });
         }
       } catch (assigneeErr) {
-        console.warn('issue_assignees fetch warning:', assigneeErr);
+        console.warn('ticket_assignees fetch warning:', assigneeErr);
       }
 
       // Hydrate all unique user profiles
@@ -180,42 +181,42 @@ export function useIssues(options: UseIssuesOptions) {
         profiles = pData || [];
       }
 
-      let mappedIssues = data.map(issue => {
-        const assignedUserIds = issueAssigneeMap[issue.id] || (issue.assignee_id ? [issue.assignee_id] : []);
+      let mappedTickets = data.map(ticket => {
+        const assignedUserIds = ticketAssigneeMap[ticket.id] || (ticket.assignee_id ? [ticket.assignee_id] : []);
         const assignedProfiles = assignedUserIds
           .map(uid => profiles.find(p => p.id === uid))
           .filter(Boolean) as Profile[];
 
         // Dynamically build ticketing name: [WS_PREFIX]-[TEAM_KEY]-[NUMBER]
-        const wsPrefix = (issue.workspace?.issue_prefix || 'XXX').toUpperCase().trim();
-        const teamKey = (issue.team?.key || issue.project?.key || '').toUpperCase().trim();
-        const num = issue.issue_number || 1;
+        const wsPrefix = (ticket.workspace?.ticket_prefix || 'XXX').toUpperCase().trim();
+        const teamKey = (ticket.team?.key || ticket.project?.key || '').toUpperCase().trim();
+        const num = ticket.ticket_number || 1;
         const formattedNum = String(num).padStart(2, '0');
         const dynamicIdentifier = teamKey
           ? `${wsPrefix}-${teamKey}-${formattedNum}`
           : `${wsPrefix}-${formattedNum}`;
 
         return {
-          ...issue,
+          ...ticket,
           identifier: dynamicIdentifier,
-          assignee: profiles.find(p => p.id === issue.assignee_id) || assignedProfiles[0] || null,
+          assignee: profiles.find(p => p.id === ticket.assignee_id) || assignedProfiles[0] || null,
           assignees: assignedProfiles,
           assignee_ids: assignedUserIds,
-          reporter: profiles.find(p => p.id === issue.reporter_id) || null,
-          status: issue.status || null,
-          state: issue.status || null
+          reporter: profiles.find(p => p.id === ticket.reporter_id) || null,
+          status: ticket.status || null,
+          state: ticket.status || null
         };
       });
 
       // Filter by assigneeId if specified (e.g. "Mine" filter)
       if (assigneeId) {
-        mappedIssues = mappedIssues.filter(i => 
+        mappedTickets = mappedTickets.filter(i => 
           i.assignee_id === assigneeId || i.assignee_ids.includes(assigneeId)
         );
       }
 
       return {
-        data: mappedIssues,
+        data: mappedTickets,
         count: count || 0
       };
     },
@@ -223,14 +224,14 @@ export function useIssues(options: UseIssuesOptions) {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (newIssue: Partial<Issue> & { workspace_id: string; title: string; assignee_ids?: string[] }) => {
+    mutationFn: async (newTicket: Partial<Ticket> & { workspace_id: string; title: string; assignee_ids?: string[] }) => {
       // 1. Ensure valid team_id
-      let finalTeamId = newIssue.team_id;
+      let finalTeamId = newTicket.team_id;
       if (!finalTeamId) {
         const { data: teamsData } = await supabase
           .from('teams')
           .select('id')
-          .eq('workspace_id', newIssue.workspace_id)
+          .eq('workspace_id', newTicket.workspace_id)
           .limit(1);
 
         if (teamsData && teamsData.length > 0) {
@@ -240,7 +241,7 @@ export function useIssues(options: UseIssuesOptions) {
           const { data: newTeam, error: teamErr } = await supabase
             .from('teams')
             .insert([{
-              workspace_id: newIssue.workspace_id,
+              workspace_id: newTicket.workspace_id,
               name: 'Engineering',
               key: 'ENG'
             }])
@@ -254,13 +255,13 @@ export function useIssues(options: UseIssuesOptions) {
       }
 
       // 2. Ensure valid state_id (required NOT NULL by schema)
-      let finalStateId = newIssue.state_id;
+      let finalStateId = newTicket.state_id;
       if (!finalStateId) {
         // Statuses are workspace-level as of migration 003 — no team filter.
         const { data: stateData } = await supabase
           .from('workflow_states')
           .select('id')
-          .eq('workspace_id', newIssue.workspace_id)
+          .eq('workspace_id', newTicket.workspace_id)
           .order('position')
           .limit(1);
 
@@ -269,10 +270,10 @@ export function useIssues(options: UseIssuesOptions) {
         } else {
           // Create default workflow states
           const defaultStates = [
-            { workspace_id: newIssue.workspace_id, name: 'Backlog', color: '#535353', position: 0, category: 'backlog', is_default: true },
-            { workspace_id: newIssue.workspace_id, name: 'Todo', color: '#D48C45', position: 1, category: 'unstarted', is_default: false },
-            { workspace_id: newIssue.workspace_id, name: 'In Progress', color: '#1ED760', position: 2, category: 'started', is_default: false },
-            { workspace_id: newIssue.workspace_id, name: 'Done', color: '#B37FEB', position: 3, category: 'completed', is_default: false },
+            { workspace_id: newTicket.workspace_id, name: 'Backlog', color: '#535353', position: 0, category: 'backlog', is_default: true },
+            { workspace_id: newTicket.workspace_id, name: 'Todo', color: '#D48C45', position: 1, category: 'unstarted', is_default: false },
+            { workspace_id: newTicket.workspace_id, name: 'In Progress', color: '#1ED760', position: 2, category: 'started', is_default: false },
+            { workspace_id: newTicket.workspace_id, name: 'Done', color: '#B37FEB', position: 3, category: 'completed', is_default: false },
           ];
           const { data: createdStates } = await supabase
             .from('workflow_states')
@@ -286,61 +287,67 @@ export function useIssues(options: UseIssuesOptions) {
       }
 
       // 3. Ensure reporter_id
-      let finalReporterId = newIssue.reporter_id;
+      let finalReporterId = newTicket.reporter_id;
       if (!finalReporterId) {
         const { data: authData } = await supabase.auth.getUser();
         finalReporterId = authData?.user?.id || null;
       }
 
       // Primary assignee from list or single
-      const primaryAssigneeId = (newIssue.assignee_ids && newIssue.assignee_ids.length > 0)
-        ? newIssue.assignee_ids[0]
-        : (newIssue.assignee_id || null);
+      const primaryAssigneeId = (newTicket.assignee_ids && newTicket.assignee_ids.length > 0)
+        ? newTicket.assignee_ids[0]
+        : (newTicket.assignee_id || null);
 
       const payload: any = {
-        workspace_id: newIssue.workspace_id,
+        workspace_id: newTicket.workspace_id,
         team_id: finalTeamId,
-        title: newIssue.title,
-        description: newIssue.description || '',
-        priority: newIssue.priority || 'medium',
+        title: newTicket.title,
+        description: newTicket.description || '',
+        priority: newTicket.priority || 'medium',
         assignee_id: primaryAssigneeId,
-        project_id: newIssue.project_id || null,
+        project_id: newTicket.project_id || null,
         reporter_id: finalReporterId,
-        due_date: newIssue.due_date || null,
-        estimate: newIssue.estimate !== undefined ? newIssue.estimate : null,
+        due_date: newTicket.due_date || null,
       };
 
       if (finalStateId) {
         payload.state_id = finalStateId;
       }
 
-      const { data: createdIssue, error } = await supabase
-        .from('issues')
+      // type_id is NOT NULL with no database default, so the caller must supply one.
+      // NewTicketModal defaults it to the workspace's is_default type.
+      if (newTicket.type_id) {
+        payload.type_id = newTicket.type_id;
+      }
+
+      const { data: createdTicket, error } = await supabase
+        .from('tickets')
         .insert([payload])
         .select(`
           *,
-          status:state_id(id, name, color, position, category)
+          status:state_id(id, name, color, position, category),
+          type:type_id(id, name, color, position, counts_toward_progress)
         `)
         .single();
       
       if (error) {
-        console.error('Failed to create issue:', error);
+        console.error('Failed to create ticket:', error);
         throw error;
       }
 
-      // 4. Save multi-assignees in issue_assignees join table
-      const assigneesToSave = newIssue.assignee_ids || (newIssue.assignee_id ? [newIssue.assignee_id] : []);
-      if (assigneesToSave.length > 0 && createdIssue) {
+      // 4. Save multi-assignees in ticket_assignees join table
+      const assigneesToSave = newTicket.assignee_ids || (newTicket.assignee_id ? [newTicket.assignee_id] : []);
+      if (assigneesToSave.length > 0 && createdTicket) {
         const rows = assigneesToSave.map(uid => ({
-          workspace_id: newIssue.workspace_id,
-          issue_id: createdIssue.id,
+          workspace_id: newTicket.workspace_id,
+          ticket_id: createdTicket.id,
           user_id: uid
         }));
 
         try {
-          await supabase.from('issue_assignees').insert(rows);
+          await supabase.from('ticket_assignees').insert(rows);
         } catch (e) {
-          console.warn('issue_assignees insert notice:', e);
+          console.warn('ticket_assignees insert notice:', e);
         }
 
         // Notify assigned users
@@ -348,14 +355,14 @@ export function useIssues(options: UseIssuesOptions) {
           if (uid !== finalReporterId) {
             try {
               await supabase.from('notifications').insert([{
-                workspace_id: newIssue.workspace_id,
+                workspace_id: newTicket.workspace_id,
                 recipient_id: uid,
                 actor_id: finalReporterId,
                 type: 'assignment',
                 title: 'Task Assigned',
-                message: `You were assigned to task "${newIssue.title}"`,
-                entity_type: 'issue',
-                entity_id: createdIssue.id,
+                message: `You were assigned to task "${newTicket.title}"`,
+                entity_type: 'ticket',
+                entity_id: createdTicket.id,
                 is_read: false
               }]);
             } catch (notifErr) {
@@ -365,42 +372,42 @@ export function useIssues(options: UseIssuesOptions) {
         }
       }
 
-      return createdIssue;
+      return createdTicket;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['issues'] });
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
       queryClient.invalidateQueries({ queryKey: ['workflow_states'] });
       queryClient.invalidateQueries({ queryKey: ['teams'] });
     }
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, workspace_id, assignee_ids, ...updates }: Partial<Issue> & { id: string, workspace_id: string; assignee_ids?: string[] }) => {
-      // If assignee_ids is provided, update issue_assignees table
+    mutationFn: async ({ id, workspace_id, assignee_ids, ...updates }: Partial<Ticket> & { id: string, workspace_id: string; assignee_ids?: string[] }) => {
+      // If assignee_ids is provided, update ticket_assignees table
       if (assignee_ids !== undefined) {
         try {
           // Remove previous assignees
-          await supabase.from('issue_assignees').delete().eq('issue_id', id);
+          await supabase.from('ticket_assignees').delete().eq('ticket_id', id);
 
           // Add new assignees
           if (assignee_ids.length > 0) {
             const rows = assignee_ids.map(uid => ({
               workspace_id,
-              issue_id: id,
+              ticket_id: id,
               user_id: uid
             }));
-            await supabase.from('issue_assignees').insert(rows);
+            await supabase.from('ticket_assignees').insert(rows);
           }
 
           // Set primary assignee
           updates.assignee_id = assignee_ids.length > 0 ? assignee_ids[0] : null;
         } catch (e) {
-          console.warn('issue_assignees update warning:', e);
+          console.warn('ticket_assignees update warning:', e);
         }
       }
 
       const { data, error } = await supabase
-        .from('issues')
+        .from('tickets')
         .update(updates)
         .eq('id', id)
         .select()
@@ -410,32 +417,32 @@ export function useIssues(options: UseIssuesOptions) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['issues'] });
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
     }
   });
 
   /** Shared shape for every lifecycle mutation below. */
-  type IssueRef = { id: string; workspace_id: string };
+  type TicketRef = { id: string; workspace_id: string };
 
-  /** What the cached issue queries hold, for the optimistic patch below. */
-  type CachedIssues = { data: Issue[]; count: number } | undefined;
+  /** What the cached ticket queries hold, for the optimistic patch below. */
+  type CachedTickets = { data: Ticket[]; count: number } | undefined;
 
   /** Enough of a workflow state to repaint the badge before the server answers. */
   type StatusPatch = Pick<WorkflowState, 'id' | 'name' | 'color'>;
 
-  const invalidateIssues = () => {
-    queryClient.invalidateQueries({ queryKey: ['issues'] });
+  const invalidateTickets = () => {
+    queryClient.invalidateQueries({ queryKey: ['tickets'] });
   };
 
   /**
    * Manual archive. Backdates closed_at well past the 365-day maximum window so the
-   * issue stays archived even if an admin later widens archive_after_days. This does
+   * ticket stays archived even if an admin later widens archive_after_days. This does
    * overwrite the real close date — see the spec's Notes.
    */
   const archiveMutation = useMutation({
-    mutationFn: async ({ id }: IssueRef) => {
+    mutationFn: async ({ id }: TicketRef) => {
       const { error } = await supabase
-        .from('issues')
+        .from('tickets')
         .update({
           closed_at: daysAgoIso(MANUAL_ARCHIVE_BACKDATE_DAYS),
           unarchived_at: null,
@@ -444,29 +451,29 @@ export function useIssues(options: UseIssuesOptions) {
 
       if (error) throw error;
     },
-    onSuccess: invalidateIssues,
+    onSuccess: invalidateTickets,
   });
 
-  /** Exempts the issue from auto-archiving permanently. */
+  /** Exempts the ticket from auto-archiving permanently. */
   const unarchiveMutation = useMutation({
-    mutationFn: async ({ id }: IssueRef) => {
+    mutationFn: async ({ id }: TicketRef) => {
       const { error } = await supabase
-        .from('issues')
+        .from('tickets')
         .update({ unarchived_at: new Date().toISOString() })
         .eq('id', id);
 
       if (error) throw error;
     },
-    onSuccess: invalidateIssues,
+    onSuccess: invalidateTickets,
   });
 
   /** Soft delete — recoverable from the trash bucket. */
   const trashMutation = useMutation({
-    mutationFn: async ({ id }: IssueRef) => {
+    mutationFn: async ({ id }: TicketRef) => {
       const { data: authData } = await supabase.auth.getUser();
 
       const { error } = await supabase
-        .from('issues')
+        .from('tickets')
         .update({
           deleted_at: new Date().toISOString(),
           deleted_by: authData?.user?.id || null,
@@ -475,33 +482,33 @@ export function useIssues(options: UseIssuesOptions) {
 
       if (error) throw error;
     },
-    onSuccess: invalidateIssues,
+    onSuccess: invalidateTickets,
   });
 
   const restoreMutation = useMutation({
-    mutationFn: async ({ id }: IssueRef) => {
+    mutationFn: async ({ id }: TicketRef) => {
       const { error } = await supabase
-        .from('issues')
+        .from('tickets')
         .update({ deleted_at: null, deleted_by: null })
         .eq('id', id);
 
       if (error) throw error;
     },
-    onSuccess: invalidateIssues,
+    onSuccess: invalidateTickets,
   });
 
   /**
-   * Change an issue's workflow state, patching every cached issue query so the badge
+   * Change a ticket's workflow state, patching every cached ticket query so the badge
    * updates at once and rolling back if the write fails.
    *
-   * Kept separate from `updateIssue` on purpose: that one is called by the kanban drag
+   * Kept separate from `updateTicket` on purpose: that one is called by the kanban drag
    * handler, the detail modal and several other places, and none of them should silently
    * acquire optimistic behaviour.
    */
   const setStatusMutation = useMutation({
-    mutationFn: async ({ id, state_id }: IssueRef & { state_id: string; status?: StatusPatch }) => {
+    mutationFn: async ({ id, state_id }: TicketRef & { state_id: string; status?: StatusPatch }) => {
       const { error } = await supabase
-        .from('issues')
+        .from('tickets')
         .update({ state_id })
         .eq('id', id);
 
@@ -509,24 +516,24 @@ export function useIssues(options: UseIssuesOptions) {
     },
     onMutate: async ({ id, state_id, status }) => {
       // Stop in-flight refetches from overwriting the patch we're about to apply.
-      await queryClient.cancelQueries({ queryKey: ['issues'] });
+      await queryClient.cancelQueries({ queryKey: ['tickets'] });
 
-      const snapshot = queryClient.getQueriesData<CachedIssues>({ queryKey: ['issues'] });
+      const snapshot = queryClient.getQueriesData<CachedTickets>({ queryKey: ['tickets'] });
 
-      queryClient.setQueriesData<CachedIssues>({ queryKey: ['issues'] }, (old) => {
+      queryClient.setQueriesData<CachedTickets>({ queryKey: ['tickets'] }, (old) => {
         if (!old || !Array.isArray(old.data)) return old;
         return {
           ...old,
-          data: old.data.map(issue =>
-            issue.id === id
+          data: old.data.map(ticket =>
+            ticket.id === id
               ? {
-                  ...issue,
+                  ...ticket,
                   state_id,
                   // `status` and `state` are the same joined row; both drive the badge.
-                  status: status ? { ...issue.status, ...status } as WorkflowState : issue.status,
-                  state: status ? { ...issue.state, ...status } as WorkflowState : issue.state,
+                  status: status ? { ...ticket.status, ...status } as WorkflowState : ticket.status,
+                  state: status ? { ...ticket.state, ...status } as WorkflowState : ticket.state,
                 }
-              : issue
+              : ticket
           ),
         };
       });
@@ -542,41 +549,41 @@ export function useIssues(options: UseIssuesOptions) {
     onSettled: () => {
       // Reconciles the patch with the server. If the new state is completed/canceled the
       // closed_at trigger fires and the row may legitimately leave the current bucket.
-      invalidateIssues();
+      invalidateTickets();
     },
   });
 
   /** Irreversible. RLS restricts this to workspace admins. */
   const permanentDeleteMutation = useMutation({
-    mutationFn: async ({ id }: IssueRef) => {
+    mutationFn: async ({ id }: TicketRef) => {
       const { error } = await supabase
-        .from('issues')
+        .from('tickets')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
     },
-    onSuccess: invalidateIssues,
+    onSuccess: invalidateTickets,
   });
 
   return {
-    issues: data?.data || [],
+    tickets: data?.data || [],
     totalCount: data?.count || 0,
     isLoading,
     error,
-    createIssue: createMutation.mutate,
-    updateIssue: updateMutation.mutate,
+    createTicket: createMutation.mutate,
+    updateTicket: updateMutation.mutate,
     /**
      * Soft delete, not a hard one. Existing callers keep working and their deletions
-     * became recoverable; permanent removal is `deleteIssuePermanently` (admins only).
+     * became recoverable; permanent removal is `deleteTicketPermanently` (admins only).
      */
-    deleteIssue: trashMutation.mutate,
-    setIssueStatus: setStatusMutation.mutate,
-    setIssueStatusAsync: setStatusMutation.mutateAsync,
-    archiveIssue: archiveMutation.mutate,
-    unarchiveIssue: unarchiveMutation.mutate,
-    trashIssue: trashMutation.mutate,
-    restoreIssue: restoreMutation.mutate,
-    deleteIssuePermanently: permanentDeleteMutation.mutate,
+    deleteTicket: trashMutation.mutate,
+    setTicketStatus: setStatusMutation.mutate,
+    setTicketStatusAsync: setStatusMutation.mutateAsync,
+    archiveTicket: archiveMutation.mutate,
+    unarchiveTicket: unarchiveMutation.mutate,
+    trashTicket: trashMutation.mutate,
+    restoreTicket: restoreMutation.mutate,
+    deleteTicketPermanently: permanentDeleteMutation.mutate,
   };
 }

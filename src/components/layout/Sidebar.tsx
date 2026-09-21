@@ -3,7 +3,7 @@ import {
   Inbox,
   UserCheck,
   FolderKanban,
-  AlertCircle,
+  Ticket,
   Users,
   Layers,
   FileCheck2,
@@ -365,15 +365,15 @@ export const Sidebar: React.FC = () => {
         </button>
 
         <button
-          onClick={() => handleNav(`/${currentWorkspace?.slug || ''}/my-issues`)}
+          onClick={() => handleNav(`/${currentWorkspace?.slug || ''}/my-tickets`)}
           className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-            path.endsWith('/my-issues')
+            path.endsWith('/my-tickets')
               ? 'bg-bg-surface-hover text-text-primary'
               : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
           }`}
         >
           <UserCheck className="w-3.5 h-3.5 text-text-secondary" />
-          <span>My Issues</span>
+          <span>My Tickets</span>
         </button>
       </div>
 
@@ -427,16 +427,16 @@ export const Sidebar: React.FC = () => {
             <button
               onClick={() => {
                 setCurrentTeam(null);
-                handleNav(`/${currentWorkspace?.slug || ''}/issues`);
+                handleNav(`/${currentWorkspace?.slug || ''}/tickets`);
               }}
               className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                path.endsWith('/issues') && !path.includes('/teams/')
+                path.endsWith('/tickets') && !path.includes('/teams/')
                   ? 'bg-bg-surface-hover text-text-primary'
                   : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
               }`}
             >
-              <AlertCircle className="w-3.5 h-3.5 text-text-secondary" />
-              <span>Issues</span>
+              <Ticket className="w-3.5 h-3.5 text-text-secondary" />
+              <span>Tickets</span>
             </button>
 
             <button
@@ -542,16 +542,16 @@ export const Sidebar: React.FC = () => {
                     <button
                       onClick={() => {
                         setCurrentTeam(team);
-                        handleNav(`/${currentWorkspace?.slug || ''}/teams/${team.id}/issues`);
+                        handleNav(`/${currentWorkspace?.slug || ''}/teams/${team.id}/tickets`);
                       }}
                       className={`w-full flex items-center space-x-2 px-3 py-1 rounded-full text-[11px] font-medium transition-colors ${
-                        path.endsWith('/issues') && currentTeam?.id === team.id
+                        path.endsWith('/tickets') && currentTeam?.id === team.id
                           ? 'bg-bg-surface-hover text-text-primary'
                           : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
                       }`}
                     >
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      <span>Issues</span>
+                      <Ticket className="w-3.5 h-3.5" />
+                      <span>Tickets</span>
                     </button>
                     <button
                       onClick={() => {

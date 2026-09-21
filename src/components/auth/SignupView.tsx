@@ -85,7 +85,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onSwitchToLogin }) => {
         <div className="text-center mb-10">
           <img src="/logo.svg" alt="Reevolt Tasks logo" className="w-16 h-16 rounded-xl mx-auto drop-shadow-sm mb-4" />
           <h1 className="text-3xl font-karla text-text-primary mb-2">Create an account</h1>
-          <p className="text-sm text-text-secondary">Join your workspace to start tracking issues.</p>
+          <p className="text-sm text-text-secondary">Join your workspace to start tracking tickets.</p>
         </div>
 
         {/* Form Card */}

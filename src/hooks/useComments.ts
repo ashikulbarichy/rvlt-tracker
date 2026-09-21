@@ -1,21 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import { IssueComment } from '../types/database';
+import { TicketComment } from '../types/database';
 import { useApp } from '../context/AppContext';
 
-export function useComments(issueId?: string) {
+export function useComments(ticketId?: string) {
   const queryClient = useQueryClient();
   const { currentWorkspace, currentUser } = useApp();
 
   const { data: comments, isLoading, error } = useQuery({
-    queryKey: ['comments', issueId],
+    queryKey: ['comments', ticketId],
     queryFn: async () => {
-      if (!issueId) return [];
+      if (!ticketId) return [];
 
       const { data, error } = await supabase
-        .from('issue_comments')
+        .from('ticket_comments')
         .select('*')
-        .eq('issue_id', issueId)
+        .eq('ticket_id', ticketId)
         .order('created_at', { ascending: true });
       
       if (error) throw error;
@@ -35,20 +35,20 @@ export function useComments(issueId?: string) {
       return data.map(c => ({
         ...c,
         author: profiles.find(p => p.id === c.author_id) || null
-      })) as IssueComment[];
+      })) as TicketComment[];
     },
-    enabled: !!issueId
+    enabled: !!ticketId
   });
 
   const addCommentMutation = useMutation({
     mutationFn: async ({ body, mentionedUserIds }: { body: string; mentionedUserIds?: string[] }) => {
-      if (!issueId || !currentWorkspace || !currentUser) throw new Error('Missing context');
+      if (!ticketId || !currentWorkspace || !currentUser) throw new Error('Missing context');
 
       const { data, error } = await supabase
-        .from('issue_comments')
+        .from('ticket_comments')
         .insert([{
           workspace_id: currentWorkspace.id,
-          issue_id: issueId,
+          ticket_id: ticketId,
           author_id: currentUser.id,
           body
         }])
@@ -65,8 +65,8 @@ export function useComments(issueId?: string) {
           type: 'mention',
           title: 'Mentioned in a comment',
           message: `${currentUser.full_name || currentUser.email || 'Someone'} mentioned you in a comment.`,
-          entity_type: 'issue',
-          entity_id: issueId,
+          entity_type: 'ticket',
+          entity_id: ticketId,
           is_read: false
         }));
         
@@ -79,17 +79,17 @@ export function useComments(issueId?: string) {
       return {
         ...data,
         author: currentUser
-      } as IssueComment;
+      } as TicketComment;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', issueId] });
+      queryClient.invalidateQueries({ queryKey: ['comments', ticketId] });
     }
   });
 
   const updateCommentMutation = useMutation({
     mutationFn: async ({ id, body }: { id: string; body: string }) => {
       const { data, error } = await supabase
-        .from('issue_comments')
+        .from('ticket_comments')
         .update({ body, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select('*')
@@ -99,21 +99,21 @@ export function useComments(issueId?: string) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', issueId] });
+      queryClient.invalidateQueries({ queryKey: ['comments', ticketId] });
     }
   });
 
   const deleteCommentMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('issue_comments')
+        .from('ticket_comments')
         .delete()
         .eq('id', id);
       
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', issueId] });
+      queryClient.invalidateQueries({ queryKey: ['comments', ticketId] });
     }
   });
 

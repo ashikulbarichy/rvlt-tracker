@@ -29,20 +29,22 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { SidebarToggle } from '../../components/layout/SidebarToggle';
-import { useIssues, IssueBucket, DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/useIssues';
-import { useIssueFilterParams } from '../../hooks/useIssueFilterParams';
+import { useTickets, TicketBucket, DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/useTickets';
+import { useTicketFilterParams } from '../../hooks/useTicketFilterParams';
 import { useTeams } from '../../hooks/useTeams';
 import { useTeamMembers } from '../../hooks/useTeamMembers';
 import { useWorkflowStates } from '../../hooks/useWorkflowStates';
-import { Issue } from '../../types/database';
-import { formatIssueIdentifier } from '../../lib/identifier';
+import { useTicketTypes } from '../../hooks/useTicketTypes';
+import { Ticket } from '../../types/database';
+import { formatTicketIdentifier } from '../../lib/identifier';
 import { formatRelativeTime } from '../../lib/time';
 import { stripHtml } from '../../utils/htmlUtils';
 import { StatusBadge } from '../common/StatusBadge';
 import { StatusPicker } from '../common/StatusPicker';
+import { TypePicker } from '../common/TypePicker';
 import { ConfirmModal } from '../common/ConfirmModal';
 
-interface IssueListViewProps {
+interface TicketListViewProps {
   onlyMine?: boolean;
 }
 
@@ -52,7 +54,7 @@ type SortBy = 'newest' | 'oldest' | 'priority' | 'dueDate' | 'title';
 type Tab = 'All' | 'Mine' | 'Open' | 'Closed' | 'Archived' | 'Trash';
 
 /** Tab labels map onto query buckets; "Mine" is an assignee filter, not a bucket. */
-const TAB_BUCKETS: Record<Tab, IssueBucket> = {
+const TAB_BUCKETS: Record<Tab, TicketBucket> = {
   All: 'all',
   Mine: 'all',
   Open: 'open',
@@ -62,14 +64,14 @@ const TAB_BUCKETS: Record<Tab, IssueBucket> = {
 };
 
 // Persisted view preferences so filters/view survive page refreshes.
-// activeTab is no longer here — the filter lives in the URL, see useIssueFilterParams.
+// activeTab is no longer here — the filter lives in the URL, see useTicketFilterParams.
 interface ViewPrefs {
   viewMode?: ViewMode;
   isCompact?: boolean;
   sortBy?: SortBy;
 }
 
-const VIEW_PREFS_KEY = 'rvlt-issue-view-prefs';
+const VIEW_PREFS_KEY = 'rvlt-ticket-view-prefs';
 
 const loadViewPrefs = (): ViewPrefs => {
   try {
@@ -79,14 +81,14 @@ const loadViewPrefs = (): ViewPrefs => {
   }
 };
 
-export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }) => {
-  const { currentWorkspace, currentUser, userRole, setIsNewIssueModalOpen, setSelectedIssue, currentTeam } = useApp();
+export const TicketListView: React.FC<TicketListViewProps> = ({ onlyMine = false }) => {
+  const { currentWorkspace, currentUser, userRole, setIsNewTicketModalOpen, setSelectedTicket, currentTeam } = useApp();
   const savedPrefs = useRef(loadViewPrefs()).current;
-  // Set on /teams/:teamId/issues — that route is implicitly filtered to one team.
+  // Set on /teams/:teamId/tickets — that route is implicitly filtered to one team.
   const { teamId: routeTeamId } = useParams<{ teamId?: string }>();
   const [searchQuery, setSearchQuery] = useState('');
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
-  const [pendingPermanentDelete, setPendingPermanentDelete] = useState<Issue | null>(null);
+  const [pendingPermanentDelete, setPendingPermanentDelete] = useState<Ticket | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const limit = 100;
@@ -145,6 +147,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
   const { getUserTeams } = useTeamMembers(currentWorkspace?.id);
   // Statuses are workspace-level since 003 — no team argument.
   const { workflowStates } = useWorkflowStates();
+  const { ticketTypes } = useTicketTypes();
 
   const userAssignedTeams = currentUser ? getUserTeams(currentUser.id) : [];
   const visibleTeams = isAdmin
@@ -163,7 +166,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
   const {
     bucket, statusIds, mine, teamIds, isTeamLocked,
     setFilter, toggleStatusId, toggleTeamId, setTeamIds, clearFilters,
-  } = useIssueFilterParams({
+  } = useTicketFilterParams({
     workspaceSlug: currentWorkspace?.slug,
     validStatusIds,
     validTeamIds,
@@ -195,7 +198,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
 
   const archiveAfterDays = currentWorkspace?.archive_after_days ?? DEFAULT_ARCHIVE_AFTER_DAYS;
 
-  const { issues, totalCount, isLoading, setIssueStatus, archiveIssue, unarchiveIssue, restoreIssue, deleteIssuePermanently } = useIssues({
+  const { tickets, totalCount, isLoading, setTicketStatus, updateTicket, archiveTicket, unarchiveTicket, restoreTicket, deleteTicketPermanently } = useTickets({
     workspaceId: currentWorkspace?.id,
     teamId: firstSelectedTeamId,
     assigneeId,
@@ -207,20 +210,40 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
     searchQuery
   });
 
-  /** Every issue in the workspace shares one status list since 003. */
-  const issueStatusOptions = React.useMemo(
+  /** Types are workspace-level too, so every ticket shares one list. */
+  const ticketTypeOptions = React.useMemo(
+    () => (ticketTypes || []).map(tt => ({ id: tt.id, name: tt.name, color: tt.color })),
+    [ticketTypes]
+  );
+
+  const handleSetTicketType = (ticket: Ticket, typeId: string) => {
+    if (ticket.type_id === typeId) return;
+    setStatusError(null);
+    updateTicket(
+      { id: ticket.id, workspace_id: ticket.workspace_id, type_id: typeId },
+      {
+        onError: (err: unknown) => {
+          const e = err as { message?: string } | null;
+          setStatusError(e?.message || 'Failed to change type.');
+        },
+      }
+    );
+  };
+
+  /** Every ticket in the workspace shares one status list since 003. */
+  const ticketStatusOptions = React.useMemo(
     () => statusOptions.map(s => ({ id: s.id, name: s.name, color: s.color })),
     [statusOptions]
   );
 
-  const handleSetIssueStatus = (issue: Issue, stateId: string) => {
+  const handleSetTicketStatus = (ticket: Ticket, stateId: string) => {
     const next = (workflowStates || []).find(s => s.id === stateId);
     if (!next) return;
     setStatusError(null);
-    setIssueStatus(
+    setTicketStatus(
       {
-        id: issue.id,
-        workspace_id: issue.workspace_id,
+        id: ticket.id,
+        workspace_id: ticket.workspace_id,
         state_id: next.id,
         status: { id: next.id, name: next.name, color: next.color },
       },
@@ -273,23 +296,23 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
   };
 
   // Client side filter for team scoping & Open/Closed
-  const filteredIssues = issues.filter(issue => {
+  const filteredTickets = tickets.filter(ticket => {
     if (onlyMine && currentUser) {
-      const isAssigned = issue.assignee_id === currentUser.id ||
-        issue.assignee_ids?.includes(currentUser.id) ||
-        issue.assignees?.some((a: any) => a.id === currentUser.id);
+      const isAssigned = ticket.assignee_id === currentUser.id ||
+        ticket.assignee_ids?.includes(currentUser.id) ||
+        ticket.assignees?.some((a: any) => a.id === currentUser.id);
       if (!isAssigned) return false;
     }
 
-    // Non-admin members can only see issues belonging to their assigned teams
+    // Non-admin members can only see tickets belonging to their assigned teams
     if (!isAdmin && userAssignedTeams.length > 0) {
-      if (!userAssignedTeams.some(t => t.id === issue.team_id)) return false;
+      if (!userAssignedTeams.some(t => t.id === ticket.team_id)) return false;
     }
     if (!isAdmin && userAssignedTeams.length === 0) {
       return false;
     }
 
-    if (selectedTeamIds.size > 0 && !selectedTeamIds.has(issue.team_id)) return false;
+    if (selectedTeamIds.size > 0 && !selectedTeamIds.has(ticket.team_id)) return false;
     // Open/Closed/Archived/Trash are filtered server-side by bucket now, so that the
     // total count and pagination stay correct. No category checks here.
     return true;
@@ -337,7 +360,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
   // dropping a card can write it directly.
   const kanbanColumns = statusOptions;
 
-  const renderIssueDueDateBadge = (dueDateStr?: string | null, isCompleted?: boolean) => {
+  const renderTicketDueDateBadge = (dueDateStr?: string | null, isCompleted?: boolean) => {
     if (!dueDateStr) return null;
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -395,20 +418,20 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
         <div>
           <h1 className="flex items-center gap-2.5 text-xl sm:text-2xl font-karla font-bold tracking-tight text-text-primary mb-0.5 sm:mb-1">
             <SidebarToggle />
-            {onlyMine ? 'My Issues' : 'Issues'}
+            {onlyMine ? 'My Tickets' : 'Tickets'}
           </h1>
           <p className="hidden sm:block text-text-secondary text-xs sm:text-sm">
             {onlyMine
-              ? 'Issues assigned to you in this workspace.'
+              ? 'Tickets assigned to you in this workspace.'
               : 'Track, manage, and resolve project tasks.'}
           </p>
         </div>
         <button
-          onClick={() => setIsNewIssueModalOpen(true)}
+          onClick={() => setIsNewTicketModalOpen(true)}
           className="flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-accent-primary hover:bg-accent-primary-hover text-button-text text-xs sm:text-sm font-semibold transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
-          <span>New Issue</span>
+          <span>New Ticket</span>
         </button>
       </div>
 
@@ -417,7 +440,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
         <div className="mb-3 p-3 bg-status-warning/10 border border-transparent rounded-md flex items-start space-x-2.5">
           <AlertCircle className="w-4 h-4 text-status-warning shrink-0 mt-0.5" />
           <div className="text-xs text-text-secondary">
-            <span className="font-semibold text-text-primary">No team assigned:</span> You are currently not assigned to any team in this workspace. You will only be able to view and manage issues once a workspace admin assigns you to a team.
+            <span className="font-semibold text-text-primary">No team assigned:</span> You are currently not assigned to any team in this workspace. You will only be able to view and manage tickets once a workspace admin assigns you to a team.
           </div>
         </div>
       )}
@@ -562,7 +585,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                     ? 'bg-bg-surface-hover text-text-primary border border-transparent shadow-xs'
                     : 'text-text-secondary hover:text-text-primary hover:bg-bg-surface'
                 }`}
-                title={`Sort issues (Current: ${sortOptions.find(o => o.id === sortBy)?.label})`}
+                title={`Sort tickets (Current: ${sortOptions.find(o => o.id === sortBy)?.label})`}
               >
                 <ArrowUpDown className="w-3.5 h-3.5" />
               </button>
@@ -773,22 +796,22 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
 
       {/* Main Content Area based on View Mode */}
       {isLoading ? (
-        <div className="flex-1 p-12 text-center text-xs text-text-secondary">Loading issues...</div>
-      ) : filteredIssues.length === 0 ? (
-        <div className="flex-1 p-12 text-center text-xs text-text-secondary">No issues found.</div>
+        <div className="flex-1 p-12 text-center text-xs text-text-secondary">Loading tickets...</div>
+      ) : filteredTickets.length === 0 ? (
+        <div className="flex-1 p-12 text-center text-xs text-text-secondary">No tickets found.</div>
       ) : effectiveViewMode === 'list' ? (
         /* --------------------------------------------------------
            1. LIST VIEW (Full-width individual cards on canvas)
            -------------------------------------------------------- */
         <div className={`flex-1 overflow-y-auto pr-1 pb-4 ${isCompact ? 'divide-y divide-border' : 'space-y-2.5'}`}>
-          {filteredIssues.map((issue) => {
-            const priorityInfo = getPriorityIconInfo(issue.priority);
-            const teamKey = issue.team?.key || issue.project?.key || 'ISSUE';
+          {filteredTickets.map((ticket) => {
+            const priorityInfo = getPriorityIconInfo(ticket.priority);
+            const teamKey = ticket.team?.key || ticket.project?.key || 'TICKET';
 
             return (
               <div
-                key={issue.id}
-                onClick={() => setSelectedIssue(issue)}
+                key={ticket.id}
+                onClick={() => setSelectedTicket(ticket)}
                 className={`group bg-bg-surface-raised hover:bg-bg-surface-hover transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between ${
                   isCompact ? 'p-2 gap-2' : 'border border-transparent rounded-lg shadow-xs hover:shadow-sm p-3.5 gap-3'
                 }`}
@@ -798,7 +821,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                   <div className="flex items-center shrink-0">
                     <div className="w-24 shrink-0 flex items-center justify-start pr-2">
                       <span className="inline-flex items-center justify-center text-center font-id text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-bg-surface-raised border border-transparent transition-colors text-text-secondary">
-                        {formatIssueIdentifier(issue, currentWorkspace)}
+                        {formatTicketIdentifier(ticket, currentWorkspace)}
                       </span>
                     </div>
 
@@ -808,28 +831,37 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
 
                     <div className="w-28 shrink-0 flex items-center">
                         <StatusPicker
-                          value={issue.state_id}
-                          options={issueStatusOptions}
-                          onSelect={(stateId) => handleSetIssueStatus(issue, stateId)}
-                          emptyMessage="This issue's team has no workflow states."
+                          value={ticket.state_id}
+                          options={ticketStatusOptions}
+                          onSelect={(stateId) => handleSetTicketStatus(ticket, stateId)}
+                          emptyMessage="This ticket's team has no workflow states."
+                        />
+                    </div>
+
+                    <div className="w-28 shrink-0 hidden md:flex items-center">
+                        <TypePicker
+                          value={ticket.type_id}
+                          current={ticket.type ? { id: ticket.type.id, name: ticket.type.name, color: ticket.type.color } : null}
+                          options={ticketTypeOptions}
+                          onSelect={(typeId) => handleSetTicketType(ticket, typeId)}
                         />
                     </div>
                   </div>
 
                   <h3 className="text-sm font-semibold text-text-primary truncate min-w-0 pl-2">
-                    {issue.title}
+                    {ticket.title}
                   </h3>
 
-                  {issue.description && !isCompact && (
+                  {ticket.description && !isCompact && (
                     <p className="text-xs text-text-secondary truncate hidden lg:inline pl-2 max-w-[200px] xl:max-w-[400px]">
-                      {stripHtml(issue.description)}
+                      {stripHtml(ticket.description)}
                     </p>
                   )}
                 </div>
 
                 {/* Right Section: Lifecycle Actions, Assignees, Due Date, Timestamp */}
                 <div className="flex items-center shrink-0 sm:self-center pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
-                  {/* Lifecycle actions. stopPropagation so they don't open the issue. */}
+                  {/* Lifecycle actions. stopPropagation so they don't open the ticket. */}
                   <div className="shrink-0 flex items-center space-x-1 pr-2">
                     {bucket === 'trash' ? (
                       <>
@@ -838,7 +870,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                           title="Restore from trash"
                           onClick={(e) => {
                             e.stopPropagation();
-                            restoreIssue({ id: issue.id, workspace_id: issue.workspace_id });
+                            restoreTicket({ id: ticket.id, workspace_id: ticket.workspace_id });
                           }}
                           className="p-1.5 rounded-md text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary transition-colors"
                         >
@@ -850,7 +882,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                             title="Delete permanently"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setPendingPermanentDelete(issue);
+                              setPendingPermanentDelete(ticket);
                             }}
                             className="p-1.5 rounded-md text-text-secondary hover:bg-bg-surface-hover hover:text-status-error transition-colors"
                           >
@@ -861,10 +893,10 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                     ) : bucket === 'archived' ? (
                       <button
                         type="button"
-                        title="Unarchive — this issue will not auto-archive again"
+                        title="Unarchive — this ticket will not auto-archive again"
                         onClick={(e) => {
                           e.stopPropagation();
-                          unarchiveIssue({ id: issue.id, workspace_id: issue.workspace_id });
+                          unarchiveTicket({ id: ticket.id, workspace_id: ticket.workspace_id });
                         }}
                         className="p-1.5 rounded-md text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary transition-colors"
                       >
@@ -876,7 +908,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                         title="Archive now"
                         onClick={(e) => {
                           e.stopPropagation();
-                          archiveIssue({ id: issue.id, workspace_id: issue.workspace_id });
+                          archiveTicket({ id: ticket.id, workspace_id: ticket.workspace_id });
                         }}
                         className="p-1.5 rounded-md text-text-secondary opacity-0 group-hover:opacity-100 hover:bg-bg-surface-hover hover:text-text-primary transition-all"
                       >
@@ -886,14 +918,14 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                   </div>
 
                   <div className="w-28 shrink-0 flex justify-end">
-                    {renderIssueDueDateBadge(issue.due_date, issue.status?.category === 'completed' || issue.status?.category === 'canceled')}
+                    {renderTicketDueDateBadge(ticket.due_date, ticket.status?.category === 'completed' || ticket.status?.category === 'canceled')}
                   </div>
 
                   <div className="w-36 shrink-0 flex items-center min-w-0 pl-4">
-                    {issue.assignees && issue.assignees.length > 0 ? (
-                      <div className="flex items-center space-x-1.5 min-w-0" title={issue.assignees.map((a: any) => a.full_name || a.email).join(', ')}>
+                    {ticket.assignees && ticket.assignees.length > 0 ? (
+                      <div className="flex items-center space-x-1.5 min-w-0" title={ticket.assignees.map((a: any) => a.full_name || a.email).join(', ')}>
                         <div className="flex -space-x-2 overflow-hidden shrink-0">
-                          {issue.assignees.slice(0, 3).map((assignee: any, idx: number) => (
+                          {ticket.assignees.slice(0, 3).map((assignee: any, idx: number) => (
                             <img
                               key={assignee.id || idx}
                               src={assignee.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(assignee.full_name || assignee.email)}&background=282828&color=B3B3B3&rounded=true`}
@@ -902,26 +934,26 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                             />
                           ))}
                         </div>
-                        {issue.assignees.length > 3 && (
+                        {ticket.assignees.length > 3 && (
                           <span className="text-[10px] font-semibold text-text-secondary bg-bg-surface-hover px-1.5 py-0.5 rounded-full">
-                            +{issue.assignees.length - 3}
+                            +{ticket.assignees.length - 3}
                           </span>
                         )}
                         <span className="text-xs text-text-secondary truncate max-w-[100px]">
-                          {issue.assignees.length === 1
-                            ? (issue.assignees[0].full_name?.split(' ')[0] || 'User')
-                            : `${issue.assignees.length} assignees`}
+                          {ticket.assignees.length === 1
+                            ? (ticket.assignees[0].full_name?.split(' ')[0] || 'User')
+                            : `${ticket.assignees.length} assignees`}
                         </span>
                       </div>
-                    ) : issue.assignee ? (
+                    ) : ticket.assignee ? (
                       <div className="flex items-center space-x-1.5">
                         <img
-                          src={issue.assignee.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(issue.assignee.full_name)}&background=282828&color=B3B3B3&rounded=true`}
+                          src={ticket.assignee.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(ticket.assignee.full_name)}&background=282828&color=B3B3B3&rounded=true`}
                           alt="Assignee"
                           className="w-6 h-6 rounded-full object-cover shrink-0"
                         />
                         <span className="text-xs text-text-secondary truncate max-w-[100px]">
-                          {issue.assignee.full_name?.split(' ')[0] || 'User'}
+                          {ticket.assignee.full_name?.split(' ')[0] || 'User'}
                         </span>
                       </div>
                     ) : (
@@ -936,7 +968,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
 
                   <div className="w-28 shrink-0 flex justify-end pl-4">
                     <span className="text-[11px] text-text-tertiary text-right whitespace-nowrap">
-                      {issue.updated_at ? getRelativeTime(issue.updated_at) : 'Just now'}
+                      {ticket.updated_at ? getRelativeTime(ticket.updated_at) : 'Just now'}
                     </span>
                   </div>
                 </div>
@@ -946,24 +978,24 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
         </div>
       ) : effectiveViewMode === 'grid' ? (
         /* --------------------------------------------------------
-           2. GRID VIEW (Multi-column responsive issue cards)
+           2. GRID VIEW (Multi-column responsive ticket cards)
            -------------------------------------------------------- */
         <div className="flex-1 overflow-y-auto pr-1 pb-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredIssues.map((issue) => {
-              const priorityInfo = getPriorityIconInfo(issue.priority);
-              const teamKey = issue.team?.key || issue.project?.key || 'ISSUE';
+            {filteredTickets.map((ticket) => {
+              const priorityInfo = getPriorityIconInfo(ticket.priority);
+              const teamKey = ticket.team?.key || ticket.project?.key || 'TICKET';
 
               return (
                 <div
-                  key={issue.id}
-                  onClick={() => setSelectedIssue(issue)}
+                  key={ticket.id}
+                  onClick={() => setSelectedTicket(ticket)}
                   className="group p-4 bg-bg-surface-raised hover:bg-bg-surface-hover border border-transparent rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="inline-flex items-center justify-center text-center font-id text-xs font-semibold px-2 py-0.5 rounded-full bg-bg-surface-raised border border-transparent transition-colors text-text-secondary">
-                        {formatIssueIdentifier(issue, currentWorkspace)}
+                        {formatTicketIdentifier(ticket, currentWorkspace)}
                       </span>
 
                       <div className="flex items-center space-x-2">
@@ -971,22 +1003,29 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                           {priorityInfo.icon}
                         </div>
                           <StatusPicker
-                            value={issue.state_id}
-                            options={issueStatusOptions}
-                            onSelect={(stateId) => handleSetIssueStatus(issue, stateId)}
+                            value={ticket.state_id}
+                            options={ticketStatusOptions}
+                            onSelect={(stateId) => handleSetTicketStatus(ticket, stateId)}
                             size="xs"
-                            emptyMessage="This issue's team has no workflow states."
+                            emptyMessage="This ticket's team has no workflow states."
+                          />
+                          <TypePicker
+                            value={ticket.type_id}
+                            current={ticket.type ? { id: ticket.type.id, name: ticket.type.name, color: ticket.type.color } : null}
+                            options={ticketTypeOptions}
+                            onSelect={(typeId) => handleSetTicketType(ticket, typeId)}
+                            size="xs"
                           />
                       </div>
                     </div>
 
                     <h3 className="text-sm font-semibold text-text-primary line-clamp-2">
-                      {issue.title}
+                      {ticket.title}
                     </h3>
 
-                    {issue.description && (
+                    {ticket.description && (
                       <p className="text-xs text-text-secondary line-clamp-2">
-                        {stripHtml(issue.description)}
+                        {stripHtml(ticket.description)}
                       </p>
                     )}
                   </div>
@@ -994,9 +1033,9 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                   <div className="mt-4 pt-3 flex items-center justify-between text-xs text-text-secondary">
                     {/* Assignees */}
                     <div className="flex items-center space-x-1.5 min-w-0">
-                      {issue.assignees && issue.assignees.length > 0 ? (
+                      {ticket.assignees && ticket.assignees.length > 0 ? (
                         <div className="flex -space-x-2 overflow-hidden">
-                          {issue.assignees.slice(0, 3).map((a: any, idx: number) => (
+                          {ticket.assignees.slice(0, 3).map((a: any, idx: number) => (
                             <img
                               key={a.id || idx}
                               src={a.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name || a.email)}&background=282828&color=B3B3B3&rounded=true`}
@@ -1012,9 +1051,9 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
 
                     {/* Due date or updated */}
                     <div>
-                      {renderIssueDueDateBadge(issue.due_date, issue.status?.category === 'completed' || issue.status?.category === 'canceled') || (
+                      {renderTicketDueDateBadge(ticket.due_date, ticket.status?.category === 'completed' || ticket.status?.category === 'canceled') || (
                         <span className="text-[10px] text-text-tertiary">
-                          {issue.updated_at ? getRelativeTime(issue.updated_at) : ''}
+                          {ticket.updated_at ? getRelativeTime(ticket.updated_at) : ''}
                         </span>
                       )}
                     </div>
@@ -1031,14 +1070,14 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
         <div className="flex-1 overflow-x-auto overflow-y-hidden pb-2">
           <div className="flex space-x-3.5 h-full min-w-max pr-2">
             {kanbanColumns.map((column) => {
-              const columnIssues = filteredIssues.filter(issue => {
-                if (issue.state_id === column.id) return true;
-                if (issue.status?.name && column.name) {
-                  if (issue.status.name.trim().toLowerCase() === column.name.trim().toLowerCase()) {
+              const columnTickets = filteredTickets.filter(ticket => {
+                if (ticket.state_id === column.id) return true;
+                if (ticket.status?.name && column.name) {
+                  if (ticket.status.name.trim().toLowerCase() === column.name.trim().toLowerCase()) {
                     return true;
                   }
                 }
-                if (!issue.state_id && !issue.status && (column.category === 'backlog' || column.name.toLowerCase() === 'backlog')) {
+                if (!ticket.state_id && !ticket.status && (column.category === 'backlog' || column.name.toLowerCase() === 'backlog')) {
                   return true;
                 }
                 return false;
@@ -1055,7 +1094,7 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                       <StatusBadge name={column.name} color={(column as any).color} />
                     </div>
                     <span className="min-w-[20px] px-1.5 py-0.5 text-[10px] font-mono bg-black/30 border border-transparent rounded-full text-text-secondary font-medium">
-                      {columnIssues.length}
+                      {columnTickets.length}
                     </span>
                   </div>
 
@@ -1082,29 +1121,29 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                     onDrop={(e) => {
                       e.preventDefault();
                       setDragOverColumnId(null);
-                      const issueId = e.dataTransfer.getData('text/plain');
-                      if (!issueId) return;
-                      const issueToUpdate = filteredIssues.find(i => i.id === issueId);
-                      if (!issueToUpdate) return;
+                      const ticketId = e.dataTransfer.getData('text/plain');
+                      if (!ticketId) return;
+                      const ticketToUpdate = filteredTickets.find(i => i.id === ticketId);
+                      if (!ticketToUpdate) return;
 
-                      if (issueToUpdate.state_id === column.id) return;
-                      handleSetIssueStatus(issueToUpdate, column.id);
+                      if (ticketToUpdate.state_id === column.id) return;
+                      handleSetTicketStatus(ticketToUpdate, column.id);
                     }}
                   >
-                    {columnIssues.length === 0 ? (
+                    {columnTickets.length === 0 ? (
                       <div className="h-24 border border-dashed border-border rounded-sm flex items-center justify-center text-[11px] text-text-tertiary">
-                        No issues
+                        No tickets
                       </div>
                     ) : (
-                      columnIssues.map((issue) => {
-                        const priorityInfo = getPriorityIconInfo(issue.priority);
+                      columnTickets.map((ticket) => {
+                        const priorityInfo = getPriorityIconInfo(ticket.priority);
 
                         return (
                           <div
-                            key={issue.id}
+                            key={ticket.id}
                             draggable
                             onDragStart={(e) => {
-                              e.dataTransfer.setData('text/plain', issue.id);
+                              e.dataTransfer.setData('text/plain', ticket.id);
                               e.dataTransfer.effectAllowed = 'move';
                               // Drag ghost: opaque rounded clone, otherwise the browser
                               // snapshot shows sharp corners over the dark background
@@ -1120,12 +1159,12 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                               e.dataTransfer.setDragImage(ghost, e.nativeEvent.offsetX, e.nativeEvent.offsetY);
                               requestAnimationFrame(() => ghost.remove());
                             }}
-                            onClick={() => setSelectedIssue(issue)}
+                            onClick={() => setSelectedTicket(ticket)}
                             className="group p-3 bg-bg-surface-raised hover:bg-bg-surface-hover border border-transparent rounded-md shadow-xs hover:shadow-sm transition-all cursor-pointer space-y-2 active:cursor-grabbing"
                           >
                             <div className="flex items-center justify-between">
                               <span className="inline-flex items-center justify-center text-center font-id text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-black/30 border border-transparent transition-colors text-text-secondary">
-                                {formatIssueIdentifier(issue, currentWorkspace)}
+                                {formatTicketIdentifier(ticket, currentWorkspace)}
                               </span>
 
                               <div className="flex items-center" title={`Priority: ${priorityInfo.label}`}>
@@ -1134,14 +1173,14 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                             </div>
 
                             <h4 className="text-xs font-semibold text-text-primary line-clamp-2">
-                              {issue.title}
+                              {ticket.title}
                             </h4>
 
                             <div className="pt-2 flex items-center justify-between text-[10px] text-text-secondary">
                               <div className="flex items-center space-x-1">
-                                {issue.assignees && issue.assignees.length > 0 ? (
+                                {ticket.assignees && ticket.assignees.length > 0 ? (
                                   <div className="flex -space-x-1.5 overflow-hidden">
-                                    {issue.assignees.slice(0, 2).map((a: any, idx: number) => (
+                                    {ticket.assignees.slice(0, 2).map((a: any, idx: number) => (
                                       <img
                                         key={a.id || idx}
                                         src={a.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.full_name || a.email)}&background=282828&color=B3B3B3&rounded=true`}
@@ -1155,9 +1194,9 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
                                 )}
                               </div>
 
-                              {issue.due_date && (
+                              {ticket.due_date && (
                                 <div>
-                                  {renderIssueDueDateBadge(issue.due_date, issue.status?.category === 'completed' || issue.status?.category === 'canceled')}
+                                  {renderTicketDueDateBadge(ticket.due_date, ticket.status?.category === 'completed' || ticket.status?.category === 'canceled')}
                                 </div>
                               )}
                             </div>
@@ -1199,18 +1238,18 @@ export const IssueListView: React.FC<IssueListViewProps> = ({ onlyMine = false }
         </div>
       )}
 
-      {/* Permanent delete — admins only, and irreversible, so it names the issue. */}
+      {/* Permanent delete — admins only, and irreversible, so it names the ticket. */}
       <ConfirmModal
         isOpen={!!pendingPermanentDelete}
-        title="Delete Issue Permanently"
+        title="Delete Ticket Permanently"
         message={pendingPermanentDelete
-          ? `Permanently delete ${formatIssueIdentifier(pendingPermanentDelete, currentWorkspace)} "${pendingPermanentDelete.title}"? This removes the issue and its activity history for good. It cannot be restored from the trash afterwards.`
+          ? `Permanently delete ${formatTicketIdentifier(pendingPermanentDelete, currentWorkspace)} "${pendingPermanentDelete.title}"? This removes the ticket and its activity history for good. It cannot be restored from the trash afterwards.`
           : ''}
         confirmText="Delete Permanently"
         variant="danger"
         onConfirm={() => {
           if (pendingPermanentDelete) {
-            deleteIssuePermanently({
+            deleteTicketPermanently({
               id: pendingPermanentDelete.id,
               workspace_id: pendingPermanentDelete.workspace_id,
             });

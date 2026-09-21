@@ -10,12 +10,13 @@ import { useProjects } from '../../hooks/useProjects';
 import { useTeams } from '../../hooks/useTeams';
 import { useProfiles } from '../../hooks/useProfiles';
 import { useWorkflowStates } from '../../hooks/useWorkflowStates';
-import { useIssues, DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/useIssues';
-import { useIssueFilterParams } from '../../hooks/useIssueFilterParams';
-import { Project, ProjectStatus, IssuePriority } from '../../types/database';
+import { useTicketTypes } from '../../hooks/useTicketTypes';
+import { useTickets, DEFAULT_ARCHIVE_AFTER_DAYS } from '../../hooks/useTickets';
+import { useTicketFilterParams } from '../../hooks/useTicketFilterParams';
+import { Project, ProjectStatus, TicketPriority } from '../../types/database';
 import { CustomSelect } from '../common/CustomSelect';
 import { DatePicker } from '../common/DatePicker';
-import { formatIssueIdentifier } from '../../lib/identifier';
+import { formatTicketIdentifier } from '../../lib/identifier';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { StatusBadge } from '../common/StatusBadge';
 import { StatusPicker } from '../common/StatusPicker';
@@ -134,13 +135,14 @@ const EditableText: React.FC<{
 };
 
 export const ProjectsView: React.FC = () => {
-  const { currentWorkspace, currentUser, userRole, currentTeam, setSelectedIssue, setIsNewIssueModalOpen } = useApp();
+  const { currentWorkspace, currentUser, userRole, currentTeam, setSelectedTicket, setIsNewTicketModalOpen } = useApp();
   const { projects, isLoading, createProject, updateProjectAsync, deleteProject } = useProjects({
     workspaceId: currentWorkspace?.id
   });
   const { teams } = useTeams(currentWorkspace?.id);
   const { profiles } = useProfiles();
   const { workflowStates } = useWorkflowStates();
+  const { countableTypeIds } = useTicketTypes();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTeamId, setSelectedTeamId] = useState<string>(currentTeam?.id || 'all');
@@ -166,14 +168,14 @@ export const ProjectsView: React.FC = () => {
     }
   });
   const [sortBy, setSortBy] = useState<'name' | 'target_date' | 'progress' | 'status'>('name');
-  const [isIssueStatusMenuOpen, setIsIssueStatusMenuOpen] = useState(false);
-  const issueStatusMenuRef = useRef<HTMLDivElement>(null);
+  const [isTicketStatusMenuOpen, setIsTicketStatusMenuOpen] = useState(false);
+  const ticketStatusMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close the issue status menu on outside click
+  // Close the ticket status menu on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (issueStatusMenuRef.current && !issueStatusMenuRef.current.contains(e.target as Node)) {
-        setIsIssueStatusMenuOpen(false);
+      if (ticketStatusMenuRef.current && !ticketStatusMenuRef.current.contains(e.target as Node)) {
+        setIsTicketStatusMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -381,17 +383,17 @@ export const ProjectsView: React.FC = () => {
     handleUpdateProjectField('key', next);
   };
 
-  /** Moving the project does not move its issues, so this is confirmed first. */
+  /** Moving the project does not move its tickets, so this is confirmed first. */
   const handleRequestTeamChange = (teamId: string) => {
     if (!selectedProject || teamId === selectedProject.team_id) return;
     const teamName = teams?.find(tm => tm.id === teamId)?.name || 'that team';
     setPendingTeamChange({ teamId, teamName });
   };
 
-  const handleSetIssueStatus = (issueId: string, workspaceId: string, state: { id: string; name: string; color: string }) => {
+  const handleSetTicketStatus = (ticketId: string, workspaceId: string, state: { id: string; name: string; color: string }) => {
     setDetailError(null);
-    setIssueStatus(
-      { id: issueId, workspace_id: workspaceId, state_id: state.id, status: state },
+    setTicketStatus(
+      { id: ticketId, workspace_id: workspaceId, state_id: state.id, status: state },
       { onError: (err: unknown) => setDetailError(describeProjectWriteError(err, 'status', state.name)) }
     );
   };
@@ -406,13 +408,21 @@ export const ProjectsView: React.FC = () => {
 
   const enrichedProjects = useMemo(() => {
     return (projects || []).map(p => {
-      let totalIssues = 0;
-      let completedIssues = 0;
-      if (p.issues) {
-        totalIssues = p.issues.length;
-        completedIssues = p.issues.filter(i => completedStateIds.has(i.state_id)).length;
-      }
-      const progress = totalIssues > 0 ? Math.round((completedIssues / totalIssues) * 100) : 0;
+      // Progress tracks NEW work only. A type carries counts_toward_progress, so a
+      // Feature moves the bar while a Bug or an Improvement does not — closing twenty
+      // bugs should not read as a project nearing delivery.
+      //
+      // Total ticket volume is kept separately: the card shows both, because collapsing
+      // them into one number is what made the old figure misleading.
+      const allTickets = p.tickets || [];
+      const scored = allTickets.filter(ticket => countableTypeIds.has(ticket.type_id));
+
+      const totalTickets = allTickets.length;
+      const completedTickets = allTickets.filter(ticket => completedStateIds.has(ticket.state_id)).length;
+      const scoredTotal = scored.length;
+      const scoredCompleted = scored.filter(ticket => completedStateIds.has(ticket.state_id)).length;
+
+      const progress = scoredTotal > 0 ? Math.round((scoredCompleted / scoredTotal) * 100) : 0;
   
       let daysLeft: number | null = null;
       let isOverdue = false;
@@ -435,9 +445,9 @@ export const ProjectsView: React.FC = () => {
         }
       }
   
-      return { ...p, totalIssues, completedIssues, progress, daysLeft, isOverdue, deliveryFailed };
+      return { ...p, totalTickets, completedTickets, scoredTotal, scoredCompleted, progress, daysLeft, isOverdue, deliveryFailed };
     });
-  }, [projects, completedStateIds]);
+  }, [projects, completedStateIds, countableTypeIds]);
 
   const filteredProjects = useMemo(() => {
     return enrichedProjects.filter(p => {
@@ -460,39 +470,39 @@ export const ProjectsView: React.FC = () => {
     });
   }, [enrichedProjects, selectedTeamId, searchQuery, sortBy]);
 
-  // Filter state for the project's issue list. A separate scope from the main issue
+  // Filter state for the project's ticket list. A separate scope from the main ticket
   // list, so each surface remembers its own filter.
   // One row per status per workspace since 003 — nothing left to group.
-  const issueStatusGroups = useMemo(
+  const ticketStatusGroups = useMemo(
     () => [...(workflowStates || [])].sort((a, b) => a.position - b.position),
     [workflowStates]
   );
 
-  const validIssueStatusIds = useMemo(
+  const validTicketStatusIds = useMemo(
     () => (workflowStates || []).map(s => s.id),
     [workflowStates]
   );
 
   const {
-    bucket: issueBucket,
-    statusIds: issueStatusIds,
-    setBucket: setIssueBucket,
-    toggleStatusId: toggleIssueStatusId,
-    clearFilters: clearIssueFilters,
-  } = useIssueFilterParams({
+    bucket: ticketBucket,
+    statusIds: ticketStatusIds,
+    setBucket: setTicketBucket,
+    toggleStatusId: toggleTicketStatusId,
+    clearFilters: clearTicketFilters,
+  } = useTicketFilterParams({
     workspaceSlug: currentWorkspace?.slug,
-    validStatusIds: validIssueStatusIds,
-    scope: 'project-issues',
+    validStatusIds: validTicketStatusIds,
+    scope: 'project-tickets',
   });
 
-  const selectedIssueStatusGroupCount = issueStatusIds.length;
+  const selectedTicketStatusGroupCount = ticketStatusIds.length;
 
-  // Query issues for the active selected project
-  const { issues: projectIssues, totalCount: projectIssueCount, setIssueStatus } = useIssues({
+  // Query tickets for the active selected project
+  const { tickets: projectTickets, totalCount: projectTicketCount, setTicketStatus } = useTickets({
     workspaceId: currentWorkspace?.id,
     projectId: selectedProject?.id,
-    bucket: issueBucket,
-    statusIds: issueStatusIds,
+    bucket: ticketBucket,
+    statusIds: ticketStatusIds,
     archiveAfterDays: currentWorkspace?.archive_after_days ?? DEFAULT_ARCHIVE_AFTER_DAYS,
   });
 
@@ -672,7 +682,7 @@ export const ProjectsView: React.FC = () => {
             <FolderKanban className="w-8 h-8 text-text-tertiary mx-auto" />
             <h3 className="text-sm font-semibold text-text-primary font-karla">No projects found</h3>
             <p className="text-xs text-text-secondary max-w-sm mx-auto">
-              Create structured projects to organize roadmap deliverables, track progress, and group issues.
+              Create structured projects to organize roadmap deliverables, track progress, and group tickets.
             </p>
             {isAdmin && (
               <button
@@ -725,8 +735,12 @@ export const ProjectsView: React.FC = () => {
                   <div className="space-y-3 pt-3">
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-[11px]">
-                        <span className="text-text-tertiary">Progress</span>
-                        <span className="font-medium text-text-primary">{project.progress}%</span>
+                        <span className="text-text-tertiary">
+                          {project.scoredTotal > 0 ? 'Feature progress' : 'Progress'}
+                        </span>
+                        <span className="font-medium text-text-primary">
+                          {project.scoredTotal > 0 ? `${project.progress}%` : 'No feature tickets yet'}
+                        </span>
                       </div>
                       <div className="w-full h-1.5 bg-bg-surface-raised rounded-full overflow-hidden">
                         <div className="h-full bg-accent-primary transition-all duration-300" style={{ width: `${project.progress}%` }} />
@@ -900,7 +914,7 @@ export const ProjectsView: React.FC = () => {
 
           {/* Project View Body: 2 Columns */}
           <div className="flex-1 overflow-y-auto flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-border min-h-0 no-scrollbar scrollbar-none">
-            {/* Left Column: Description & Issues list for this project */}
+            {/* Left Column: Description & Tickets list for this project */}
             <div className="flex-1 min-w-0 p-4 sm:p-6 md:p-8 space-y-6 overflow-y-auto no-scrollbar scrollbar-none">
               {detailError && (
                 <div className="flex items-start space-x-2 bg-status-error/10 border border-status-error/30 rounded-md px-3 py-2">
@@ -927,7 +941,9 @@ export const ProjectsView: React.FC = () => {
                     {getStatusBadge(selectedProject.status)}
                   </div>
                   <span className="text-xs font-semibold text-accent-primary">
-                    {(activeProjectEnriched as any)?.progress || 0}% Complete
+                    {((activeProjectEnriched as any)?.scoredTotal || 0) > 0
+                      ? `${(activeProjectEnriched as any)?.progress || 0}% Complete`
+                      : 'No feature tickets yet'}
                   </span>
                 </div>
 
@@ -940,7 +956,13 @@ export const ProjectsView: React.FC = () => {
 
                 <div className="flex items-center justify-between text-xs text-text-secondary pt-1">
                   <span>
-                    {(activeProjectEnriched as any)?.completedIssues || 0} of {(activeProjectEnriched as any)?.totalIssues || 0} issues resolved
+                    {((activeProjectEnriched as any)?.scoredTotal || 0) > 0
+                      ? `${(activeProjectEnriched as any)?.scoredCompleted || 0} of ${(activeProjectEnriched as any)?.scoredTotal || 0} features delivered`
+                      : 'Progress tracks feature tickets only'}
+                    <span className="text-text-tertiary">
+                      {' · '}
+                      {(activeProjectEnriched as any)?.completedTickets || 0} of {(activeProjectEnriched as any)?.totalTickets || 0} tickets resolved
+                    </span>
                   </span>
                   {selectedProject.target_date && (
                     <span className="flex items-center space-x-1">
@@ -967,13 +989,13 @@ export const ProjectsView: React.FC = () => {
                 />
               </div>
 
-              {/* Issues in this project */}
+              {/* Tickets in this project */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Layers className="w-4 h-4 text-text-secondary" />
                     <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider">
-                      Project Issues ({projectIssueCount})
+                      Project Tickets ({projectTicketCount})
                     </h3>
                   </div>
 
@@ -984,9 +1006,9 @@ export const ProjectsView: React.FC = () => {
                         <button
                           key={b}
                           type="button"
-                          onClick={() => setIssueBucket(b)}
+                          onClick={() => setTicketBucket(b)}
                           className={`px-2 py-0.5 rounded-full text-[11px] font-medium capitalize transition-colors ${
-                            issueBucket === b && issueStatusIds.length === 0
+                            ticketBucket === b && ticketStatusIds.length === 0
                               ? 'bg-bg-surface-hover text-text-primary'
                               : 'text-text-secondary hover:text-text-primary'
                           }`}
@@ -997,50 +1019,50 @@ export const ProjectsView: React.FC = () => {
                     </div>
 
                     {/* Status filter */}
-                    <div className="relative shrink-0" ref={issueStatusMenuRef}>
+                    <div className="relative shrink-0" ref={ticketStatusMenuRef}>
                       <button
                         type="button"
                         title="Filter by status"
-                        onClick={() => setIsIssueStatusMenuOpen(!isIssueStatusMenuOpen)}
+                        onClick={() => setIsTicketStatusMenuOpen(!isTicketStatusMenuOpen)}
                         className={`flex items-center space-x-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors ${
-                          issueStatusIds.length > 0
+                          ticketStatusIds.length > 0
                             ? 'bg-bg-surface-hover text-text-primary'
                             : 'text-text-secondary hover:text-text-primary'
                         }`}
                       >
                         <Filter className="w-3 h-3" />
-                        <span>{selectedIssueStatusGroupCount > 0 ? selectedIssueStatusGroupCount : 'Status'}</span>
+                        <span>{selectedTicketStatusGroupCount > 0 ? selectedTicketStatusGroupCount : 'Status'}</span>
                       </button>
 
-                      {isIssueStatusMenuOpen && (
+                      {isTicketStatusMenuOpen && (
                         <div className="absolute right-0 top-full mt-1.5 w-52 bg-bg-surface-raised border border-transparent rounded-md shadow-lg py-1 z-30 max-h-64 overflow-y-auto">
                           <button
-                            onClick={() => clearIssueFilters()}
+                            onClick={() => clearTicketFilters()}
                             className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 text-xs text-left transition-colors ${
-                              issueStatusIds.length === 0
+                              ticketStatusIds.length === 0
                                 ? 'text-text-primary font-medium'
                                 : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
                             }`}
                           >
                             <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
-                              issueStatusIds.length === 0 ? 'bg-text-primary border-text-primary' : 'border-border-strong'
+                              ticketStatusIds.length === 0 ? 'bg-text-primary border-text-primary' : 'border-border-strong'
                             }`}>
-                              {issueStatusIds.length === 0 && <Check className="w-2.5 h-2.5 text-button-text" />}
+                              {ticketStatusIds.length === 0 && <Check className="w-2.5 h-2.5 text-button-text" />}
                             </div>
                             <span>Any status (open)</span>
                           </button>
 
                           <div className="my-1 h-px bg-border" />
 
-                          {issueStatusGroups.length === 0 ? (
+                          {ticketStatusGroups.length === 0 ? (
                             <div className="px-2.5 py-2 text-xs text-text-tertiary">No workflow states yet.</div>
                           ) : (
-                            issueStatusGroups.map(group => {
-                              const isSelected = issueStatusIds.includes(group.id);
+                            ticketStatusGroups.map(group => {
+                              const isSelected = ticketStatusIds.includes(group.id);
                               return (
                                 <button
                                   key={group.id}
-                                  onClick={() => toggleIssueStatusId(group.id)}
+                                  onClick={() => toggleTicketStatusId(group.id)}
                                   className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 text-xs text-left transition-colors ${
                                     isSelected
                                       ? 'text-text-primary font-medium'
@@ -1064,62 +1086,62 @@ export const ProjectsView: React.FC = () => {
                   </div>
 
                   <button
-                    onClick={() => setIsNewIssueModalOpen(true)}
+                    onClick={() => setIsNewTicketModalOpen(true)}
                     className="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-bg-surface-raised hover:bg-bg-surface-hover text-text-primary border border-transparent text-xs font-medium transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5 text-accent-primary" />
-                    <span>Add Issue</span>
+                    <span>Add Ticket</span>
                   </button>
                 </div>
 
                 <div className="border border-transparent rounded-md bg-bg-surface-raised overflow-hidden">
-                  {(!projectIssues || projectIssues.length === 0) ? (
+                  {(!projectTickets || projectTickets.length === 0) ? (
                     <div className="p-6 text-center text-xs text-text-secondary">
-                      {issueBucket === 'open' && issueStatusIds.length === 0
-                        ? 'No open issues for this project. Click "Add Issue" to assign tasks to this project.'
-                        : 'No issues match this filter. Try another status, or switch to All.'}
+                      {ticketBucket === 'open' && ticketStatusIds.length === 0
+                        ? 'No open tickets for this project. Click "Add Ticket" to assign tasks to this project.'
+                        : 'No tickets match this filter. Try another status, or switch to All.'}
                     </div>
                   ) : (
-                    projectIssues.map(issue => (
+                    projectTickets.map(ticket => (
                       <div
-                        key={issue.id}
-                        onClick={() => setSelectedIssue(issue)}
+                        key={ticket.id}
+                        onClick={() => setSelectedTicket(ticket)}
                         className="px-4 py-3 flex items-center justify-between hover:bg-bg-surface-hover cursor-pointer transition-colors"
                       >
                         <div className="flex items-center space-x-3 min-w-0 flex-1 mr-4">
                           <span className="font-id text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-bg-surface-hover border border-transparent text-text-secondary shrink-0">
-                            {formatIssueIdentifier(issue, currentWorkspace)}
+                            {formatTicketIdentifier(ticket, currentWorkspace)}
                           </span>
                           <span className="text-xs font-medium text-text-primary truncate">
-                            {issue.title}
+                            {ticket.title}
                           </span>
                         </div>
 
                         <div className="flex items-center shrink-0">
                           <div className="w-24 flex justify-end">
                             <StatusPicker
-                              value={issue.state_id}
-                              current={issue.status ? { id: issue.state_id, name: issue.status.name, color: issue.status.color } : null}
-                              // The issue's OWN team, not the project's: an issue can sit on a
+                              value={ticket.state_id}
+                              current={ticket.status ? { id: ticket.state_id, name: ticket.status.name, color: ticket.status.color } : null}
+                              // The ticket's OWN team, not the project's: a ticket can sit on a
                               // different team, and a state from the wrong team would write a
                               // state_id its board cannot render.
-                              options={issueStatusGroups.map(s => ({ id: s.id, name: s.name, color: s.color }))}
+                              options={ticketStatusGroups.map(s => ({ id: s.id, name: s.name, color: s.color }))}
                               onSelect={(stateId) => {
                                 const next = (workflowStates || []).find(s => s.id === stateId);
                                 if (next) {
-                                  handleSetIssueStatus(issue.id, issue.workspace_id, {
+                                  handleSetTicketStatus(ticket.id, ticket.workspace_id, {
                                     id: next.id, name: next.name, color: next.color,
                                   });
                                 }
                               }}
-                              emptyMessage="This issue's team has no workflow states."
+                              emptyMessage="This ticket's team has no workflow states."
                             />
                           </div>
                           <span
                             className="w-16 text-right text-[10px] font-medium capitalize"
-                            style={{ color: PRIORITY_COLORS[issue.priority as string] || '#727272' }}
+                            style={{ color: PRIORITY_COLORS[ticket.priority as string] || '#727272' }}
                           >
-                            {issue.priority}
+                            {ticket.priority}
                           </span>
                         </div>
                       </div>
@@ -1431,13 +1453,13 @@ export const ProjectsView: React.FC = () => {
         onCancel={() => setDeletingProject(null)}
       />
 
-      {/* Moving a project does not move its issues, and issue visibility is team-scoped
+      {/* Moving a project does not move its tickets, and ticket visibility is team-scoped
           in RLS — so this is worth confirming rather than doing silently. */}
       <ConfirmModal
         isOpen={!!pendingTeamChange}
         title="Move project to another team?"
         message={pendingTeamChange
-          ? `Move "${selectedProject?.name}" to ${pendingTeamChange.teamName}? The project's issues do not move — they keep their own team. Because issues are only visible to their own team's members, people on ${pendingTeamChange.teamName} may not be able to see this project's existing issues.`
+          ? `Move "${selectedProject?.name}" to ${pendingTeamChange.teamName}? The project's tickets do not move — they keep their own team. Because tickets are only visible to their own team's members, people on ${pendingTeamChange.teamName} may not be able to see this project's existing tickets.`
           : ''}
         confirmText="Move project"
         onConfirm={() => {

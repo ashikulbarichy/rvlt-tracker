@@ -7,7 +7,7 @@ export type Json =
   | Json[];
 
 export type UserRole = 'admin' | 'member';
-export type IssuePriority = 'urgent' | 'high' | 'medium' | 'low' | 'none';
+export type TicketPriority = 'urgent' | 'high' | 'medium' | 'low' | 'none';
 export type StateCategory = 'backlog' | 'unstarted' | 'started' | 'completed' | 'canceled';
 export type ProjectStatus = 'planned' | 'in_progress' | 'paused' | 'completed' | 'canceled';
 export type TestCaseStatus = 'draft' | 'untested' | 'passed' | 'failed';
@@ -27,9 +27,9 @@ export interface Workspace {
   id: string;
   name: string;
   slug: string;
-  issue_prefix?: string;
+  ticket_prefix?: string;
   test_case_prefix?: string;
-  /** Days a closed issue stays visible before it auto-archives. 1-365, defaults to 7. */
+  /** Days a closed ticket stays visible before it auto-archives. 1-365, defaults to 7. */
   archive_after_days?: number;
   created_by: string | null;
   created_at: string;
@@ -52,7 +52,7 @@ export interface Team {
   key: string;
   icon: string;
   description: string | null;
-  issue_counter: number;
+  ticket_counter: number;
   created_at: string;
   updated_at: string;
 }
@@ -90,7 +90,8 @@ export interface Project {
   created_at: string;
   updated_at: string;
   lead?: Profile;
-  issues?: { id: string; state_id: string }[];
+  /** Embedded by useProjects for the progress bar; type_id selects countable types. */
+  tickets?: { id: string; state_id: string; type_id: string }[];
 }
 
 export interface RoadmapItem {
@@ -109,40 +110,127 @@ export interface RoadmapItem {
   project?: Project;
 }
 
-export interface IssueAssignee {
+/**
+ * A workspace-level ticket type (Bug, Feature, Improvement, plus anything the workspace
+ * adds). Added in migration 004.
+ */
+export type DocVisibility = 'workspace' | 'team' | 'private';
+export type DocStatus = 'draft' | 'published' | 'archived';
+
+/** A top-level shelf in the docs tree (Company, Engineering, ...). Added in 005. */
+export interface DocCollection {
+  id: string;
   workspace_id: string;
-  issue_id: string;
+  name: string;
+  /** lucide-react icon name. */
+  icon: string | null;
+  color: string;
+  position: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Doc {
+  id: string;
+  workspace_id: string;
+  collection_id: string | null;
+  parent_id: string | null;
+  /** Only meaningful when visibility is 'team'. */
+  team_id: string | null;
+  title: string;
+  /** Sanitized HTML from the editor. */
+  content: string;
+  /** Plain-text mirror of `content`, written by the client, used for search. */
+  content_text: string;
+  /** Emoji. */
+  icon: string | null;
+  visibility: DocVisibility;
+  status: DocStatus;
+  position: number;
+  created_by: string | null;
+  updated_by: string | null;
+  /** Soft delete. Setting it cascades to the whole subtree via trigger. */
+  deleted_at: string | null;
+  deleted_by: string | null;
+  created_at: string;
+  updated_at: string;
+  collection?: DocCollection;
+  author?: Profile;
+  editor?: Profile;
+}
+
+/** A doc with its children resolved, built client-side from the flat list. */
+export interface DocTreeNode extends Doc {
+  children: DocTreeNode[];
+  depth: number;
+}
+
+export interface DocTemplate {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string | null;
+  content: string;
+  /** Part of the seeded set. Still editable; the flag drives "reset to default". */
+  is_builtin: boolean;
+  position: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TicketType {
+  id: string;
+  workspace_id: string;
+  name: string;
+  color: string;
+  position: number;
+  /** Whether tickets of this type move the project progress bar. */
+  counts_toward_progress: boolean;
+  /** The type new tickets get. At most one per workspace. */
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TicketAssignee {
+  workspace_id: string;
+  ticket_id: string;
   user_id: string;
   created_at: string;
   profile?: Profile;
 }
 
-export interface Issue {
+export interface Ticket {
   id: string;
   workspace_id: string;
   team_id: string;
   project_id: string | null;
-  issue_number: number;
+  ticket_number: number;
   identifier: string;
   title: string;
   description: string;
   state_id: string;
-  priority: IssuePriority;
+  type_id: string;
+  priority: TicketPriority;
   assignee_id: string | null;
   reporter_id: string | null;
   due_date: string | null;
-  estimate: number | null;
   created_at: string;
   updated_at: string;
-  /** Set by a trigger when the issue enters a completed/canceled state; cleared on reopen. */
+  /** Set by a trigger when the ticket enters a completed/canceled state; cleared on reopen. */
   closed_at: string | null;
-  /** Stamped on manual unarchive; exempts the issue from auto-archiving forever. */
+  /** Stamped on manual unarchive; exempts the ticket from auto-archiving forever. */
   unarchived_at: string | null;
-  /** Soft delete. Non-null means the issue is in the trash. */
+  /** Soft delete. Non-null means the ticket is in the trash. */
   deleted_at: string | null;
   deleted_by: string | null;
   state?: WorkflowState;
   status?: WorkflowState;
+  type?: TicketType;
   assignee?: Profile;
   assignees?: Profile[];
   assignee_ids?: string[];
@@ -160,16 +248,16 @@ export interface TestCase {
   steps: string;
   expected_result: string;
   status: TestCaseStatus;
-  priority: IssuePriority;
+  priority: TicketPriority;
   created_by: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export interface IssueComment {
+export interface TicketComment {
   id: string;
   workspace_id: string;
-  issue_id: string;
+  ticket_id: string;
   author_id: string | null;
   body: string;
   created_at: string;
@@ -180,7 +268,7 @@ export interface IssueComment {
 export interface ActivityLog {
   id: string;
   workspace_id: string;
-  entity_type: 'issue' | 'project' | 'test_case' | 'comment';
+  entity_type: 'ticket' | 'project' | 'test_case' | 'comment';
   entity_id: string;
   actor_id: string | null;
   action: string;

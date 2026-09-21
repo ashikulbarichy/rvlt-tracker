@@ -24,7 +24,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     category: 'Create & Actions',
     items: [
-      { description: 'Create new issue', keys: ['C'] },
+      { description: 'Create new ticket', keys: ['C'] },
       { description: 'Create new test case', keys: ['T'] },
       { description: 'Submit modal / form', keys: ['⌘', 'Enter'] },
     ],
@@ -33,7 +33,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     category: 'Navigation',
     items: [
       { description: 'Go to Home / Inbox', keys: ['G', 'then', 'H'] },
-      { description: 'Go to Issues', keys: ['G', 'then', 'I'] },
+      { description: 'Go to Tickets', keys: ['G', 'then', 'I'] },
       { description: 'Go to Projects', keys: ['G', 'then', 'P'] },
       { description: 'Go to Roadmap', keys: ['G', 'then', 'R'] },
       { description: 'Go to Test Cases', keys: ['G', 'then', 'T'] },

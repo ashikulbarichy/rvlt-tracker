@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { useTestCases } from '../../hooks/useTestCases';
 import { useProjects } from '../../hooks/useProjects';
 import { CustomSelect } from '../common/CustomSelect';
-import { IssuePriority } from '../../types/database';
+import { TicketPriority } from '../../types/database';
 
 export const NewTestCaseModal: React.FC = () => {
   const {
@@ -22,7 +22,7 @@ export const NewTestCaseModal: React.FC = () => {
   const [preconditions, setPreconditions] = useState('');
   const [steps, setSteps] = useState('');
   const [expectedResult, setExpectedResult] = useState('');
-  const [priority, setPriority] = useState<IssuePriority>('medium');
+  const [priority, setPriority] = useState<TicketPriority>('medium');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -219,7 +219,7 @@ export const NewTestCaseModal: React.FC = () => {
               </label>
               <CustomSelect
                 value={priority}
-                onChange={(val) => setPriority(val as IssuePriority)}
+                onChange={(val) => setPriority(val as TicketPriority)}
                 options={[
                   { value: 'urgent', label: 'Urgent' },
                   { value: 'high', label: 'High' },

@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { IssueBucket } from './useIssues';
+import { TicketBucket } from './useTickets';
 
 /**
- * Filter state for the issue lists, held in the URL so links are shareable and
+ * Filter state for the ticket lists, held in the URL so links are shareable and
  * back/forward behave, and mirrored to localStorage so arriving via a bare sidebar link
  * restores what you were last looking at.
  *
  * Precedence: explicit URL params > stored filter > the open default.
  */
-export interface IssueFilterState {
-  bucket: IssueBucket;
+export interface TicketFilterState {
+  bucket: TicketBucket;
   statusIds: string[];
   /** The pre-existing "Mine" tab: an assignee filter, orthogonal to the bucket. */
   mine: boolean;
@@ -18,11 +18,11 @@ export interface IssueFilterState {
   teamIds: string[];
 }
 
-const BUCKETS: IssueBucket[] = ['open', 'closed', 'archived', 'trash', 'all'];
-const DEFAULT_BUCKET: IssueBucket = 'open';
-const STORAGE_PREFIX = 'rvlt:issue-filter:';
+const BUCKETS: TicketBucket[] = ['open', 'closed', 'archived', 'trash', 'all'];
+const DEFAULT_BUCKET: TicketBucket = 'open';
+const STORAGE_PREFIX = 'rvlt:ticket-filter:';
 
-function isBucket(value: string | null): value is IssueBucket {
+function isBucket(value: string | null): value is TicketBucket {
   return value !== null && (BUCKETS as string[]).includes(value);
 }
 
@@ -32,7 +32,7 @@ function parseStatusParam(raw: string | null): string[] {
 }
 
 /** Storage can throw outright in private windows, so every access is guarded. */
-function readStored(storageKey: string | null): IssueFilterState | null {
+function readStored(storageKey: string | null): TicketFilterState | null {
   if (!storageKey) return null;
   try {
     const raw = window.localStorage.getItem(storageKey);
@@ -58,7 +58,7 @@ function readStored(storageKey: string | null): IssueFilterState | null {
   }
 }
 
-function writeStored(storageKey: string | null, state: IssueFilterState): void {
+function writeStored(storageKey: string | null, state: TicketFilterState): void {
   if (!storageKey) return;
   try {
     window.localStorage.setItem(storageKey, JSON.stringify(state));
@@ -67,7 +67,7 @@ function writeStored(storageKey: string | null, state: IssueFilterState): void {
   }
 }
 
-interface UseIssueFilterParamsOptions {
+interface UseTicketFilterParamsOptions {
   workspaceSlug?: string;
   /**
    * Ids of the workflow states that exist for the current scope. While this is empty the
@@ -77,21 +77,21 @@ interface UseIssueFilterParamsOptions {
   /** Team ids that exist for this workspace; unknown ids in the URL are dropped. */
   validTeamIds?: string[];
   /**
-   * Set on /teams/:teamId/issues. Locks the team filter to this team and hides it from
+   * Set on /teams/:teamId/tickets. Locks the team filter to this team and hides it from
    * the URL, because the route already says which team you are looking at.
    */
   lockedTeamId?: string;
   /**
-   * Distinguishes surfaces that each remember their own filter. The issue list and the
+   * Distinguishes surfaces that each remember their own filter. The ticket list and the
    * project detail panel are separate scopes, so switching between them doesn't drag
    * one's filter onto the other.
    */
   scope?: string;
 }
 
-export function useIssueFilterParams({
-  workspaceSlug, validStatusIds, validTeamIds, lockedTeamId, scope = 'issues',
-}: UseIssueFilterParamsOptions) {
+export function useTicketFilterParams({
+  workspaceSlug, validStatusIds, validTeamIds, lockedTeamId, scope = 'tickets',
+}: UseTicketFilterParamsOptions) {
   const [searchParams, setSearchParams] = useSearchParams();
   const seeded = useRef(false);
   const storageKey = workspaceSlug ? `${STORAGE_PREFIX}${workspaceSlug}:${scope}` : null;
@@ -107,7 +107,7 @@ export function useIssueFilterParams({
   const requestedStatusIds = parseStatusParam(rawStatus);
 
   // Derived during render rather than mirrored into state.
-  const bucket: IssueBucket = isBucket(rawView) ? rawView : DEFAULT_BUCKET;
+  const bucket: TicketBucket = isBucket(rawView) ? rawView : DEFAULT_BUCKET;
   const mine = rawMine === '1';
   const statusIds = statusListReady
     ? requestedStatusIds.filter(id => validStatusIds!.includes(id))
@@ -122,7 +122,7 @@ export function useIssueFilterParams({
       ? requestedTeamIds.filter(id => validTeamIds!.includes(id))
       : requestedTeamIds;
 
-  const writeParams = useCallback((next: IssueFilterState) => {
+  const writeParams = useCallback((next: TicketFilterState) => {
     const params = new URLSearchParams(searchParams);
     params.set('view', next.bucket);
     if (next.statusIds.length > 0) {
@@ -144,14 +144,14 @@ export function useIssueFilterParams({
     return params;
   }, [searchParams, lockedTeamId]);
 
-  const apply = useCallback((next: IssueFilterState) => {
+  const apply = useCallback((next: TicketFilterState) => {
     // replace so a filter change doesn't add a history entry per click.
     setSearchParams(writeParams(next), { replace: true });
     writeStored(storageKey, next);
   }, [writeParams, setSearchParams, storageKey]);
 
   /** Merge a partial change onto the current filter. */
-  const setFilter = useCallback((patch: Partial<IssueFilterState>) => {
+  const setFilter = useCallback((patch: Partial<TicketFilterState>) => {
     apply({ bucket, statusIds, mine, teamIds, ...patch });
   }, [apply, bucket, statusIds, mine, teamIds]);
 
@@ -164,7 +164,7 @@ export function useIssueFilterParams({
     seeded.current = true;
 
     const stored = readStored(storageKey);
-    const next: IssueFilterState = stored ?? { bucket: DEFAULT_BUCKET, statusIds: [], mine: false, teamIds: [] };
+    const next: TicketFilterState = stored ?? { bucket: DEFAULT_BUCKET, statusIds: [], mine: false, teamIds: [] };
     setSearchParams(writeParams(next), { replace: true });
   }, [hasFilterParams, storageKey, writeParams, setSearchParams]);
 
@@ -191,7 +191,7 @@ export function useIssueFilterParams({
     setTeamIds(teamIds.includes(id) ? teamIds.filter(t => t !== id) : [...teamIds, id]);
   }, [teamIds, setTeamIds]);
 
-  const setBucket = useCallback((next: IssueBucket) => {
+  const setBucket = useCallback((next: TicketBucket) => {
     // A bucket choice replaces any explicit status selection.
     setFilter({ bucket: next, statusIds: [] });
   }, [setFilter]);

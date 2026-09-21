@@ -7,32 +7,33 @@ import {
   X, Trash2, Send, Edit3, MessageSquare, Plus, Check, Users, ArrowLeft, Calendar, Clock, AlertTriangle
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { IssuePriority } from '../../types/database';
-import { useIssues } from '../../hooks/useIssues';
+import { TicketPriority } from '../../types/database';
+import { useTickets } from '../../hooks/useTickets';
 import { useWorkflowStates } from '../../hooks/useWorkflowStates';
+import { useTicketTypes } from '../../hooks/useTicketTypes';
 import { useProfiles } from '../../hooks/useProfiles';
 import { useComments } from '../../hooks/useComments';
 import { useTeamMembers } from '../../hooks/useTeamMembers';
-import { formatIssueIdentifier } from '../../lib/identifier';
+import { formatTicketIdentifier } from '../../lib/identifier';
 import { formatRelativeTime } from '../../lib/time';
 import { useImagePaste } from '../../hooks/useImagePaste';
 import { ConfirmModal } from '../common/ConfirmModal';
 
-export const IssueDetailModal: React.FC = () => {
+export const TicketDetailModal: React.FC = () => {
   const {
-    selectedIssue,
-    setSelectedIssue,
+    selectedTicket,
+    setSelectedTicket,
     currentUser,
     userRole,
     currentWorkspace
   } = useApp();
 
-  const [displayedIssue, setDisplayedIssue] = useState<any>(selectedIssue);
+  const [displayedTicket, setDisplayedTicket] = useState<any>(selectedTicket);
   const [isOpen, setIsOpen] = useState(false);
 
   React.useEffect(() => {
-    if (selectedIssue) {
-      setDisplayedIssue(selectedIssue);
+    if (selectedTicket) {
+      setDisplayedTicket(selectedTicket);
       const raf = requestAnimationFrame(() => {
         setIsOpen(true);
       });
@@ -40,30 +41,31 @@ export const IssueDetailModal: React.FC = () => {
     } else {
       setIsOpen(false);
       const timer = setTimeout(() => {
-        setDisplayedIssue(null);
+        setDisplayedTicket(null);
       }, 220);
       return () => clearTimeout(timer);
     }
-  }, [selectedIssue]);
+  }, [selectedTicket]);
 
   const handleClose = React.useCallback(() => {
     setIsOpen(false);
     setTimeout(() => {
-      setSelectedIssue(null);
-      setDisplayedIssue(null);
+      setSelectedTicket(null);
+      setDisplayedTicket(null);
     }, 220);
-  }, [setSelectedIssue]);
+  }, [setSelectedTicket]);
 
-  const activeIssue = selectedIssue || displayedIssue;
+  const activeTicket = selectedTicket || displayedTicket;
 
-  const { updateIssue, deleteIssue } = useIssues({ workspaceId: currentWorkspace?.id });
+  const { updateTicket, deleteTicket } = useTickets({ workspaceId: currentWorkspace?.id });
   const { workflowStates } = useWorkflowStates();
+  const { ticketTypes } = useTicketTypes();
   const { profiles } = useProfiles();
-  const { comments, addComment, updateComment, deleteComment } = useComments(activeIssue?.id);
+  const { comments, addComment, updateComment, deleteComment } = useComments(activeTicket?.id);
 
-  const [descriptionText, setDescriptionText] = useState(activeIssue?.description || '');
+  const [descriptionText, setDescriptionText] = useState(activeTicket?.description || '');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [titleText, setTitleText] = useState(activeIssue?.title || '');
+  const [titleText, setTitleText] = useState(activeTicket?.title || '');
   const [newCommentText, setNewCommentText] = useState('');
   const [isAssigneePickerOpen, setIsAssigneePickerOpen] = useState(false);
   const assigneePickerRef = React.useRef<HTMLDivElement>(null);
@@ -79,13 +81,13 @@ export const IssueDetailModal: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isAssigneePickerOpen]);
-  const [prevIssueId, setPrevIssueId] = useState(activeIssue?.id);
+  const [prevTicketId, setPrevTicketId] = useState(activeTicket?.id);
 
-  if (activeIssue?.id !== prevIssueId) {
-    setDescriptionText(activeIssue?.description || '');
-    setTitleText(activeIssue?.title || '');
+  if (activeTicket?.id !== prevTicketId) {
+    setDescriptionText(activeTicket?.description || '');
+    setTitleText(activeTicket?.title || '');
     setIsEditingTitle(false);
-    setPrevIssueId(activeIssue?.id);
+    setPrevTicketId(activeTicket?.id);
     setNewCommentText('');
   }
   
@@ -93,7 +95,7 @@ export const IssueDetailModal: React.FC = () => {
   const [editCommentText, setEditCommentText] = useState('');
   
   // In-app Delete Confirmation State
-  const [showDeleteIssueModal, setShowDeleteIssueModal] = useState(false);
+  const [showDeleteTicketModal, setShowDeleteTicketModal] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
@@ -108,53 +110,53 @@ export const IssueDetailModal: React.FC = () => {
   const handleEditCommentPaste = useImagePaste(editCommentText, setEditCommentText, editTextareaRef);
   
   const { getTeamUsers } = useTeamMembers(currentWorkspace?.id);
-  const teamMembers = activeIssue?.team_id ? getTeamUsers(activeIssue.team_id) : [];
+  const teamMembers = activeTicket?.team_id ? getTeamUsers(activeTicket.team_id) : [];
   const mentionableProfiles = teamMembers.map(tm => tm.profile).filter(Boolean) as any[];
 
-  // Update local title and description text when issue changes
+  // Update local title and description text when ticket changes
   React.useEffect(() => {
-    if (activeIssue) {
-      if (activeIssue.title !== titleText && !isEditingTitle) setTitleText(activeIssue.title || '');
+    if (activeTicket) {
+      if (activeTicket.title !== titleText && !isEditingTitle) setTitleText(activeTicket.title || '');
     }
-  }, [activeIssue?.title]);
+  }, [activeTicket?.title]);
 
   // Close on Escape key
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && (selectedIssue || isOpen) && !isEditingTitle && !showMentionPicker && !isAssigneePickerOpen) {
+      if (e.key === 'Escape' && (selectedTicket || isOpen) && !isEditingTitle && !showMentionPicker && !isAssigneePickerOpen) {
         handleClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIssue, isOpen, isEditingTitle, showMentionPicker, isAssigneePickerOpen, handleClose]);
+  }, [selectedTicket, isOpen, isEditingTitle, showMentionPicker, isAssigneePickerOpen, handleClose]);
 
-  if (!activeIssue) return null;
+  if (!activeTicket) return null;
 
-  const issueComments = comments || [];
+  const ticketComments = comments || [];
   const teamStates = workflowStates || [];
 
   // Derive assignees
-  const currentAssigneeIds: string[] = activeIssue.assignee_ids || (activeIssue.assignee_id ? [activeIssue.assignee_id] : []);
+  const currentAssigneeIds: string[] = activeTicket.assignee_ids || (activeTicket.assignee_id ? [activeTicket.assignee_id] : []);
   const assignedProfiles = (profiles || []).filter(p => currentAssigneeIds.includes(p.id));
 
   const handleSaveTitle = (newTitle: string) => {
     const trimmed = newTitle.trim();
-    if (!trimmed || trimmed === activeIssue.title) {
-      setTitleText(activeIssue.title);
+    if (!trimmed || trimmed === activeTicket.title) {
+      setTitleText(activeTicket.title);
       setIsEditingTitle(false);
       return;
     }
-    updateIssue({ id: activeIssue.id, workspace_id: activeIssue.workspace_id, title: trimmed });
-    setSelectedIssue({ ...activeIssue, title: trimmed });
-    setDisplayedIssue({ ...activeIssue, title: trimmed });
+    updateTicket({ id: activeTicket.id, workspace_id: activeTicket.workspace_id, title: trimmed });
+    setSelectedTicket({ ...activeTicket, title: trimmed });
+    setDisplayedTicket({ ...activeTicket, title: trimmed });
     setIsEditingTitle(false);
   };
 
   const handleSaveDescription = () => {
-    updateIssue({ id: activeIssue.id, workspace_id: activeIssue.workspace_id, description: descriptionText });
-    setSelectedIssue({ ...activeIssue, description: descriptionText });
-    setDisplayedIssue({ ...activeIssue, description: descriptionText });
+    updateTicket({ id: activeTicket.id, workspace_id: activeTicket.workspace_id, description: descriptionText });
+    setSelectedTicket({ ...activeTicket, description: descriptionText });
+    setDisplayedTicket({ ...activeTicket, description: descriptionText });
   };
 
   const handleSendComment = (e?: React.FormEvent) => {
@@ -313,14 +315,14 @@ export const IssueDetailModal: React.FC = () => {
   };
 
   const handleUpdateField = (field: string, value: any) => {
-    if (!activeIssue) return;
-    updateIssue({ id: activeIssue.id, workspace_id: activeIssue.workspace_id, [field]: value });
-    setSelectedIssue({ ...activeIssue, [field]: value });
-    setDisplayedIssue({ ...activeIssue, [field]: value });
+    if (!activeTicket) return;
+    updateTicket({ id: activeTicket.id, workspace_id: activeTicket.workspace_id, [field]: value });
+    setSelectedTicket({ ...activeTicket, [field]: value });
+    setDisplayedTicket({ ...activeTicket, [field]: value });
   };
 
   const handleToggleAssignee = (userId: string) => {
-    if (!activeIssue) return;
+    if (!activeTicket) return;
     let newAssigneeIds: string[];
     if (currentAssigneeIds.includes(userId)) {
       newAssigneeIds = currentAssigneeIds.filter(id => id !== userId);
@@ -329,43 +331,43 @@ export const IssueDetailModal: React.FC = () => {
     }
 
     const updatedProfiles = (profiles || []).filter(p => newAssigneeIds.includes(p.id));
-    updateIssue({
-      id: activeIssue.id,
-      workspace_id: activeIssue.workspace_id,
+    updateTicket({
+      id: activeTicket.id,
+      workspace_id: activeTicket.workspace_id,
       assignee_ids: newAssigneeIds,
     });
     const updated = {
-      ...activeIssue,
+      ...activeTicket,
       assignee_ids: newAssigneeIds,
       assignees: updatedProfiles,
       assignee_id: newAssigneeIds[0] || null,
       assignee: updatedProfiles[0] || null
     };
-    setSelectedIssue(updated);
-    setDisplayedIssue(updated);
+    setSelectedTicket(updated);
+    setDisplayedTicket(updated);
   };
 
   const handleRemoveAssignee = (userId: string) => {
-    if (!activeIssue) return;
+    if (!activeTicket) return;
     const newAssigneeIds = currentAssigneeIds.filter(id => id !== userId);
     const updatedProfiles = (profiles || []).filter(p => newAssigneeIds.includes(p.id));
-    updateIssue({
-      id: activeIssue.id,
-      workspace_id: activeIssue.workspace_id,
+    updateTicket({
+      id: activeTicket.id,
+      workspace_id: activeTicket.workspace_id,
       assignee_ids: newAssigneeIds,
     });
     const updated = {
-      ...activeIssue,
+      ...activeTicket,
       assignee_ids: newAssigneeIds,
       assignees: updatedProfiles,
       assignee_id: newAssigneeIds[0] || null,
       assignee: updatedProfiles[0] || null
     };
-    setSelectedIssue(updated);
-    setDisplayedIssue(updated);
+    setSelectedTicket(updated);
+    setDisplayedTicket(updated);
   };
 
-  const hasDescriptionChanged = descriptionText !== (activeIssue.description || '');
+  const hasDescriptionChanged = descriptionText !== (activeTicket.description || '');
 
   return (
     <div 
@@ -386,7 +388,7 @@ export const IssueDetailModal: React.FC = () => {
           <div className="w-px h-4 bg-border shrink-0" />
 
           <span className="font-id text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-bg-surface-raised border border-transparent text-text-secondary shrink-0">
-            {formatIssueIdentifier(activeIssue, currentWorkspace)}
+            {formatTicketIdentifier(activeTicket, currentWorkspace)}
           </span>
 
             {isEditingTitle ? (
@@ -405,12 +407,12 @@ export const IssueDetailModal: React.FC = () => {
                   onBlur={() => handleSaveTitle(titleText)}
                   onKeyDown={(e) => {
                     if (e.key === 'Escape') {
-                      setTitleText(activeIssue.title);
+                      setTitleText(activeTicket.title);
                       setIsEditingTitle(false);
                     }
                   }}
                   className="w-full text-sm sm:text-base font-semibold text-text-primary px-2.5 py-1 bg-bg-surface-raised border border-transparent focus:border-text-secondary focus:ring-1 focus:ring-text-secondary rounded-sm focus:outline-none transition-colors"
-                  placeholder="Issue title..."
+                  placeholder="Ticket title..."
                 />
               </form>
             ) : (
@@ -420,7 +422,7 @@ export const IssueDetailModal: React.FC = () => {
                 title="Click to rename title"
               >
                 <h2 className="text-sm sm:text-base font-semibold text-text-primary truncate">
-                  {activeIssue.title}
+                  {activeTicket.title}
                 </h2>
                 <Edit3 className="w-3.5 h-3.5 text-text-tertiary opacity-0 group-hover/title:opacity-100 transition-opacity shrink-0" />
               </div>
@@ -428,11 +430,11 @@ export const IssueDetailModal: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-1 sm:space-x-2">
-            {(userRole === 'admin' || activeIssue.reporter_id === currentUser?.id) && (
+            {(userRole === 'admin' || activeTicket.reporter_id === currentUser?.id) && (
               <button
-                onClick={() => setShowDeleteIssueModal(true)}
+                onClick={() => setShowDeleteTicketModal(true)}
                 className="p-1.5 rounded-full text-text-secondary hover:text-status-error hover:bg-bg-surface transition-colors"
-                title="Delete Issue"
+                title="Delete Ticket"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -466,7 +468,7 @@ export const IssueDetailModal: React.FC = () => {
                 {hasDescriptionChanged && (
                   <div className="flex justify-end space-x-2 pt-1">
                     <button
-                      onClick={() => setDescriptionText(activeIssue.description || '')}
+                      onClick={() => setDescriptionText(activeTicket.description || '')}
                       className="px-3 py-1.5 rounded-full text-xs text-text-secondary hover:bg-bg-surface transition-colors"
                     >
                       Cancel
@@ -487,15 +489,15 @@ export const IssueDetailModal: React.FC = () => {
               <div className="flex items-center justify-between pb-1">
                 <div className="flex items-center space-x-2 text-sm font-semibold text-text-primary">
                   <MessageSquare className="w-4 h-4 text-accent-primary" />
-                  <span>Discussion ({issueComments.length})</span>
+                  <span>Discussion ({ticketComments.length})</span>
                 </div>
                 <span className="text-[11px] text-text-tertiary">
-                  {issueComments.length === 0 ? 'No comments yet' : `${issueComments.length} comment${issueComments.length > 1 ? 's' : ''}`}
+                  {ticketComments.length === 0 ? 'No comments yet' : `${ticketComments.length} comment${ticketComments.length > 1 ? 's' : ''}`}
                 </span>
               </div>
 
               <div className="space-y-4">
-                {issueComments.map((comment: any) => {
+                {ticketComments.map((comment: any) => {
                   const fullName = currentUser?.full_name || '';
                   const email = currentUser?.email || '';
                   const possibleMentions = [
@@ -695,9 +697,23 @@ export const IssueDetailModal: React.FC = () => {
                 Status
               </label>
               <CustomSelect
-                value={activeIssue.state_id || ''}
+                value={activeTicket.state_id || ''}
                 onChange={val => handleUpdateField('state_id', val)}
                 options={teamStates.map(state => ({ value: state.id, label: state.name }))}
+                size="sm"
+                className="w-full"
+              />
+            </div>
+
+            {/* Type */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-text-secondary">
+                Type
+              </label>
+              <CustomSelect
+                value={activeTicket.type_id || ''}
+                onChange={val => handleUpdateField('type_id', val)}
+                options={(ticketTypes || []).map(tt => ({ value: tt.id, label: tt.name }))}
                 size="sm"
                 className="w-full"
               />
@@ -709,7 +725,7 @@ export const IssueDetailModal: React.FC = () => {
                 Priority
               </label>
               <CustomSelect
-                value={activeIssue.priority || 'none'}
+                value={activeTicket.priority || 'none'}
                 onChange={val => handleUpdateField('priority', val)}
                 options={[
                   { value: 'urgent', label: 'Urgent' },
@@ -803,29 +819,13 @@ export const IssueDetailModal: React.FC = () => {
               )}
             </div>
 
-            {/* Estimate Points */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-text-secondary">
-                Estimate Points
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={activeIssue.estimate || ''}
-                onChange={e => handleUpdateField('estimate', e.target.value ? parseInt(e.target.value, 10) : null)}
-                placeholder="Story points..."
-                className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-md px-2.5 py-1.5 text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
-              />
-            </div>
-
             {/* Due Date */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-text-secondary">
                   Due Date
                 </label>
-                {activeIssue.due_date && (
+                {activeTicket.due_date && (
                   <button
                     type="button"
                     onClick={() => handleUpdateField('due_date', null)}
@@ -836,14 +836,14 @@ export const IssueDetailModal: React.FC = () => {
                   </button>
                 )}
               </div>
-              <DatePicker value={activeIssue.due_date || ''} onChange={(v) => handleUpdateField('due_date', v || null)} placeholder="Due date" />
-              {activeIssue.due_date && (() => {
+              <DatePicker value={activeTicket.due_date || ''} onChange={(v) => handleUpdateField('due_date', v || null)} placeholder="Due date" />
+              {activeTicket.due_date && (() => {
                 const now = new Date();
                 now.setHours(0, 0, 0, 0);
-                const due = new Date(activeIssue.due_date);
+                const due = new Date(activeTicket.due_date);
                 due.setHours(0, 0, 0, 0);
                 const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                const isCompleted = activeIssue.status?.category === 'completed' || activeIssue.status?.category === 'canceled';
+                const isCompleted = activeTicket.status?.category === 'completed' || activeTicket.status?.category === 'canceled';
 
                 if (isCompleted) return null;
 
@@ -879,14 +879,14 @@ export const IssueDetailModal: React.FC = () => {
               <div className="flex justify-between">
                 <span>Created</span>
                 <span className="font-medium text-text-primary">
-                  {new Date(activeIssue.created_at).toLocaleDateString()}
+                  {new Date(activeTicket.created_at).toLocaleDateString()}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span>Reporter</span>
                 <span className="font-medium text-text-primary">
-                  {(activeIssue.reporter?.full_name || activeIssue.reporter?.email) ||
-                    (activeIssue.reporter_id ? profiles?.find(p => p.id === activeIssue.reporter_id)?.full_name || profiles?.find(p => p.id === activeIssue.reporter_id)?.email : null) ||
+                  {(activeTicket.reporter?.full_name || activeTicket.reporter?.email) ||
+                    (activeTicket.reporter_id ? profiles?.find(p => p.id === activeTicket.reporter_id)?.full_name || profiles?.find(p => p.id === activeTicket.reporter_id)?.email : null) ||
                     'System'}
                 </span>
               </div>
@@ -894,19 +894,19 @@ export const IssueDetailModal: React.FC = () => {
           </div>
         </div>
 
-        {/* Delete Issue In-App Confirmation Modal */}
+        {/* Delete Ticket In-App Confirmation Modal */}
         <ConfirmModal
-          isOpen={showDeleteIssueModal}
-          title="Move Issue to Trash"
-          message={`Move "${activeIssue.title}" to the trash? It leaves every issue list, and a workspace admin can restore it from the Trash tab or delete it for good.`}
+          isOpen={showDeleteTicketModal}
+          title="Move Ticket to Trash"
+          message={`Move "${activeTicket.title}" to the trash? It leaves every ticket list, and a workspace admin can restore it from the Trash tab or delete it for good.`}
           confirmText="Move to Trash"
           variant="danger"
           onConfirm={() => {
-            deleteIssue({ id: activeIssue.id, workspace_id: activeIssue.workspace_id });
-            setShowDeleteIssueModal(false);
+            deleteTicket({ id: activeTicket.id, workspace_id: activeTicket.workspace_id });
+            setShowDeleteTicketModal(false);
             handleClose();
           }}
-          onCancel={() => setShowDeleteIssueModal(false)}
+          onCancel={() => setShowDeleteTicketModal(false)}
         />
 
         {/* Delete Comment In-App Confirmation Modal */}

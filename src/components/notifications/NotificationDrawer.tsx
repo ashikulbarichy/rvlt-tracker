@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useNotifications } from '../../hooks/useNotifications';
-import { useIssues } from '../../hooks/useIssues';
+import { useTickets } from '../../hooks/useTickets';
 import { useWorkspaceMembers } from '../../hooks/useWorkspaceMembers';
 import { supabase } from '../../lib/supabase';
 import { formatRelativeTime } from '../../lib/time';
@@ -21,9 +21,9 @@ interface NotificationDrawerProps {
 }
 
 export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, onClose }) => {
-  const { setSelectedIssue, currentWorkspace, setCurrentWorkspace } = useApp();
+  const { setSelectedTicket, currentWorkspace, setCurrentWorkspace } = useApp();
   const { notifications, markAsRead, markAllAsRead } = useNotifications();
-  const { issues } = useIssues({ workspaceId: currentWorkspace?.id });
+  const { tickets } = useTickets({ workspaceId: currentWorkspace?.id });
   const { acceptInvitation, declineInvitation } = useWorkspaceMembers();
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -68,10 +68,10 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
       return;
     }
     markAsRead(notif.id);
-    if (notif.entity_type === 'issue' && issues) {
-      const targetIssue = issues.find(i => i.id === notif.entity_id);
-      if (targetIssue) {
-        setSelectedIssue(targetIssue);
+    if (notif.entity_type === 'ticket' && tickets) {
+      const targetTicket = tickets.find(i => i.id === notif.entity_id);
+      if (targetTicket) {
+        setSelectedTicket(targetTicket);
         onClose();
       }
     }

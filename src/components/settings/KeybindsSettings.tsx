@@ -21,18 +21,18 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     ],
   },
   {
-    category: 'Issue & Test Case Actions',
+    category: 'Ticket & Test Case Actions',
     items: [
-      { description: 'Create new issue', keys: ['C'] },
+      { description: 'Create new ticket', keys: ['C'] },
       { description: 'Create new test case', keys: ['T'] },
-      { description: 'Submit comment on open issue', keys: ['⌘', 'Enter'] },
+      { description: 'Submit comment on open ticket', keys: ['⌘', 'Enter'] },
     ],
   },
   {
     category: 'Fast Navigation (Sequential)',
     items: [
       { description: 'Go to Home / Inbox', keys: ['G', 'then', 'H'] },
-      { description: 'Go to Issues', keys: ['G', 'then', 'I'] },
+      { description: 'Go to Tickets', keys: ['G', 'then', 'I'] },
       { description: 'Go to Projects', keys: ['G', 'then', 'P'] },
       { description: 'Go to Roadmap', keys: ['G', 'then', 'R'] },
       { description: 'Go to Test Cases', keys: ['G', 'then', 'T'] },

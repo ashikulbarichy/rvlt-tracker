@@ -1,57 +1,51 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Check } from 'lucide-react';
-import { StatusBadge } from './StatusBadge';
+import { TypeBadge } from './TypeBadge';
 
-export interface StatusOption {
+export interface TypeOption {
   id: string;
   name: string;
   color?: string | null;
 }
 
-interface StatusPickerProps {
-  /** Currently selected option id. */
+interface TypePickerProps {
   value?: string | null;
-  options: StatusOption[];
+  options: TypeOption[];
   /**
-   * The row's own joined status, used when `value` is not present in `options` — e.g.
-   * a ticket whose state_id belongs to another team. Without it the badge falls through
-   * to StatusBadge's "Todo" default and silently misreports the real status.
+   * The row's own joined type, used when `value` is not in `options` — e.g. while the
+   * type list is still loading. Without it the badge falls through to "No type" and
+   * misreports a ticket that does have one.
    */
-  current?: StatusOption | null;
+  current?: TypeOption | null;
   onSelect: (id: string) => void;
   disabled?: boolean;
   size?: 'xs' | 'sm';
-  /** Shown in place of the list when `options` is empty. */
   emptyMessage?: string;
   className?: string;
 }
 
 /**
- * A `StatusBadge` that opens a popover of statuses when clicked.
+ * A `TypeBadge` that opens a popover of ticket types when clicked.
  *
- * Deliberately separate from `StatusBadge` rather than an extension of it: the badge
- * renders in ten places that must stay display-only. This knows nothing about workflow
- * states or projects, so the same component serves both.
- *
- * Renders inside clickable rows, so every pointer event is stopped from propagating —
- * clicking the status must not also open the row behind it.
+ * Mirrors `StatusPicker`, including the no-focus-ring decision and stopping every
+ * pointer event: these render inside clickable ticket rows, and clicking the type must
+ * not also open the ticket behind it.
  */
-export const StatusPicker: React.FC<StatusPickerProps> = ({
+export const TypePicker: React.FC<TypePickerProps> = ({
   value,
   options,
   current,
   onSelect,
   disabled = false,
   size = 'sm',
-  emptyMessage = 'No statuses available.',
+  emptyMessage = 'No ticket types available.',
   className = '',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Never render a label we could not resolve: fall back to the row's own status.
-  const selected = options.find(o => o.id === value) || (current && current.id === value ? current : undefined);
-  const isForeignState = !!value && options.length > 0 && !options.some(o => o.id === value);
+  const selected =
+    options.find(o => o.id === value) || (current && current.id === value ? current : undefined);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -77,8 +71,7 @@ export const StatusPicker: React.FC<StatusPickerProps> = ({
   }, [isOpen]);
 
   if (disabled) {
-    // Read-only: render exactly what the rest of the app renders.
-    return <StatusBadge name={selected?.name} color={selected?.color} size={size} className={className} />;
+    return <TypeBadge name={selected?.name} color={selected?.color} size={size} className={className} />;
   }
 
   return (
@@ -89,27 +82,18 @@ export const StatusPicker: React.FC<StatusPickerProps> = ({
     >
       <button
         type="button"
-        title="Change status"
+        title="Change type"
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        // No focus ring by request: badges must look identical at rest whether or not one
-        // was just clicked. outline-none also suppresses the browser default, so keyboard
-        // focus is not indicated here — hover opacity is the only affordance.
         className="cursor-pointer rounded-full focus:outline-none hover:opacity-80 transition-opacity"
       >
-        <StatusBadge name={selected?.name} color={selected?.color} size={size} />
+        <TypeBadge name={selected?.name} color={selected?.color} size={size} />
       </button>
 
       {isOpen && (
         <div className="absolute left-0 z-50 mt-1 min-w-[10rem] max-h-64 overflow-y-auto bg-bg-surface-raised border border-transparent rounded-sm shadow-lg p-1.5 space-y-0.5">
-          {isForeignState && (
-            <div className="px-2.5 py-1.5 mb-1 text-[10px] leading-snug text-status-warning border-b border-border">
-              This ticket’s status belongs to another team. Choosing one below moves it onto
-              its own team’s workflow.
-            </div>
-          )}
           {options.length === 0 ? (
             <div className="px-2.5 py-1.5 text-xs text-text-tertiary">{emptyMessage}</div>
           ) : (
@@ -132,7 +116,7 @@ export const StatusPicker: React.FC<StatusPickerProps> = ({
                 >
                   <span
                     className="w-2 h-2 rounded-full shrink-0 mr-2"
-                    style={{ backgroundColor: opt.color || '#535353' }}
+                    style={{ backgroundColor: opt.color || '#6B7280' }}
                   />
                   <span className="truncate">{opt.name}</span>
                   {isSelected && <Check className="w-3 h-3 text-text-primary ml-auto shrink-0" />}

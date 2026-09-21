@@ -368,7 +368,7 @@ export const MemberSettings: React.FC = () => {
             </div>
 
             <p className="text-[11px] text-text-secondary mb-2.5">
-              Toggle the teams this member should belong to. Members only view issues and projects in their assigned teams.
+              Toggle the teams this member should belong to. Members only view tickets and projects in their assigned teams.
             </p>
 
             <div className="space-y-1.5 max-h-56 overflow-y-auto mb-4">
@@ -572,7 +572,7 @@ export const MemberSettings: React.FC = () => {
       <ConfirmModal
         isOpen={!!removingMember}
         title="Remove Member from Workspace"
-        message={`Are you sure you want to remove ${removingMember?.name} from this workspace? They will lose access to all teams, projects, and issues.`}
+        message={`Are you sure you want to remove ${removingMember?.name} from this workspace? They will lose access to all teams, projects, and tickets.`}
         confirmText="Remove Member"
         variant="danger"
         isLoading={!!processingId}

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { useIssues } from '../../hooks/useIssues';
+import { useTickets } from '../../hooks/useTickets';
 import { useNavigate } from 'react-router-dom';
-import { formatIssueIdentifier } from '../../lib/identifier';
+import { formatTicketIdentifier } from '../../lib/identifier';
 import { StatusBadge } from '../common/StatusBadge';
 
 export const GlobalSearchModal: React.FC = () => {
@@ -42,7 +42,7 @@ export const GlobalSearchModal: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSearchModalOpen, setIsSearchModalOpen]);
 
-  const { issues, isLoading } = useIssues({
+  const { tickets, isLoading } = useTickets({
     workspaceId: currentWorkspace?.id,
     searchQuery: debouncedQuery,
     limit: 10
@@ -67,7 +67,7 @@ export const GlobalSearchModal: React.FC = () => {
             ref={inputRef}
             type="text"
             className="flex-1 bg-transparent border-none text-text-primary px-3 py-1.5 text-base focus:outline-none focus:ring-0 placeholder:text-text-tertiary"
-            placeholder="Search issues, docs, or people..."
+            placeholder="Search tickets, docs, or people..."
             value={localQuery}
             onChange={(e) => setLocalQuery(e.target.value)}
           />
@@ -95,30 +95,30 @@ export const GlobalSearchModal: React.FC = () => {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 text-text-secondary animate-spin" />
             </div>
-          ) : issues && issues.length > 0 ? (
+          ) : tickets && tickets.length > 0 ? (
             <div className="space-y-1">
               <div className="px-3 py-2 text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
-                Issues
+                Tickets
               </div>
-              {issues.map((issue: any) => (
+              {tickets.map((ticket: any) => (
                 <button
-                  key={issue.id}
+                  key={ticket.id}
                   onClick={() => {
-                    navigate(`/${currentWorkspace?.slug || ''}/issue/${formatIssueIdentifier(issue)}`);
+                    navigate(`/${currentWorkspace?.slug || ''}/ticket/${formatTicketIdentifier(ticket)}`);
                     setIsSearchModalOpen(false);
                   }}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-bg-surface-hover transition-colors text-left group"
                 >
                   <div className="flex items-center space-x-3 min-w-0">
                     <span className="font-id text-[11px] font-medium text-text-secondary shrink-0 w-16">
-                      {formatIssueIdentifier(issue)}
+                      {formatTicketIdentifier(ticket)}
                     </span>
                     <span className="text-sm text-text-primary truncate font-medium">
-                      {issue.title}
+                      {ticket.title}
                     </span>
                   </div>
                   <div className="flex items-center space-x-3 shrink-0 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <StatusBadge name={issue.status?.name || 'Todo'} color={issue.status?.color} size="xs" />
+                    <StatusBadge name={ticket.status?.name || 'Todo'} color={ticket.status?.color} size="xs" />
                   </div>
                 </button>
               ))}

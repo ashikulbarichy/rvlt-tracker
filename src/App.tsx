@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { AppProvider, useApp } from './context/AppContext';
@@ -7,9 +7,9 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { GlobalSearchModal } from './components/layout/GlobalSearchModal';
 import { KeyboardShortcutsModal } from './components/layout/KeyboardShortcutsModal';
-import { IssueListView } from './components/issues/IssueListView';
-import { IssueDetailModal } from './components/issues/IssueDetailModal';
-import { NewIssueModal } from './components/issues/NewIssueModal';
+import { TicketListView } from './components/tickets/TicketListView';
+import { TicketDetailModal } from './components/tickets/TicketDetailModal';
+import { NewTicketModal } from './components/tickets/NewTicketModal';
 import { TestCaseListView } from './components/testcases/TestCaseListView';
 import { NewTestCaseModal } from './components/testcases/NewTestCaseModal';
 import { NotificationDrawer } from './components/notifications/NotificationDrawer';
@@ -19,13 +19,29 @@ import { ResetPasswordView } from './components/auth/ResetPasswordView';
 import { SettingsView } from './components/settings/SettingsView';
 import { MemberSettings } from './components/settings/MemberSettings';
 import { TeamSettings } from './components/settings/TeamSettings';
-import { DocsView } from './components/docs/DocsView';
+const DocsView = lazy(() => import('./components/docs/DocsView').then(m => ({ default: m.DocsView })));
+const DocPane = lazy(() => import('./components/docs/DocPane').then(m => ({ default: m.DocPane })));
 import { HomeInboxView } from './components/home/HomeInboxView';
 import { ProjectsView } from './components/projects/ProjectsView';
 import { RoadmapView } from './components/roadmap/RoadmapView';
 import { MobileNav } from './components/layout/MobileNav';
 
 const MainLayout: React.FC = () => {
+/**
+ * Pre-004 the ticket routes said "issues". Bookmarks and already-shared links still do,
+ * so map them onto the new paths instead of 404ing. The filter query string
+ * (?view=&status=&mine=&team=) is carried across unchanged.
+ */
+const LegacyIssueRedirect: React.FC<{ scope?: 'mine' | 'team' }> = ({ scope }) => {
+  const { workspaceSlug, teamId } = useParams<{ workspaceSlug: string; teamId: string }>();
+  const { search } = useLocation();
+  const path =
+    scope === 'team' ? `/${workspaceSlug}/teams/${teamId}/tickets`
+    : scope === 'mine' ? `/${workspaceSlug}/my-tickets`
+    : `/${workspaceSlug}/tickets`;
+  return <Navigate to={path + search} replace />;
+};
+
   const { isNotificationOpen, setIsNotificationOpen, isSidebarCollapsed } = useApp();
 
   return (
@@ -38,13 +54,18 @@ const MainLayout: React.FC = () => {
         <Header />
 
         <main className="flex-1 flex min-w-0 overflow-hidden relative">
+          <Suspense fallback={
+            <div className="flex-1 flex items-center justify-center text-text-tertiary text-xs">Loading…</div>
+          }>
           <Routes>
             <Route path="/:workspaceSlug">
               <Route index element={<HomeInboxView />} />
-              <Route path="my-issues" element={<IssueListView onlyMine={true} />} />
+              <Route path="my-tickets" element={<TicketListView onlyMine={true} />} />
               <Route path="projects" element={<ProjectsView />} />
               <Route path="roadmap" element={<RoadmapView />} />
-              <Route path="issues" element={<IssueListView onlyMine={false} />} />
+              <Route path="tickets" element={<TicketListView onlyMine={false} />} />
+              <Route path="issues" element={<LegacyIssueRedirect />} />
+              <Route path="my-issues" element={<LegacyIssueRedirect scope="mine" />} />
               <Route path="members" element={
                 <div className="flex-1 overflow-y-auto p-6">
                   <div className="max-w-4xl mx-auto">
@@ -62,7 +83,8 @@ const MainLayout: React.FC = () => {
               
               {/* Team specific routes */}
               <Route path="teams/:teamId/projects" element={<ProjectsView />} />
-              <Route path="teams/:teamId/issues" element={<IssueListView onlyMine={false} />} />
+              <Route path="teams/:teamId/tickets" element={<TicketListView onlyMine={false} />} />
+              <Route path="teams/:teamId/issues" element={<LegacyIssueRedirect scope="team" />} />
               <Route path="teams/:teamId/members" element={
                 <div className="flex-1 overflow-y-auto p-6">
                   <div className="max-w-4xl mx-auto">
@@ -72,16 +94,20 @@ const MainLayout: React.FC = () => {
               } />
 
               <Route path="testcases" element={<TestCaseListView />} />
-              <Route path="docs" element={<DocsView />} />
+              {/* Layout route: the tree stays mounted while the open doc changes. */}
+              <Route path="docs" element={<DocsView />}>
+                <Route path=":docId" element={<DocPane />} />
+              </Route>
               <Route path="settings" element={<SettingsView />} />
               <Route path="dashboard" element={<DashboardView />} />
             </Route>
             <Route path="*" element={<div className="flex items-center justify-center w-full h-full text-text-secondary">Loading workspace...</div>} />
           </Routes>
+          </Suspense>
         </main>
 
-        {/* Inline Issue & TestCase Detail views within the right card container */}
-        <IssueDetailModal />
+        {/* Inline Ticket & TestCase Detail views within the right card container */}
+        <TicketDetailModal />
         <NewTestCaseModal />
       </div>
 
@@ -92,7 +118,7 @@ const MainLayout: React.FC = () => {
       />
 
       {/* Modals and Drawers */}
-      <NewIssueModal />
+      <NewTicketModal />
       <GlobalSearchModal />
       <KeyboardShortcutsModal />
 

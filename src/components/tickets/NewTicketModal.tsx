@@ -3,26 +3,27 @@ import { X, AlertCircle, Users, Check, Plus } from 'lucide-react';
 import { CustomSelect } from '../common/CustomSelect';
 import { DatePicker } from '../common/DatePicker';
 import { useApp } from '../../context/AppContext';
-import { IssuePriority } from '../../types/database';
-import { useIssues } from '../../hooks/useIssues';
+import { TicketPriority } from '../../types/database';
+import { useTickets } from '../../hooks/useTickets';
 import { useTeams } from '../../hooks/useTeams';
 import { useTeamMembers } from '../../hooks/useTeamMembers';
 import { useProjects } from '../../hooks/useProjects';
 import { useProfiles } from '../../hooks/useProfiles';
 import { useWorkflowStates } from '../../hooks/useWorkflowStates';
+import { useTicketTypes } from '../../hooks/useTicketTypes';
 import { RichTextEditor } from '../common/RichTextEditor';
 
-export const NewIssueModal: React.FC = () => {
+export const NewTicketModal: React.FC = () => {
   const {
-    isNewIssueModalOpen,
-    setIsNewIssueModalOpen,
+    isNewTicketModalOpen,
+    setIsNewTicketModalOpen,
     currentWorkspace,
     currentUser,
     userRole
   } = useApp();
 
   const { profiles } = useProfiles();
-  const { createIssue } = useIssues({ workspaceId: currentWorkspace?.id });
+  const { createTicket } = useTickets({ workspaceId: currentWorkspace?.id });
   const { teams } = useTeams(currentWorkspace?.id);
   const { getUserTeams } = useTeamMembers(currentWorkspace?.id);
   
@@ -31,7 +32,8 @@ export const NewIssueModal: React.FC = () => {
   const [teamId, setTeamId] = useState('');
   const [projectId, setProjectId] = useState('');
   const [statusId, setStatusId] = useState('');
-  const [priority, setPriority] = useState<IssuePriority>('medium');
+  const [priority, setPriority] = useState<TicketPriority>('medium');
+  const [typeId, setTypeId] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>(
     currentUser?.id ? [currentUser.id] : []
@@ -61,6 +63,7 @@ export const NewIssueModal: React.FC = () => {
   
   const { projects } = useProjects(teamId || undefined);
   const { workflowStates } = useWorkflowStates();
+  const { ticketTypes, defaultTicketType } = useTicketTypes();
 
   // Set default team if none selected
   React.useEffect(() => {
@@ -88,7 +91,7 @@ export const NewIssueModal: React.FC = () => {
   const [isRendered, setIsRendered] = useState(false);
 
   React.useEffect(() => {
-    if (isNewIssueModalOpen) {
+    if (isNewTicketModalOpen) {
       setIsRendered(true);
       const raf = requestAnimationFrame(() => {
         setIsOpen(true);
@@ -101,27 +104,27 @@ export const NewIssueModal: React.FC = () => {
       }, 220);
       return () => clearTimeout(timer);
     }
-  }, [isNewIssueModalOpen]);
+  }, [isNewTicketModalOpen]);
 
   const handleClose = React.useCallback(() => {
     setIsOpen(false);
     setTimeout(() => {
-      setIsNewIssueModalOpen(false);
+      setIsNewTicketModalOpen(false);
     }, 220);
-  }, [setIsNewIssueModalOpen]);
+  }, [setIsNewTicketModalOpen]);
 
   // Close on Escape key
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && (isNewIssueModalOpen || isOpen)) {
+      if (e.key === 'Escape' && (isNewTicketModalOpen || isOpen)) {
         handleClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isNewIssueModalOpen, isOpen, handleClose]);
+  }, [isNewTicketModalOpen, isOpen, handleClose]);
 
-  if (!isRendered && !isNewIssueModalOpen) return null;
+  if (!isRendered && !isNewTicketModalOpen) return null;
 
   const toggleAssignee = (userId: string) => {
     if (selectedAssigneeIds.includes(userId)) {
@@ -143,7 +146,7 @@ export const NewIssueModal: React.FC = () => {
     setIsSubmitting(true);
     setErrorMessage(null);
 
-    createIssue(
+    createTicket(
       {
         workspace_id: currentWorkspace.id,
         title: title.trim(),
@@ -152,6 +155,7 @@ export const NewIssueModal: React.FC = () => {
         project_id: projectId || null,
         state_id: statusId || (workflowStates && workflowStates[0]?.id) || undefined,
         priority,
+        type_id: typeId || defaultTicketType?.id,
         assignee_ids: selectedAssigneeIds,
         reporter_id: currentUser?.id,
         due_date: dueDate || null,
@@ -161,14 +165,15 @@ export const NewIssueModal: React.FC = () => {
           setTitle('');
           setDescription('');
           setDueDate('');
+          setTypeId('');
           setSelectedAssigneeIds(currentUser?.id ? [currentUser.id] : []);
           setErrorMessage(null);
           setIsSubmitting(false);
           handleClose();
         },
         onError: (err: any) => {
-          console.error('Failed to create issue:', err);
-          setErrorMessage(err?.message || 'Failed to create issue. Please check your inputs.');
+          console.error('Failed to create ticket:', err);
+          setErrorMessage(err?.message || 'Failed to create ticket. Please check your inputs.');
           setIsSubmitting(false);
         }
       }
@@ -189,7 +194,7 @@ export const NewIssueModal: React.FC = () => {
           {/* Header */}
           <div className="px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between shrink-0 bg-bg-surface">
             <h2 className="text-sm font-semibold text-text-primary">
-              Create New Issue
+              Create New Ticket
             </h2>
             <button
               onClick={handleClose}
@@ -217,7 +222,7 @@ export const NewIssueModal: React.FC = () => {
             <input
               type="text"
               required
-              placeholder="Issue title..."
+              placeholder="Ticket title..."
               value={title}
               onChange={e => setTitle(e.target.value)}
               className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-sm px-2.5 py-1.5 text-text-primary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
@@ -278,11 +283,24 @@ export const NewIssueModal: React.FC = () => {
 
             <div>
               <label className="block text-[11px] font-medium text-text-secondary mb-0.5">
+                Type
+              </label>
+              <CustomSelect
+                value={typeId || defaultTicketType?.id || ''}
+                onChange={(val) => setTypeId(val)}
+                options={(ticketTypes || []).map(tt => ({ value: tt.id, label: tt.name }))}
+                size="sm"
+                className="w-full"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-medium text-text-secondary mb-0.5">
                 Priority
               </label>
               <CustomSelect
                 value={priority}
-                onChange={(val) => setPriority(val as IssuePriority)}
+                onChange={(val) => setPriority(val as TicketPriority)}
                 options={[
                   { value: 'urgent', label: 'Urgent' },
                   { value: 'high', label: 'High' },
@@ -398,7 +416,7 @@ export const NewIssueModal: React.FC = () => {
                 disabled={isSubmitting}
                 className="px-4 py-1.5 rounded-full bg-accent-primary hover:bg-accent-primary-hover text-button-text text-xs font-semibold transition-colors disabled:opacity-50 shadow-sm"
               >
-                {isSubmitting ? 'Creating...' : 'Create Issue'}
+                {isSubmitting ? 'Creating...' : 'Create Ticket'}
               </button>
             </div>
           </form>

@@ -1,7 +1,7 @@
 {
   "name": "Reevolt Tasks",
   "short_name": "Tasks",
-  "description": "High-performance issue & bug tracking platform",
+  "description": "High-performance ticket & bug tracking platform",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

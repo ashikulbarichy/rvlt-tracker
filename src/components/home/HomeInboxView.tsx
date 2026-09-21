@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { SidebarToggle } from '../../components/layout/SidebarToggle';
-import { useIssues } from '../../hooks/useIssues';
+import { useTickets } from '../../hooks/useTickets';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useTeamMembers } from '../../hooks/useTeamMembers';
 import { InboxFeedItem, FeedItemData } from './InboxFeedItem';
@@ -24,8 +24,8 @@ import { stripHtml } from '../../utils/htmlUtils';
 type TriageFilter = 'all' | 'urgent' | 'assigned' | 'activity';
 
 export const HomeInboxView: React.FC = () => {
-  const { currentWorkspace, currentUser, setSelectedIssue } = useApp();
-  const { issues, isLoading: isLoadingIssues } = useIssues({
+  const { currentWorkspace, currentUser, setSelectedTicket } = useApp();
+  const { tickets, isLoading: isLoadingTickets } = useTickets({
     workspaceId: currentWorkspace?.id,
     limit: 100
   });
@@ -45,14 +45,14 @@ export const HomeInboxView: React.FC = () => {
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
 
-    // Process Issues
-    issues.forEach(issue => {
+    // Process Tickets
+    tickets.forEach(ticket => {
       // Don't show closed/completed tasks in the inbox feed
-      const isCompleted = issue.status?.category === 'completed' || issue.status?.category === 'canceled';
+      const isCompleted = ticket.status?.category === 'completed' || ticket.status?.category === 'canceled';
       if (isCompleted) return;
 
       if (!isAdmin && userAssignedTeams.length > 0) {
-        if (!userAssignedTeams.some(t => t.id === issue.team_id)) return;
+        if (!userAssignedTeams.some(t => t.id === ticket.team_id)) return;
       }
       if (!isAdmin && userAssignedTeams.length === 0) {
         return;
@@ -61,36 +61,36 @@ export const HomeInboxView: React.FC = () => {
       let urgencyType: FeedItemData['urgencyType'] = 'normal';
       let urgencyLabel: string | undefined;
 
-      if (issue.due_date && !isCompleted) {
-        const dueDate = new Date(issue.due_date);
+      if (ticket.due_date && !isCompleted) {
+        const dueDate = new Date(ticket.due_date);
         const diffDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
         if (diffDays < 0) {
           urgencyType = 'overdue';
           urgencyLabel = `Overdue ${Math.abs(diffDays)}d`;
-        } else if (diffDays === 0 || issue.due_date === todayStr) {
+        } else if (diffDays === 0 || ticket.due_date === todayStr) {
           urgencyType = 'due_today';
           urgencyLabel = 'Due Today';
         } else if (diffDays <= 2) {
           urgencyType = 'due_soon';
           urgencyLabel = `Due in ${diffDays}d`;
         }
-      } else if (issue.priority === 'urgent' && !isCompleted) {
+      } else if (ticket.priority === 'urgent' && !isCompleted) {
         urgencyType = 'urgent_priority';
         urgencyLabel = 'Urgent';
       }
 
       // Format relative time
-      const timeAgo = issue.updated_at
-        ? formatRelativeTime(issue.updated_at)
+      const timeAgo = ticket.updated_at
+        ? formatRelativeTime(ticket.updated_at)
         : 'Just now';
 
       items.push({
-        id: `issue-${issue.id}`,
-        type: 'issue',
-        issue,
-        title: issue.title,
-        subtitle: issue.description ? stripHtml(issue.description).substring(0, 80) : undefined,
+        id: `ticket-${ticket.id}`,
+        type: 'ticket',
+        ticket,
+        title: ticket.title,
+        subtitle: ticket.description ? stripHtml(ticket.description).substring(0, 80) : undefined,
         urgencyType,
         urgencyLabel,
         timestamp: timeAgo,
@@ -107,13 +107,13 @@ export const HomeInboxView: React.FC = () => {
 
       const isComment = n.type === 'comment' || n.type === 'mention';
 
-      // Find matching issue if entity_type is issue
-      const matchedIssue = issues.find(i => i.id === n.entity_id);
+      // Find matching ticket if entity_type is ticket
+      const matchedTicket = tickets.find(i => i.id === n.entity_id);
 
       items.push({
         id: `notif-${n.id}`,
         type: 'notification',
-        issue: matchedIssue,
+        ticket: matchedTicket,
         notification: n,
         title: n.title || 'Task Update',
         subtitle: n.message,
@@ -137,7 +137,7 @@ export const HomeInboxView: React.FC = () => {
       };
       return urgencyRank(a.urgencyType) - urgencyRank(b.urgencyType);
     });
-  }, [issues, notifications]);
+  }, [tickets, notifications]);
 
   // 2. Filter feed items
   const filteredFeedItems = useMemo(() => {
@@ -147,7 +147,7 @@ export const HomeInboxView: React.FC = () => {
         const q = searchQuery.toLowerCase();
         const matchesTitle = item.title.toLowerCase().includes(q);
         const matchesSubtitle = item.subtitle?.toLowerCase().includes(q);
-        const matchesId = item.issue?.identifier?.toLowerCase().includes(q);
+        const matchesId = item.ticket?.identifier?.toLowerCase().includes(q);
         if (!matchesTitle && !matchesSubtitle && !matchesId) return false;
       }
 
@@ -157,7 +157,7 @@ export const HomeInboxView: React.FC = () => {
           return item.urgencyType === 'overdue' || item.urgencyType === 'due_today' || item.urgencyType === 'due_soon' || item.urgencyType === 'urgent_priority';
         case 'assigned':
           if (!currentUser) return false;
-          return item.issue && (item.issue.assignee_id === currentUser.id || item.issue.assignee_ids?.includes(currentUser.id));
+          return item.ticket && (item.ticket.assignee_id === currentUser.id || item.ticket.assignee_ids?.includes(currentUser.id));
         case 'activity':
           return item.urgencyType === 'comment' || item.type === 'notification';
         case 'all':
@@ -258,7 +258,7 @@ export const HomeInboxView: React.FC = () => {
         </div>
 
                 <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-          {(isLoadingIssues || isLoadingNotifs) ? (
+          {(isLoadingTickets || isLoadingNotifs) ? (
             <div className="p-8 text-center text-xs text-text-secondary">
               Loading triage feed...
             </div>
@@ -299,7 +299,7 @@ export const HomeInboxView: React.FC = () => {
           <InboxDetailPane
             item={{
               type: selectedItem.type,
-              issue: selectedItem.issue,
+              ticket: selectedItem.ticket,
               notification: selectedItem.notification
             }}
           />

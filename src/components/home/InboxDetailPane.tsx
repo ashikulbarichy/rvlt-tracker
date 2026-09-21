@@ -3,20 +3,20 @@ import DOMPurify from 'dompurify';
 import {
   X, Send, MessageSquare, Trash2, Calendar, User, Clock, AlertCircle, CheckCircle2
 } from 'lucide-react';
-import { Issue, Profile, Notification } from '../../types/database';
-import { useIssues } from '../../hooks/useIssues';
+import { Ticket, Profile, Notification } from '../../types/database';
+import { useTickets } from '../../hooks/useTickets';
 import { useComments } from '../../hooks/useComments';
 import { useProfiles } from '../../hooks/useProfiles';
 import { useApp } from '../../context/AppContext';
-import { formatIssueIdentifier } from '../../lib/identifier';
+import { formatTicketIdentifier } from '../../lib/identifier';
 import { formatRelativeTime } from '../../lib/time';
 import { useImagePaste } from '../../hooks/useImagePaste';
 import { ConfirmModal } from '../common/ConfirmModal';
 
 interface InboxDetailPaneProps {
   item: {
-    type: 'issue' | 'notification';
-    issue?: Issue;
+    type: 'ticket' | 'notification';
+    ticket?: Ticket;
     notification?: Notification;
   };
   onClose?: () => void;
@@ -24,11 +24,11 @@ interface InboxDetailPaneProps {
 
 export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose }) => {
   const { currentUser, userRole, currentWorkspace } = useApp();
-  const { deleteIssue } = useIssues({ workspaceId: currentWorkspace?.id });
+  const { deleteTicket } = useTickets({ workspaceId: currentWorkspace?.id });
   const { profiles } = useProfiles();
 
-  const issue = item.issue;
-  const { comments, addComment, updateComment, deleteComment } = useComments(issue?.id);
+  const ticket = item.ticket;
+  const { comments, addComment, updateComment, deleteComment } = useComments(ticket?.id);
 
   const [newCommentText, setNewCommentText] = useState('');
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
@@ -46,10 +46,10 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
   const handleEditCommentPaste = useImagePaste(editCommentText, setEditCommentText, editTextareaRef);
 
   // In-app Delete Confirmation State
-  const [showDeleteIssueModal, setShowDeleteIssueModal] = useState(false);
+  const [showDeleteTicketModal, setShowDeleteTicketModal] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
-  if (!issue) {
+  if (!ticket) {
     return (
       <div className="flex-1 h-full bg-transparent p-8 flex items-center justify-center text-xs text-text-tertiary">
         Select an item from the inbox to view details.
@@ -57,7 +57,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
     );
   }
 
-  const currentAssigneeIds: string[] = issue.assignee_ids || (issue.assignee_id ? [issue.assignee_id] : []);
+  const currentAssigneeIds: string[] = ticket.assignee_ids || (ticket.assignee_id ? [ticket.assignee_id] : []);
   const assignedProfiles = (profiles || []).filter(p => currentAssigneeIds.includes(p.id));
 
   const handleSendComment = (e?: React.FormEvent) => {
@@ -186,7 +186,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
     const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     const formatted = due.toLocaleDateString();
 
-    const isCompleted = issue.status?.category === 'completed' || issue.status?.category === 'canceled';
+    const isCompleted = ticket.status?.category === 'completed' || ticket.status?.category === 'canceled';
     if (isCompleted) {
       return (
         <span className="text-text-tertiary text-xs">
@@ -236,17 +236,17 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
       <div className="px-6 py-3.5 border-b border-border bg-transparent flex items-center justify-between shrink-0">
         <div className="flex items-center space-x-2.5">
           <span className="font-id text-xs font-semibold px-2 py-0.5 rounded-full bg-bg-surface-raised border border-transparent text-text-secondary shrink-0">
-            {formatIssueIdentifier(issue, currentWorkspace)}
+            {formatTicketIdentifier(ticket, currentWorkspace)}
           </span>
           <span className="text-xs text-text-tertiary">Task Overview</span>
         </div>
 
         <div className="flex items-center space-x-2 shrink-0">
-          {(userRole === 'admin' || issue.reporter_id === currentUser?.id) && (
+          {(userRole === 'admin' || ticket.reporter_id === currentUser?.id) && (
             <button
-              onClick={() => setShowDeleteIssueModal(true)}
+              onClick={() => setShowDeleteTicketModal(true)}
               className="p-1.5 rounded-full text-text-secondary hover:text-status-error hover:bg-bg-surface transition-colors"
-              title="Delete Issue"
+              title="Delete Ticket"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -267,20 +267,20 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
       <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-border no-scrollbar scrollbar-none">
         {/* Main Column: Single Unified Content & Discussion Section */}
         <div className="lg:col-span-2 p-6 space-y-6 overflow-y-auto no-scrollbar scrollbar-none">
-          {/* Unified Issue & Discussion Container */}
+          {/* Unified Ticket & Discussion Container */}
           <div className="space-y-4">
-            {/* Primary Issue Card: Title + Metadata + Description Together */}
+            {/* Primary Ticket Card: Title + Metadata + Description Together */}
             <div className="bg-bg-surface-raised border border-transparent rounded-lg p-6 space-y-4 shadow-xs">
               {/* Header with Title and Reporter info */}
               <div className="space-y-3 pb-4 border-b border-border/60">
                 <div>
                   <h1 className="text-base md:text-lg font-semibold text-text-primary">
-                    {issue.title}
+                    {ticket.title}
                   </h1>
                 </div>
 
                 {(() => {
-                  const reporter = issue.reporter || (issue.reporter_id ? profiles?.find(p => p.id === issue.reporter_id) : null);
+                  const reporter = ticket.reporter || (ticket.reporter_id ? profiles?.find(p => p.id === ticket.reporter_id) : null);
                   const reporterName = reporter?.full_name || reporter?.email || 'User';
                   return (
                     <div className="flex items-center justify-between text-xs text-text-secondary">
@@ -293,10 +293,10 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
                         <span className="font-medium text-text-primary">
                           {reporterName}
                         </span>
-                        <span className="text-text-tertiary">opened this issue</span>
+                        <span className="text-text-tertiary">opened this ticket</span>
                       </div>
                       <span className="text-[11px] text-text-tertiary">
-                        {formatRelativeTime(issue.created_at)}
+                        {formatRelativeTime(ticket.created_at)}
                       </span>
                     </div>
                   );
@@ -308,14 +308,14 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
                 <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
                   Description
                 </h3>
-                {issue.description ? (
+                {ticket.description ? (
                   <div
                     className="prose text-xs text-text-primary leading-relaxed break-words pt-1"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(issue.description) }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(ticket.description) }}
                   />
                 ) : (
                   <div className="text-xs text-text-tertiary italic pt-1">
-                    No description provided for this issue.
+                    No description provided for this ticket.
                   </div>
                 )}
               </div>
@@ -491,7 +491,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
             </label>
             <div className="flex items-center space-x-2">
               <span className="inline-flex items-center px-2.5 py-1 rounded-sm bg-bg-surface-raised border border-transparent text-xs font-medium text-text-primary">
-                {issue.status?.name || 'Backlog'}
+                {ticket.status?.name || 'Backlog'}
               </span>
             </div>
           </div>
@@ -502,8 +502,8 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
               Priority
             </label>
             <div>
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium capitalize border ${priorityColors[issue.priority] || priorityColors.medium}`}>
-                {issue.priority || 'medium'}
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-sm text-xs font-medium capitalize border ${priorityColors[ticket.priority] || priorityColors.medium}`}>
+                {ticket.priority || 'medium'}
               </span>
             </div>
           </div>
@@ -542,17 +542,7 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
               Due Date
             </label>
             <div className="pt-0.5">
-              {renderDueDateBadge(issue.due_date)}
-            </div>
-          </div>
-
-          {/* Story Points */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-text-secondary">
-              Estimate (Points)
-            </label>
-            <div className="text-xs text-text-primary px-2.5 py-1.5 bg-bg-surface-raised border border-transparent rounded-sm">
-              {issue.estimate !== null && issue.estimate !== undefined ? `${issue.estimate} points` : 'Not estimated'}
+              {renderDueDateBadge(ticket.due_date)}
             </div>
           </div>
 
@@ -561,14 +551,14 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
             <div className="flex justify-between">
               <span>Created</span>
               <span className="font-medium text-text-primary">
-                {new Date(issue.created_at).toLocaleDateString()}
+                {new Date(ticket.created_at).toLocaleDateString()}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span>Reporter</span>
               <span className="font-medium text-text-primary">
-                {(issue.reporter?.full_name || issue.reporter?.email) ||
-                  (issue.reporter_id ? profiles?.find(p => p.id === issue.reporter_id)?.full_name || profiles?.find(p => p.id === issue.reporter_id)?.email : null) ||
+                {(ticket.reporter?.full_name || ticket.reporter?.email) ||
+                  (ticket.reporter_id ? profiles?.find(p => p.id === ticket.reporter_id)?.full_name || profiles?.find(p => p.id === ticket.reporter_id)?.email : null) ||
                   'System'}
               </span>
             </div>
@@ -576,19 +566,19 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
         </div>
       </div>
 
-      {/* Delete Issue In-App Confirmation Modal */}
+      {/* Delete Ticket In-App Confirmation Modal */}
       <ConfirmModal
-        isOpen={showDeleteIssueModal}
-        title="Move Issue to Trash"
-        message={`Move "${issue.title}" to the trash? It leaves every issue list, and a workspace admin can restore it from the Trash tab or delete it for good.`}
+        isOpen={showDeleteTicketModal}
+        title="Move Ticket to Trash"
+        message={`Move "${ticket.title}" to the trash? It leaves every ticket list, and a workspace admin can restore it from the Trash tab or delete it for good.`}
         confirmText="Move to Trash"
         variant="danger"
         onConfirm={() => {
-          deleteIssue({ id: issue.id, workspace_id: issue.workspace_id });
-          setShowDeleteIssueModal(false);
+          deleteTicket({ id: ticket.id, workspace_id: ticket.workspace_id });
+          setShowDeleteTicketModal(false);
           if (onClose) onClose();
         }}
-        onCancel={() => setShowDeleteIssueModal(false)}
+        onCancel={() => setShowDeleteTicketModal(false)}
       />
 
       {/* Delete Comment In-App Confirmation Modal */}

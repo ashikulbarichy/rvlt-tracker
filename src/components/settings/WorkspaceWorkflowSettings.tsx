@@ -9,7 +9,7 @@ interface WorkspaceWorkflowSettingsProps {
 }
 
 /**
- * Colours for the workspace's issue statuses.
+ * Colours for the workspace's ticket statuses.
  *
  * Workspace-level since migration 003: one set of statuses shared by every team, so this
  * lives in workspace settings rather than under an individual team. Changing a colour

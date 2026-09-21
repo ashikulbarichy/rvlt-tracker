@@ -11,6 +11,8 @@ export async function uploadImage(file: File): Promise<string> {
     const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
     const filePath = `uploads/${fileName}`;
 
+    // Bucket id deliberately still 'issue_attachments' after the 004 rename: it is
+    // baked into every stored file URL, so renaming it breaks existing attachments.
     const { error: uploadError } = await supabase.storage
       .from('issue_attachments')
       .upload(filePath, file, {

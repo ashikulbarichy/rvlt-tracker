@@ -16,7 +16,8 @@ export function useProjects(options?: { workspaceId?: string; teamId?: string } 
     queryFn: async () => {
       let query = supabase
         .from('projects')
-        .select('*, issues(id, state_id)')
+        // type_id feeds the progress bar: only types flagged counts_toward_progress count.
+        .select('*, tickets(id, state_id, type_id)')
         .order('name');
       
       if (teamId) {

@@ -27,10 +27,10 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { SidebarToggle } from '../../components/layout/SidebarToggle';
-import { TestCase, TestCaseStatus, IssuePriority } from '../../types/database';
+import { TestCase, TestCaseStatus, TicketPriority } from '../../types/database';
 import { useTestCases } from '../../hooks/useTestCases';
 import { useProjects } from '../../hooks/useProjects';
-import { useIssues } from '../../hooks/useIssues';
+import { useTickets } from '../../hooks/useTickets';
 import { formatTestCaseIdentifier } from '../../lib/identifier';
 import { formatRelativeTime } from '../../lib/time';
 import { ConfirmModal } from '../common/ConfirmModal';
@@ -49,7 +49,7 @@ export const TestCaseListView: React.FC = () => {
 
   const { testCases, updateTestCaseAsync, updateTestCaseStatusAsync, deleteTestCaseAsync, isLoading } = useTestCases();
   const { projects } = useProjects({ workspaceId: currentWorkspace?.id });
-  const { createIssue } = useIssues({ workspaceId: currentWorkspace?.id });
+  const { createTicket } = useTickets({ workspaceId: currentWorkspace?.id });
 
   const [activeTab, setActiveTab] = useState<'All' | 'Untested' | 'Passed' | 'Failed' | 'Draft'>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -90,7 +90,7 @@ export const TestCaseListView: React.FC = () => {
   const [editPreconditions, setEditPreconditions] = useState('');
   const [editSteps, setEditSteps] = useState('');
   const [editExpectedResult, setEditExpectedResult] = useState('');
-  const [editPriority, setEditPriority] = useState<IssuePriority>('medium');
+  const [editPriority, setEditPriority] = useState<TicketPriority>('medium');
   const [editProjectId, setEditProjectId] = useState<string>('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
@@ -228,7 +228,7 @@ export const TestCaseListView: React.FC = () => {
 
   const handleFileBugFromTest = (test: TestCase) => {
     if (!currentWorkspace) return;
-    createIssue({
+    createTicket({
       workspace_id: currentWorkspace.id,
       title: `[Bug] QA Failure: ${test.title}`,
       description: `### Failed Test Case Reference\n**Preconditions:**\n${test.preconditions || 'None'}\n\n**Reproduction Steps:**\n${test.steps || 'N/A'}\n\n**Expected Result:**\n${test.expected_result || 'N/A'}\n\n**Observed:** Test marked as Failed in QA execution suite.`,
@@ -579,7 +579,7 @@ export const TestCaseListView: React.FC = () => {
                       {test.status === 'failed' && (
                         <button
                           onClick={() => handleFileBugFromTest(test)}
-                          title="File Bug Issue from this test failure"
+                          title="File Bug Ticket from this test failure"
                           className="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-status-error/15 hover:bg-status-error/25 border border-transparent text-[11px] text-status-error font-medium transition-colors"
                         >
                           <Bug className="w-3 h-3" />
@@ -646,7 +646,7 @@ export const TestCaseListView: React.FC = () => {
                               </label>
                               <select
                                 value={editPriority}
-                                onChange={e => setEditPriority(e.target.value as IssuePriority)}
+                                onChange={e => setEditPriority(e.target.value as TicketPriority)}
                                 className="w-full text-xs bg-bg-surface-raised border border-transparent rounded-sm px-2.5 py-1.5 text-text-primary focus:outline-none focus:border-border-strong"
                               >
                                 <option value="urgent">Urgent</option>
