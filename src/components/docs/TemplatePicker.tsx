@@ -39,8 +39,8 @@ export const TemplatePicker: React.FC<TemplatePickerProps> = ({ isOpen, onClose,
   const categories = Object.keys(byCategory);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] px-4 bg-black/50">
-      <div className="w-full max-w-2xl max-h-[75vh] flex flex-col bg-bg-surface border border-border rounded-lg shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-4 sm:pt-[10vh] px-3 sm:px-4 bg-black/50">
+      <div className="w-full max-w-2xl max-h-[92vh] sm:max-h-[75vh] flex flex-col bg-bg-surface border border-border rounded-lg shadow-xl">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border shrink-0">
           <div>
             <h2 className="text-sm font-semibold text-text-primary">New document</h2>

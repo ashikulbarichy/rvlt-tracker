@@ -54,14 +54,14 @@ export const DocSlashMenu = forwardRef<DocSlashMenuRef, DocSlashMenuProps>(
 
     if (items.length === 0) {
       return (
-        <div className="min-w-[16rem] bg-bg-surface-raised border border-border rounded-md shadow-lg p-2">
+        <div className="min-w-[14rem] max-w-[calc(100vw-2rem)] bg-bg-surface-raised border border-border rounded-md shadow-lg p-2">
           <span className="text-xs text-text-tertiary">No matching blocks</span>
         </div>
       );
     }
 
     return (
-      <div className="min-w-[16rem] max-h-72 overflow-y-auto bg-bg-surface-raised border border-border rounded-md shadow-lg p-1.5 space-y-0.5">
+      <div className="min-w-[14rem] max-w-[calc(100vw-2rem)] max-h-72 overflow-y-auto bg-bg-surface-raised border border-border rounded-md shadow-lg p-1.5 space-y-0.5">
         {items.map((item, index) => {
           const Icon = item.icon;
           const isSelected = index === selected;

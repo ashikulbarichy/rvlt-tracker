@@ -216,7 +216,7 @@ export const Sidebar: React.FC = () => {
         >
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
-            <span className="absolute top-0.5 right-0.5 min-w-[15px] h-3.5 px-1 bg-accent-primary text-button-text text-[9px] font-semibold flex items-center justify-center rounded-full leading-none">
+            <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 bg-accent-primary text-button-text text-[10px] font-semibold flex items-center justify-center rounded-full leading-none">
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
@@ -629,7 +629,7 @@ export const Sidebar: React.FC = () => {
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute top-0.5 right-0.5 min-w-[15px] h-3.5 px-1 bg-accent-primary text-button-text text-[9px] font-semibold flex items-center justify-center rounded-full leading-none">
+              <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 bg-accent-primary text-button-text text-[10px] font-semibold flex items-center justify-center rounded-full leading-none">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}

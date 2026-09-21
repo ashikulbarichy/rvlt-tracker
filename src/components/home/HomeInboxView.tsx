@@ -193,7 +193,11 @@ export const HomeInboxView: React.FC = () => {
   return (
     <div className="flex-1 flex h-full overflow-hidden bg-transparent">
       {/* Tier 2: Triage Feed Column (340px - 380px) */}
-      <div className="w-80 md:w-96 shrink-0 border-r border-border flex flex-col bg-transparent h-full overflow-hidden">
+      <div
+        className={`w-full lg:w-80 xl:w-96 shrink-0 border-r-0 lg:border-r border-border flex-col bg-transparent h-full overflow-hidden ${
+          selectedItem ? 'hidden lg:flex' : 'flex'
+        }`}
+      >
         {/* Feed Header */}
         <div className="p-3.5 bg-transparent space-y-3">
           <div className="flex items-center justify-between">
@@ -294,7 +298,11 @@ export const HomeInboxView: React.FC = () => {
       </div>
 
       {/* Tier 3: Inline Detail Pane (Right Column) */}
-      <div className="flex-1 h-full overflow-hidden flex flex-col">
+      <div
+        className={`flex-1 h-full overflow-hidden flex-col ${
+          selectedItem ? 'flex' : 'hidden lg:flex'
+        }`}
+      >
         {selectedItem ? (
           <InboxDetailPane
             item={{
@@ -302,6 +310,9 @@ export const HomeInboxView: React.FC = () => {
               ticket: selectedItem.ticket,
               notification: selectedItem.notification
             }}
+            // Doubles as the mobile back control, and on any width it clears the
+            // selection after a delete so the pane cannot show a deleted item.
+            onClose={() => setSelectedItemId(null)}
           />
         ) : (
           <div className="flex-1 h-full bg-transparent flex flex-col items-center justify-center p-8 text-center space-y-3">

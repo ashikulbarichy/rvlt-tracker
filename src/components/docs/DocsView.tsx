@@ -25,7 +25,9 @@ export const DocsView: React.FC = () => {
   const { collections } = useDocCollections();
 
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [isTreeOpen, setIsTreeOpen] = useState(true);
+  const [isTreeOpen, setIsTreeOpen] = useState(
+    () => typeof window === 'undefined' || window.innerWidth >= 1024
+  );
   // Where a doc created from the picker will land.
   const [target, setTarget] = useState<{ collectionId: string | null; parentId: string | null }>({
     collectionId: null,
@@ -60,13 +62,27 @@ export const DocsView: React.FC = () => {
 
   return (
     <div className="flex-1 flex min-w-0 overflow-hidden">
+      {/* Backdrop: drawer-only, so it never appears at lg+ where the tree is in-flow. */}
+      {isTreeOpen && (
+        <div
+          onClick={() => setIsTreeOpen(false)}
+          className="lg:hidden fixed inset-0 z-20 bg-black/50"
+          aria-hidden="true"
+        />
+      )}
+
       <aside
         aria-hidden={!isTreeOpen}
-        className={`shrink-0 bg-bg-surface overflow-hidden transition-[width] duration-200 ease-out motion-reduce:transition-none ${
-          isTreeOpen ? 'w-64 border-r border-border' : 'w-0 border-r-0'
+        className={`shrink-0 bg-bg-surface overflow-hidden z-30
+          fixed inset-y-0 left-0 w-72 shadow-xl transition-transform
+          lg:static lg:shadow-none lg:transition-[width]
+          duration-200 ease-out motion-reduce:transition-none ${
+          isTreeOpen
+            ? 'translate-x-0 border-r border-border lg:w-64'
+            : '-translate-x-full lg:translate-x-0 lg:w-0 lg:border-r-0'
         }`}
       >
-        <div className="w-64 h-full overflow-y-auto no-scrollbar">
+        <div className="w-72 lg:w-64 h-full overflow-y-auto no-scrollbar">
           <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-3 py-2.5 bg-bg-surface border-b border-border">
               <span className="flex items-center gap-2 text-xs font-semibold text-text-primary">
                 <SidebarToggle />
@@ -107,7 +123,10 @@ export const DocsView: React.FC = () => {
               activeDocId={docId}
               isLoading={isLoading}
               canCreate={canCreate}
-              onSelect={id => navigate(`/${workspaceSlug}/docs/${id}`)}
+              onSelect={id => {
+              navigate(`/${workspaceSlug}/docs/${id}`);
+              if (window.innerWidth < 1024) setIsTreeOpen(false);
+            }}
               onCreate={openPicker}
             />
         </div>

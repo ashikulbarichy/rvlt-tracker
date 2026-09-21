@@ -254,8 +254,9 @@ export const InboxDetailPane: React.FC<InboxDetailPaneProps> = ({ item, onClose 
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1.5 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors"
-              title="Close"
+              className="lg:hidden p-1.5 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors"
+              title="Back to inbox"
+              aria-label="Back to inbox"
             >
               <X className="w-4 h-4" />
             </button>
