@@ -1,10 +1,10 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Inbox, Ticket, FolderKanban, Plus, Menu, Search } from 'lucide-react';
+import { Inbox, Ticket, FolderKanban, Plus, Users2, Search } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const MobileNav: React.FC = () => {
-  const { currentWorkspace, setIsNewTicketModalOpen, toggleMobileSidebar, setIsSearchModalOpen } = useApp();
+  const { currentWorkspace, setIsNewTicketModalOpen, setIsSearchModalOpen } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const path = location.pathname;
@@ -14,6 +14,8 @@ export const MobileNav: React.FC = () => {
   const isMyTickets = path.endsWith('/my-tickets');
   const isProjects = path.endsWith('/projects');
   const isTickets = path.endsWith('/tickets');
+  // endsWith, so /teams/:teamId/tickets does not light this up.
+  const isTeams = path.endsWith('/teams');
 
   return (
     <nav 
@@ -63,15 +65,17 @@ export const MobileNav: React.FC = () => {
         <span className="text-[10px] font-medium tracking-tight">Projects</span>
       </button>
 
-      {/* Menu / Sidebar Drawer */}
+      {/* Teams */}
       <button
-        onClick={toggleMobileSidebar}
-        className="flex flex-col items-center justify-center py-1 px-2.5 rounded-md text-text-secondary hover:text-text-primary transition-colors min-w-[52px]"
-        title="Open navigation menu"
-        aria-label="Open navigation menu"
+        onClick={() => navigate(`/${wsSlug}/teams`)}
+        className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-md transition-colors min-w-[52px] ${
+          isTeams ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'
+        }`}
+        title="Teams"
+        aria-label="Teams"
       >
-        <Menu className="w-4 h-4 mb-0.5" />
-        <span className="text-[10px] font-medium tracking-tight">Menu</span>
+        <Users2 className="w-4 h-4 mb-0.5" />
+        <span className="text-[10px] font-medium tracking-tight">Teams</span>
       </button>
     </nav>
   );
