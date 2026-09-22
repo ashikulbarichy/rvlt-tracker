@@ -96,23 +96,26 @@ export const Sidebar: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isDropdownOpen]);
 
-  // Restore current team from URL on mount/refresh
+  // The URL owns the current team: /teams/:id/... selects it, every other route clears
+  // it. Restores the selection on refresh, and is what makes the workspace-wide /teams
+  // and /projects pages show all teams instead of whichever one was last open.
   useEffect(() => {
-    if (teams && path.includes('/teams/')) {
-      const parts = path.split('/teams/');
-      if (parts.length === 2) {
-        const teamId = parts[1].split('/')[0];
-        if (teamId && (!currentTeam || currentTeam.id !== teamId)) {
-          const match = teams.find(t => t.id === teamId);
-          if (match) {
-            setCurrentTeam(match);
-            // Also ensure the accordion is open
-            setOpenTeams(prev => ({ ...prev, [teamId]: true }));
-          }
-        }
+    if (!teams) return;
+
+    // Undefined off a team route; '' for a bare /teams/ with no id, which selects nothing.
+    const routeTeamId = path.split('/teams/')[1]?.split('/')[0];
+    const routeTeam = routeTeamId ? teams.find(t => t.id === routeTeamId) : undefined;
+
+    if (routeTeam) {
+      if (currentTeam?.id !== routeTeam.id) {
+        setCurrentTeam(routeTeam);
+        // Also ensure the accordion is open
+        setOpenTeams(prev => ({ ...prev, [routeTeam.id]: true }));
       }
-    } else if (currentTeam && !path.includes('/teams')) {
-       setCurrentTeam(null);
+    } else if (currentTeam) {
+      // Covers /teams, every non-team route, and a team id that no longer exists —
+      // holding a deleted team selected is how the page ends up scoped to nothing.
+      setCurrentTeam(null);
     }
   }, [teams, path, currentTeam, setCurrentTeam]);
 

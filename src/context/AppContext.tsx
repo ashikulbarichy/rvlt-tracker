@@ -168,9 +168,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
   const { teams } = useTeams(currentWorkspace?.id);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
-  const currentTeam: Team | null = (teams && teams.length > 0)
-    ? (teams.find(t => t.id === selectedTeamId) || teams[0])
-    : null;
+  // No fallback to teams[0]. With one, "no team selected" was unrepresentable:
+  // setCurrentTeam(null) cleared selectedTeamId but currentTeam immediately read back as
+  // the first team, so the workspace-wide Teams and Projects pages opened scoped to it
+  // and "Back to all teams" bounced straight into it. Null means null.
+  const currentTeam: Team | null = (teams || []).find(t => t.id === selectedTeamId) || null;
 
   const setCurrentTeam = (team: Team | null) => {
     setSelectedTeamId(team?.id || null);

@@ -31,8 +31,11 @@ export const TeamSettings: React.FC = () => {
 
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(currentTeam || null);
 
+  // Follows the route's team, which the sidebar derives from the URL: /teams/:id/members
+  // opens that team, /teams shows the list. Clearing on null is the half that was
+  // missing -- "Back to all teams" set currentTeam to null and this guard ignored it.
   React.useEffect(() => {
-    if (currentTeam) setSelectedTeam(currentTeam);
+    setSelectedTeam(currentTeam);
   }, [currentTeam?.id]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);

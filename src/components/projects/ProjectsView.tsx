@@ -233,6 +233,10 @@ export const ProjectsView: React.FC = () => {
   const viewMenuRef = useRef<HTMLDivElement>(null);
   const teamMenuRef = useRef<HTMLDivElement>(null);
 
+  // This view serves both /projects and /teams/:teamId/projects. The team filter follows
+  // whichever the URL says, via currentTeam: a team route scopes to that team, the
+  // workspace route shows every team. It only reads 'all' now that currentTeam stopped
+  // falling back to teams[0] -- that fallback is why /projects opened filtered.
   useEffect(() => {
     setSelectedTeamId(currentTeam?.id || 'all');
   }, [currentTeam?.id]);
