@@ -113,10 +113,11 @@ export interface RoadmapItem {
 }
 
 /**
- * A workspace-level ticket type (Bug, Feature, Improvement, plus anything the workspace
- * adds). Added in migration 004.
+ * 'restricted' means the author plus whoever is listed in doc_shares. It replaced
+ * 'team' in migration 20260927090000 -- one team only is just a restricted document
+ * with a single team share.
  */
-export type DocVisibility = 'workspace' | 'team' | 'private';
+export type DocVisibility = 'workspace' | 'restricted' | 'private';
 export type DocStatus = 'draft' | 'published' | 'archived';
 
 /** A top-level shelf in the docs tree (Company, Engineering, ...). Added in 005. */
@@ -138,7 +139,7 @@ export interface Doc {
   workspace_id: string;
   collection_id: string | null;
   parent_id: string | null;
-  /** Only meaningful when visibility is 'team'. */
+  /** Vestigial. The 'team' visibility it served folded into doc_shares; nothing writes it. */
   team_id: string | null;
   title: string;
   /** Sanitized HTML from the editor. */
@@ -168,6 +169,24 @@ export interface DocTreeNode extends Doc {
   depth: number;
 }
 
+/**
+ * One grant of access to a restricted document: a person OR a team, never both, with
+ * a level. Added in migration 20260927090000.
+ *
+ * `can_edit` false is a read-only share -- the first time read and write differ on
+ * docs, and why its SELECT and UPDATE policies no longer share one predicate.
+ */
+export interface DocShare {
+  id: string;
+  workspace_id: string;
+  doc_id: string;
+  user_id: string | null;
+  team_id: string | null;
+  can_edit: boolean;
+  created_by: string | null;
+  created_at: string;
+}
+
 export interface DocTemplate {
   id: string;
   workspace_id: string;
@@ -184,6 +203,10 @@ export interface DocTemplate {
   updated_at: string;
 }
 
+/**
+ * A workspace-level ticket type (Bug, Feature, Improvement, plus anything the workspace
+ * adds). Added in migration 004.
+ */
 export interface TicketType {
   id: string;
   workspace_id: string;

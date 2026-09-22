@@ -6,9 +6,12 @@ import { Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useTeams } from '../../hooks/useTeams';
 import { useDoc, useDocs } from '../../hooks/useDocs';
+import { useDocShares } from '../../hooks/useDocShares';
+import { useWorkspaceMembers } from '../../hooks/useWorkspaceMembers';
 import { Doc, DocVisibility } from '../../types/database';
 import { DocEditor, DocHeading } from './DocEditor';
 import { DocHeader, SaveState } from './DocHeader';
+import { DocSharePanel } from './DocSharePanel';
 import { DocTableOfContents } from './DocTableOfContents';
 
 const AUTOSAVE_MS = 800;
@@ -32,12 +35,18 @@ function ancestorsOf(doc: Doc | null, all: Doc[]): Doc[] {
 export const DocPane: React.FC = () => {
   const { docId, workspaceSlug } = useParams<{ docId: string; workspaceSlug: string }>();
   const navigate = useNavigate();
-  const { currentUser, userRole } = useApp();
-  const { teams } = useTeams();
+  const { currentUser, userRole, currentWorkspace } = useApp();
+  // useTeams returns [] without a workspace id, so the bare call this used to make left
+  // the team list permanently empty -- sharing by team had nothing to offer.
+  const { teams } = useTeams(currentWorkspace?.id);
   const queryClient = useQueryClient();
 
   const { doc, isLoading, error: loadError } = useDoc(docId);
   const { docs, saveDoc, trashDoc } = useDocs();
+  const { members } = useWorkspaceMembers(currentWorkspace?.id);
+  const {
+    shares, isLoading: sharesLoading, error: sharesError, grantShare, revokeShare,
+  } = useDocShares(docId);
 
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -50,17 +59,34 @@ export const DocPane: React.FC = () => {
 
   const ancestors = useMemo(() => ancestorsOf(doc ?? null, docs || []), [doc, docs]);
 
+  const isAuthor = !!doc && doc.created_by === currentUser?.id;
+  const isAdmin = userRole === 'admin';
+
   /**
-   * Client-side mirror of the RLS predicate, for UX only — the policy is the real
-   * boundary. If this is ever too permissive the save fails and the error surfaces in
-   * the header rather than being swallowed.
+   * Who may decide what the document is and who else gets in. Mirrors the
+   * docs_guard_visibility trigger and the doc_shares write policy: editing a document
+   * is not a right to change who can see it.
+   */
+  const canManageAccess = isAuthor || isAdmin;
+
+  /**
+   * Client-side mirror of the RLS UPDATE predicate, for UX only — the policy is the
+   * real boundary. If this is ever too permissive the save fails and the error surfaces
+   * in the header rather than being swallowed.
    */
   const canEdit = useMemo(() => {
     if (!doc) return false;
     if (doc.visibility === 'workspace') return true;
-    if (doc.visibility === 'private') return doc.created_by === currentUser?.id;
-    return !!doc.team_id && (teams || []).some(t => t.id === doc.team_id);
-  }, [doc, currentUser, teams]);
+    if (isAuthor || isAdmin) return true;
+    // 'restricted': an edit-level share, granted to me or to a team I am in. Viewer
+    // shares deliberately fall through to false.
+    return (shares || []).some(
+      s =>
+        s.can_edit &&
+        (s.user_id === currentUser?.id ||
+          (!!s.team_id && (teams || []).some(t => t.id === s.team_id)))
+    );
+  }, [doc, isAuthor, isAdmin, shares, currentUser, teams]);
 
   const flush = useCallback(async () => {
     if (!docId) return;
@@ -155,8 +181,8 @@ export const DocPane: React.FC = () => {
    * write is the one most likely to be rejected by RLS — waiting seconds to find out
    * reads as the setting silently not sticking.
    */
-  const handleVisibility = async (visibility: DocVisibility, teamId: string | null) => {
-    queue({ visibility, team_id: visibility === 'team' ? teamId : null });
+  const handleVisibility = async (visibility: DocVisibility) => {
+    queue({ visibility });
     if (timerRef.current) clearTimeout(timerRef.current);
     await flush();
 
@@ -177,14 +203,34 @@ export const DocPane: React.FC = () => {
           <DocHeader
             doc={doc}
             ancestors={ancestors}
-            teams={teams || []}
             canEdit={canEdit}
-            isAuthor={doc.created_by === currentUser?.id}
+            isAuthor={isAuthor}
+            canManageAccess={canManageAccess}
             saveState={saveState}
             saveError={saveError}
             onTitleChange={title => queue({ title })}
             onIconChange={icon => queue({ icon })}
             onVisibilityChange={handleVisibility}
+            sharePanel={
+              canManageAccess ? (
+                <DocSharePanel
+                  shares={shares || []}
+                  isLoading={sharesLoading}
+                  loadError={sharesError ? (sharesError as Error).message : null}
+                  members={members || []}
+                  teams={teams || []}
+                  authorId={doc.created_by}
+                  onGrant={(principal, canEditShare) =>
+                    grantShare({ docId: doc.id, ...principal, canEdit: canEditShare })
+                  }
+                  onRevoke={shareId => revokeShare(shareId)}
+                />
+              ) : (
+                <p className="text-[11px] text-text-tertiary">
+                  Shared with specific people and teams.
+                </p>
+              )
+            }
             onTrash={handleTrash}
             onBreadcrumbClick={id => navigate(`/${workspaceSlug}/docs/${id}`)}
           />

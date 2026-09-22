@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronRight, Loader2, Check, Trash2, Globe, Users, Lock } from 'lucide-react';
-import { Doc, DocVisibility, Team } from '../../types/database';
+import { Doc, DocVisibility } from '../../types/database';
 import { CustomSelect } from '../common/CustomSelect';
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -9,22 +9,25 @@ interface DocHeaderProps {
   doc: Doc;
   /** Root-first ancestors, excluding the doc itself. */
   ancestors: Doc[];
-  teams: Team[];
   canEdit: boolean;
-  /** Only the author may set 'private' — the RLS WITH CHECK enforces the same rule. */
+  /** Only the author may set 'private' — the docs_guard_visibility trigger agrees. */
   isAuthor: boolean;
+  /** Author or workspace admin: may change visibility and manage shares. */
+  canManageAccess: boolean;
   saveState: SaveState;
   saveError?: string | null;
   onTitleChange: (title: string) => void;
   onIconChange: (icon: string | null) => void;
-  onVisibilityChange: (visibility: DocVisibility, teamId: string | null) => void;
+  onVisibilityChange: (visibility: DocVisibility) => void;
+  /** Rendered under the visibility row when the document is restricted. */
+  sharePanel?: React.ReactNode;
   onTrash: () => void;
   onBreadcrumbClick: (docId: string) => void;
 }
 
 const VISIBILITY_ICON: Record<DocVisibility, typeof Globe> = {
   workspace: Globe,
-  team: Users,
+  restricted: Users,
   private: Lock,
 };
 
@@ -34,14 +37,15 @@ const ICONS = ['📄', '📘', '📐', '🧭', '🛠️', '🚀', '🔒', '📊'
 export const DocHeader: React.FC<DocHeaderProps> = ({
   doc,
   ancestors,
-  teams,
   canEdit,
   isAuthor,
+  canManageAccess,
   saveState,
   saveError,
   onTitleChange,
   onIconChange,
   onVisibilityChange,
+  sharePanel,
   onTrash,
   onBreadcrumbClick,
 }) => {
@@ -65,31 +69,18 @@ export const DocHeader: React.FC<DocHeaderProps> = ({
    * wrong label for the document it is describing.
    */
   const visibilityOptions = React.useMemo(() => {
-    const options = [{ value: 'workspace', label: 'Everyone in the workspace' }];
-    if (teams.length > 0 || doc.visibility === 'team') {
-      options.push({ value: 'team', label: 'One team only' });
-    }
+    const options = [
+      { value: 'workspace', label: 'Everyone in the workspace' },
+      { value: 'restricted', label: 'Specific people and teams' },
+    ];
+    // Only the author may set 'private' — the same rule the docs_guard_visibility
+    // trigger enforces. Listing it for anyone else offers a choice that would be
+    // refused with an error.
     if (isAuthor || doc.visibility === 'private') {
       options.push({ value: 'private', label: 'Only me' });
     }
     return options;
-  }, [teams.length, doc.visibility, isAuthor]);
-
-  const handleVisibilitySelect = (val: string) => {
-    const next = val as DocVisibility;
-
-    if (next !== 'team') {
-      onVisibilityChange(next, null);
-      return;
-    }
-
-    // Never send a null team. A team document with no team satisfies no branch of the
-    // read policy, so it would be visible to nobody — this used to send doc.team_id,
-    // which is null on every document that is not already a team document.
-    const targetTeam = doc.team_id || teams[0]?.id;
-    if (!targetTeam) return;
-    onVisibilityChange('team', targetTeam);
-  };
+  }, [doc.visibility, isAuthor]);
 
   return (
     <div className="space-y-3">
@@ -182,35 +173,20 @@ export const DocHeader: React.FC<DocHeaderProps> = ({
         <VisibilityIcon className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
         <CustomSelect
           value={doc.visibility}
-          onChange={handleVisibilitySelect}
+          onChange={val => onVisibilityChange(val as DocVisibility)}
           options={visibilityOptions}
-          disabled={!canEdit}
+          disabled={!canManageAccess}
           size="sm"
           className="w-56"
         />
-
-        {doc.visibility === 'team' && (
-          <CustomSelect
-            value={doc.team_id || ''}
-            onChange={val => val && onVisibilityChange('team', val)}
-            options={teams.map(t => ({ value: t.id, label: t.name }))}
-            disabled={!canEdit}
-            size="sm"
-            className="w-44"
-          />
-        )}
       </div>
 
-      {canEdit && teams.length === 0 && doc.visibility !== 'team' && (
-        <p className="text-[11px] text-text-tertiary">
-          You are not in a team yet, so this document can only be shared with the whole
-          workspace.
-        </p>
-      )}
+      {doc.visibility === 'restricted' && sharePanel}
 
-      {canEdit && !isAuthor && doc.visibility !== 'private' && (
+      {canEdit && !canManageAccess && (
         <p className="text-[11px] text-text-tertiary">
-          Only the author can make this document private.
+          Only the author or a workspace admin can change who this document is shared
+          with.
         </p>
       )}
 
