@@ -13,6 +13,7 @@ import {
 
 import { lowlight } from './extensions/lowlightConfig';
 import { Callout } from './extensions/Callout';
+import { ScriptBlock } from './extensions/ScriptBlock';
 import { SlashCommand } from './extensions/SlashCommand';
 import { uploadImage } from '../../lib/uploadImage';
 
@@ -92,6 +93,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
       TaskList,
       TaskItem.configure({ nested: true }),
       Callout,
+      ScriptBlock,
       SlashCommand,
       Placeholder.configure({
         placeholder: ({ node }) =>

@@ -56,6 +56,10 @@
   --font-heading: 'Figtree', 'Open Runde', sans-serif;
   --font-id: 'IBM Plex Sans', sans-serif;
   --font-mono: 'IBM Plex Sans', monospace;
+  /* Scripts are set in Courier by convention: it is genuinely monospaced, so a
+     page of it maps predictably onto reading time. Courier New ships on every
+     desktop and mobile OS, so this costs no font download. */
+  --font-script: 'Courier New', Courier, ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', 'Liberation Mono', monospace;
 
   /* True font weights (Spotify-style: bold, confident type) */
   --font-weight-normal: 400;

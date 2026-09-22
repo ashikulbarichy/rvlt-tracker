@@ -412,3 +412,29 @@
 .doc-prose .hljs-name         { color: var(--color-accent-primary); }
 .doc-prose .hljs-type,
 .doc-prose .hljs-variable     { color: var(--color-attention); }
+
+/* Script block (content-marketing scripts): the spoken words, set in a typewriter face
+   so they read distinctly from the brief around them. */
+.doc-script {
+  font-family: var(--font-script);
+  font-size: 0.9em;
+  line-height: 1.75;
+  border-left: 3px solid var(--color-accent-primary);
+  background: var(--color-bg-surface-raised);
+  border-radius: 6px;
+  padding: 0.85rem 1.1rem;
+  white-space: pre-wrap;
+}
+.doc-script > * + * { margin-top: 0.6em; }
+/* Character cues read as headings inside a script; keep them in the same face. */
+.doc-script h1,
+.doc-script h2,
+.doc-script h3 {
+  font-family: var(--font-script);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.95em;
+  margin-top: 1.1em;
+}
+.doc-script code,
+.doc-script pre { font-family: var(--font-script); }
