@@ -706,17 +706,17 @@ export const TicketListView: React.FC<TicketListViewProps> = ({ onlyMine = false
         </div>
         
         {/* Right Side: Team Filter & Search */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 w-full sm:w-auto">
 
           {/* Search */}
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="w-3.5 h-3.5 text-text-tertiary absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-48 pl-8 pr-3 py-1 text-xs bg-bg-surface-raised border border-transparent rounded-full text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
+              className="w-full sm:w-48 pl-8 pr-3 py-1 text-xs bg-bg-surface-raised border border-transparent rounded-full text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary transition-colors"
             />
           </div>
 
@@ -817,19 +817,19 @@ export const TicketListView: React.FC<TicketListViewProps> = ({ onlyMine = false
                 }`}
               >
                 {/* Left Section: Identifier, Priority, Status */}
-                <div className="flex items-center min-w-0 flex-1">
-                  <div className="flex items-center shrink-0">
-                    <div className="w-24 shrink-0 flex items-center justify-start pr-2">
+                <div className="flex flex-col sm:flex-row sm:items-center min-w-0 flex-1 gap-1.5 sm:gap-0">
+                  <div className="flex items-center shrink-0 gap-1.5 sm:gap-0">
+                    <div className="shrink-0 sm:w-24 flex items-center justify-start sm:pr-2">
                       <span className="inline-flex items-center justify-center text-center font-id text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-bg-surface-raised border border-transparent transition-colors text-text-secondary">
                         {formatTicketIdentifier(ticket, currentWorkspace)}
                       </span>
                     </div>
 
-                    <div className="w-16 shrink-0 flex items-center justify-start pl-3" title={`Priority: ${priorityInfo.label}`}>
+                    <div className="shrink-0 sm:w-16 flex items-center justify-start sm:pl-3" title={`Priority: ${priorityInfo.label}`}>
                       {priorityInfo.icon}
                     </div>
 
-                    <div className="w-28 shrink-0 flex items-center">
+                    <div className="shrink-0 sm:w-28 flex items-center">
                         <StatusPicker
                           value={ticket.state_id}
                           options={ticketStatusOptions}
@@ -848,7 +848,7 @@ export const TicketListView: React.FC<TicketListViewProps> = ({ onlyMine = false
                     </div>
                   </div>
 
-                  <h3 className="text-sm font-semibold text-text-primary truncate min-w-0 pl-2">
+                  <h3 className="text-sm font-semibold text-text-primary truncate min-w-0 sm:pl-2">
                     {ticket.title}
                   </h3>
 
@@ -860,7 +860,7 @@ export const TicketListView: React.FC<TicketListViewProps> = ({ onlyMine = false
                 </div>
 
                 {/* Right Section: Lifecycle Actions, Assignees, Due Date, Timestamp */}
-                <div className="flex items-center shrink-0 sm:self-center pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
+                <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto shrink-0 sm:self-center pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
                   {/* Lifecycle actions. stopPropagation so they don't open the ticket. */}
                   <div className="shrink-0 flex items-center space-x-1 pr-2">
                     {bucket === 'trash' ? (
@@ -966,7 +966,7 @@ export const TicketListView: React.FC<TicketListViewProps> = ({ onlyMine = false
                     )}
                   </div>
 
-                  <div className="w-28 shrink-0 flex justify-end pl-4">
+                  <div className="shrink-0 sm:w-28 flex justify-end pl-2 sm:pl-4">
                     <span className="text-[11px] text-text-tertiary text-right whitespace-nowrap">
                       {ticket.updated_at ? getRelativeTime(ticket.updated_at) : 'Just now'}
                     </span>
