@@ -92,6 +92,8 @@ export interface Project {
   lead?: Profile;
   /** Embedded by useProjects for the progress bar; type_id selects countable types. */
   tickets?: { id: string; state_id: string; type_id: string }[];
+  /** Embedded by useProjects. Empty means the workspace flag decides — see ProjectProgressType. */
+  progress_types?: { type_id: string }[];
 }
 
 export interface RoadmapItem {
@@ -188,12 +190,28 @@ export interface TicketType {
   name: string;
   color: string;
   position: number;
-  /** Whether tickets of this type move the project progress bar. */
+  /**
+   * Whether tickets of this type move the project progress bar, workspace-wide.
+   * A project can override this with rows in `project_progress_types`.
+   */
   counts_toward_progress: boolean;
   /** The type new tickets get. At most one per workspace. */
   is_default: boolean;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * Per-project override of which ticket types count toward progress.
+ *
+ * No rows for a project means "inherit `ticket_types.counts_toward_progress`", so an
+ * unconfigured project behaves exactly as it did before migration 007.
+ */
+export interface ProjectProgressType {
+  workspace_id: string;
+  project_id: string;
+  type_id: string;
+  created_at: string;
 }
 
 export interface TicketAssignee {

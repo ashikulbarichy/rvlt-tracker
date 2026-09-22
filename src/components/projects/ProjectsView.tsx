@@ -20,6 +20,41 @@ import { formatTicketIdentifier } from '../../lib/identifier';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { StatusBadge } from '../common/StatusBadge';
 import { StatusPicker } from '../common/StatusPicker';
+import { ProjectProgressTypePicker } from './ProjectProgressTypePicker';
+import { useProjectProgressTypes } from '../../hooks/useProjectProgressTypes';
+
+/**
+ * A project plus everything derived from its tickets and its target date.
+ *
+ * Named rather than inferred so the detail panel can hold one without a cast: it reads
+ * these fields off a project that may not be in the enriched list yet.
+ */
+type EnrichedProject = Project & {
+  totalTickets: number;
+  completedTickets: number;
+  /** Tickets of a type that counts toward progress, and how many of those are done. */
+  scoredTotal: number;
+  scoredCompleted: number;
+  progress: number;
+  daysLeft: number | null;
+  isOverdue: boolean;
+  deliveryFailed: boolean;
+  /** The project's own override. Empty means it follows the workspace flags. */
+  progressTypeIds: string[];
+  /** Names of the types actually counted, override or inherited. For labels. */
+  progressTypeNames: string[];
+};
+
+/**
+ * "Feature", "Feature and Bug", "Feature, Bug and Documentation".
+ *
+ * Progress copy used to hardcode the word "feature", which stopped being true the moment
+ * a project could pick its own types.
+ */
+const joinTypeNames = (names: string[]): string => {
+  if (names.length <= 1) return names[0] || '';
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+};
 
 // Priority label colors (match the priority icon colors used across the app)
 const PRIORITY_COLORS: Record<string, string> = {
@@ -142,7 +177,8 @@ export const ProjectsView: React.FC = () => {
   const { teams } = useTeams(currentWorkspace?.id);
   const { profiles } = useProfiles();
   const { workflowStates } = useWorkflowStates();
-  const { countableTypeIds } = useTicketTypes();
+  const { ticketTypes, countableTypeIds } = useTicketTypes();
+  const { setProgressTypes } = useProjectProgressTypes();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTeamId, setSelectedTeamId] = useState<string>(currentTeam?.id || 'all');
@@ -406,16 +442,26 @@ export const ProjectsView: React.FC = () => {
     );
   }, [workflowStates]);
 
-  const enrichedProjects = useMemo(() => {
+  const enrichedProjects = useMemo((): EnrichedProject[] => {
     return (projects || []).map(p => {
-      // Progress tracks NEW work only. A type carries counts_toward_progress, so a
-      // Feature moves the bar while a Bug or an Improvement does not — closing twenty
-      // bugs should not read as a project nearing delivery.
+      // Progress tracks only the types this project says it is delivered by — closing
+      // twenty bugs should not read as a project nearing delivery.
+      //
+      // The project's own list wins; an empty one falls back to the workspace flags, so
+      // a project nobody has configured behaves exactly as it did before migration 007.
+      // That fallback is also what lets a development workspace count Features while one
+      // content-marketing project counts Documentation.
       //
       // Total ticket volume is kept separately: the card shows both, because collapsing
       // them into one number is what made the old figure misleading.
+      const own = (p.progress_types || []).map(row => row.type_id);
+      const countable = own.length > 0 ? new Set(own) : countableTypeIds;
+      const progressTypeNames = (ticketTypes || [])
+        .filter(t => countable.has(t.id))
+        .map(t => t.name);
+
       const allTickets = p.tickets || [];
-      const scored = allTickets.filter(ticket => countableTypeIds.has(ticket.type_id));
+      const scored = allTickets.filter(ticket => countable.has(ticket.type_id));
 
       const totalTickets = allTickets.length;
       const completedTickets = allTickets.filter(ticket => completedStateIds.has(ticket.state_id)).length;
@@ -445,9 +491,15 @@ export const ProjectsView: React.FC = () => {
         }
       }
   
-      return { ...p, totalTickets, completedTickets, scoredTotal, scoredCompleted, progress, daysLeft, isOverdue, deliveryFailed };
+      return {
+        ...p,
+        totalTickets, completedTickets, scoredTotal, scoredCompleted, progress,
+        daysLeft, isOverdue, deliveryFailed,
+        progressTypeIds: own,
+        progressTypeNames,
+      };
     });
-  }, [projects, completedStateIds, countableTypeIds]);
+  }, [projects, completedStateIds, countableTypeIds, ticketTypes]);
 
   const filteredProjects = useMemo(() => {
     return enrichedProjects.filter(p => {
@@ -571,9 +623,12 @@ export const ProjectsView: React.FC = () => {
     );
   };
 
-  const activeProjectEnriched = useMemo(() => {
-    if (!selectedProject) return null;
-    return enrichedProjects.find(p => p.id === selectedProject.id) || selectedProject;
+  // Undefined until the selected project appears in the enriched list — which is one
+  // render, while the projects query settles. Every reader below guards with `?.`, so
+  // falling back to the bare project (and losing the derived fields) buys nothing.
+  const activeProjectEnriched = useMemo((): EnrichedProject | undefined => {
+    if (!selectedProject) return undefined;
+    return enrichedProjects.find(p => p.id === selectedProject.id);
   }, [selectedProject, enrichedProjects]);
 
   return (
@@ -695,7 +750,7 @@ export const ProjectsView: React.FC = () => {
           </div>
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4">
-            {filteredProjects.map((project: any) => {
+            {filteredProjects.map(project => {
               const leadProfile = profiles?.find(p => p.id === project.lead_id);
               const team = teams?.find(t => t.id === project.team_id);
 
@@ -734,12 +789,14 @@ export const ProjectsView: React.FC = () => {
                   {/* Progress & Meta */}
                   <div className="space-y-3 pt-3">
                     <div className="space-y-1.5">
-                      <div className="flex justify-between text-[11px]">
-                        <span className="text-text-tertiary">
-                          {project.scoredTotal > 0 ? 'Feature progress' : 'Progress'}
+                      <div className="flex justify-between items-baseline gap-2 text-[11px]">
+                        <span className="text-text-tertiary truncate min-w-0">
+                          {project.progressTypeNames.length > 0
+                            ? `${joinTypeNames(project.progressTypeNames)} progress`
+                            : 'Progress'}
                         </span>
-                        <span className="font-medium text-text-primary">
-                          {project.scoredTotal > 0 ? `${project.progress}%` : 'No feature tickets yet'}
+                        <span className="font-medium text-text-primary shrink-0">
+                          {project.scoredTotal > 0 ? `${project.progress}%` : 'Nothing counted'}
                         </span>
                       </div>
                       <div className="w-full h-1.5 bg-bg-surface-raised rounded-full overflow-hidden">
@@ -782,7 +839,7 @@ export const ProjectsView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-xs">
-                {filteredProjects.map((project: any) => {
+                {filteredProjects.map(project => {
                   const leadProfile = profiles?.find(p => p.id === project.lead_id);
                   const team = teams?.find(t => t.id === project.team_id);
                   return (
@@ -933,35 +990,53 @@ export const ProjectsView: React.FC = () => {
 
               {/* Project Progress Banner */}
               <div className="bg-bg-surface-raised border border-transparent rounded-lg p-5 space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-y-2 gap-x-3">
                   <div className="flex items-center space-x-2">
                     <span className="text-xs font-semibold text-text-primary uppercase tracking-wider">
                       Progress & Roadmap
                     </span>
                     {getStatusBadge(selectedProject.status)}
                   </div>
-                  <span className="text-xs font-semibold text-accent-primary">
-                    {((activeProjectEnriched as any)?.scoredTotal || 0) > 0
-                      ? `${(activeProjectEnriched as any)?.progress || 0}% Complete`
-                      : 'No feature tickets yet'}
-                  </span>
+                  <div className="flex items-center gap-2 ml-auto">
+                    <ProjectProgressTypePicker
+                      types={ticketTypes || []}
+                      selectedIds={activeProjectEnriched?.progressTypeIds || []}
+                      inheritedIds={Array.from(countableTypeIds)}
+                      disabled={!isAdmin}
+                      onChange={async (typeIds) => {
+                        if (!currentWorkspace) throw new Error('No workspace selected.');
+                        await setProgressTypes({
+                          projectId: selectedProject.id,
+                          workspaceId: currentWorkspace.id,
+                          typeIds,
+                        });
+                      }}
+                    />
+                    <span className="text-xs font-semibold text-accent-primary">
+                      {(activeProjectEnriched?.scoredTotal || 0) > 0
+                        ? `${activeProjectEnriched?.progress || 0}% Complete`
+                        : 'Nothing counted yet'}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="w-full h-2 bg-bg-surface-raised border border-transparent rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-accent-primary transition-all duration-300"
-                    style={{ width: `${(activeProjectEnriched as any)?.progress || 0}%` }}
+                    style={{ width: `${activeProjectEnriched?.progress || 0}%` }}
                   />
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-text-secondary pt-1">
                   <span>
-                    {((activeProjectEnriched as any)?.scoredTotal || 0) > 0
-                      ? `${(activeProjectEnriched as any)?.scoredCompleted || 0} of ${(activeProjectEnriched as any)?.scoredTotal || 0} features delivered`
-                      : 'Progress tracks feature tickets only'}
+                    {(activeProjectEnriched?.progressTypeNames || []).length === 0
+                      ? 'No ticket type counts toward progress'
+                      : (activeProjectEnriched?.scoredTotal || 0) > 0
+                        ? `${activeProjectEnriched?.scoredCompleted || 0} of ${activeProjectEnriched?.scoredTotal || 0} ${joinTypeNames(activeProjectEnriched?.progressTypeNames || [])} tickets delivered`
+                        : `No ${joinTypeNames(activeProjectEnriched?.progressTypeNames || [])} tickets yet`}
                     <span className="text-text-tertiary">
                       {' · '}
-                      {(activeProjectEnriched as any)?.completedTickets || 0} of {(activeProjectEnriched as any)?.totalTickets || 0} tickets resolved
+                      {activeProjectEnriched?.completedTickets || 0} of {activeProjectEnriched?.totalTickets || 0} tickets resolved
                     </span>
                   </span>
                   {selectedProject.target_date && (
@@ -1253,8 +1328,8 @@ export const ProjectsView: React.FC = () => {
                   ) : (
                     renderTargetDateBadge(
                       selectedProject.target_date,
-                      (activeProjectEnriched as any)?.daysLeft,
-                      (activeProjectEnriched as any)?.isOverdue,
+                      activeProjectEnriched?.daysLeft,
+                      activeProjectEnriched?.isOverdue,
                       selectedProject.status === 'completed'
                     )
                   )}

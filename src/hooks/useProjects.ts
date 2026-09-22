@@ -16,8 +16,10 @@ export function useProjects(options?: { workspaceId?: string; teamId?: string } 
     queryFn: async () => {
       let query = supabase
         .from('projects')
-        // type_id feeds the progress bar: only types flagged counts_toward_progress count.
-        .select('*, tickets(id, state_id, type_id)')
+        // Both embeds feed the progress bar. progress_types is the project's own choice
+        // of countable types; when it comes back empty the workspace-level
+        // counts_toward_progress flag decides instead.
+        .select('*, tickets(id, state_id, type_id), progress_types:project_progress_types(type_id)')
         .order('name');
       
       if (teamId) {
