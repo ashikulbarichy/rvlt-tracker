@@ -250,6 +250,9 @@ export const DocPane: React.FC = () => {
               key={doc.id}
               content={doc.content}
               editable={canEdit}
+              linkableDocs={docs || []}
+              currentDocId={doc.id}
+              onOpenDoc={id => navigate(`/${workspaceSlug}/docs/${id}`)}
               onChange={(html, text) => queue({ content: html, content_text: text })}
               onHeadingsChange={setHeadings}
               onCharacterCount={setCounts}

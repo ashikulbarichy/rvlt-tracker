@@ -438,3 +438,33 @@
 }
 .doc-script code,
 .doc-script pre { font-family: var(--font-script); }
+
+/* Inline links to other documents, inserted with the `@` menu.
+   The label is resolved at view time from what the reader can see, so the locked
+   variant is a real state and not a styling edge case. */
+.doc-prose .doc-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.15em;
+  padding: 0.05em 0.35em;
+  border-radius: 0.25rem;
+  background: var(--color-bg-surface-hover);
+  border-bottom: 1px solid var(--color-accent-primary);
+  color: var(--color-text-primary);
+  font-size: 0.95em;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.doc-prose .doc-link:hover {
+  background: var(--color-bg-surface-raised);
+}
+
+.doc-prose .doc-link-locked {
+  border-bottom-style: dashed;
+  border-bottom-color: var(--color-text-tertiary);
+  color: var(--color-text-tertiary);
+  font-style: italic;
+  cursor: not-allowed;
+}

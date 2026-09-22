@@ -1,4 +1,5 @@
 import { Extension } from '@tiptap/core';
+import { PluginKey } from '@tiptap/pm/state';
 import Suggestion from '@tiptap/suggestion';
 import { ReactRenderer } from '@tiptap/react';
 import {
@@ -48,6 +49,11 @@ const ITEMS: SlashItem[] = [
  * the app has no tooltip dependency, and one fixed-position div is cheaper than adding
  * one. The menu flips above the caret when it would otherwise run off the bottom.
  */
+// Named rather than left on Suggestion's default 'suggestion' key: the editor runs a
+// second suggestion for the `@` menu, and two plugins with one key is a construction-
+// time throw.
+const slashCommandPluginKey = new PluginKey('slashCommand');
+
 export const SlashCommand = Extension.create({
   name: 'slashCommand',
 
@@ -55,6 +61,7 @@ export const SlashCommand = Extension.create({
     return [
       Suggestion<SlashItem>({
         editor: this.editor,
+        pluginKey: slashCommandPluginKey,
         char: '/',
         // Only at the start of an empty-ish block, so "and/or" mid-sentence does not
         // open the menu.

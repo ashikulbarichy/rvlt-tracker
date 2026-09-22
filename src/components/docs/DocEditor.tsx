@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
@@ -14,6 +14,8 @@ import {
 import { lowlight } from './extensions/lowlightConfig';
 import { Callout } from './extensions/Callout';
 import { ScriptBlock } from './extensions/ScriptBlock';
+import { DocLink, LinkableDoc } from './extensions/DocLink';
+import { DocMention } from './extensions/DocMention';
 import { SlashCommand } from './extensions/SlashCommand';
 import { uploadImage } from '../../lib/uploadImage';
 
@@ -31,6 +33,11 @@ interface DocEditorProps {
   editable?: boolean;
   onHeadingsChange?: (headings: DocHeading[]) => void;
   onCharacterCount?: (counts: { words: number; characters: number }) => void;
+  /** Documents the reader can see, for the `@` menu and for resolving link labels. */
+  linkableDocs?: LinkableDoc[];
+  /** Excluded from the `@` menu. */
+  currentDocId?: string;
+  onOpenDoc?: (docId: string) => void;
 }
 
 /** Stable slug for a heading, so the TOC can scroll to it. */
@@ -65,7 +72,22 @@ export const DocEditor: React.FC<DocEditorProps> = ({
   editable = true,
   onHeadingsChange,
   onCharacterCount,
+  linkableDocs,
+  currentDocId,
+  onOpenDoc,
 }) => {
+  // useEditor builds its extensions once, on mount, but these three arrive from queries
+  // and from a router hook that changes identity. Refs let the extensions read the
+  // current values at call time instead of closing over the first render's.
+  const linkableDocsRef = useRef<LinkableDoc[]>(linkableDocs || []);
+  linkableDocsRef.current = linkableDocs || [];
+
+  const currentDocIdRef = useRef<string | undefined>(currentDocId);
+  currentDocIdRef.current = currentDocId;
+
+  const onOpenDocRef = useRef<((docId: string) => void) | undefined>(onOpenDoc);
+  onOpenDocRef.current = onOpenDoc;
+
   const editor = useEditor({
     editable,
     extensions: [
@@ -94,6 +116,14 @@ export const DocEditor: React.FC<DocEditorProps> = ({
       TaskItem.configure({ nested: true }),
       Callout,
       ScriptBlock,
+      DocLink.configure({
+        getDocs: () => linkableDocsRef.current,
+        onOpen: docId => onOpenDocRef.current?.(docId),
+      }),
+      DocMention.configure({
+        getDocs: () => linkableDocsRef.current,
+        getCurrentDocId: () => currentDocIdRef.current,
+      }),
       SlashCommand,
       Placeholder.configure({
         placeholder: ({ node }) =>
