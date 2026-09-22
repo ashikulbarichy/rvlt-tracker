@@ -11,6 +11,8 @@ interface DocHeaderProps {
   ancestors: Doc[];
   teams: Team[];
   canEdit: boolean;
+  /** Only the author may set 'private' — the RLS WITH CHECK enforces the same rule. */
+  isAuthor: boolean;
   saveState: SaveState;
   saveError?: string | null;
   onTitleChange: (title: string) => void;
@@ -34,6 +36,7 @@ export const DocHeader: React.FC<DocHeaderProps> = ({
   ancestors,
   teams,
   canEdit,
+  isAuthor,
   saveState,
   saveError,
   onTitleChange,
@@ -55,6 +58,38 @@ export const DocHeader: React.FC<DocHeaderProps> = ({
   }, [isIconOpen]);
 
   const VisibilityIcon = VISIBILITY_ICON[doc.visibility];
+
+  /**
+   * Only what this person can actually save, so a choice never fails at the database.
+   * The current visibility is always listed, otherwise the select would render the
+   * wrong label for the document it is describing.
+   */
+  const visibilityOptions = React.useMemo(() => {
+    const options = [{ value: 'workspace', label: 'Everyone in the workspace' }];
+    if (teams.length > 0 || doc.visibility === 'team') {
+      options.push({ value: 'team', label: 'One team only' });
+    }
+    if (isAuthor || doc.visibility === 'private') {
+      options.push({ value: 'private', label: 'Only me' });
+    }
+    return options;
+  }, [teams.length, doc.visibility, isAuthor]);
+
+  const handleVisibilitySelect = (val: string) => {
+    const next = val as DocVisibility;
+
+    if (next !== 'team') {
+      onVisibilityChange(next, null);
+      return;
+    }
+
+    // Never send a null team. A team document with no team satisfies no branch of the
+    // read policy, so it would be visible to nobody — this used to send doc.team_id,
+    // which is null on every document that is not already a team document.
+    const targetTeam = doc.team_id || teams[0]?.id;
+    if (!targetTeam) return;
+    onVisibilityChange('team', targetTeam);
+  };
 
   return (
     <div className="space-y-3">
@@ -147,12 +182,9 @@ export const DocHeader: React.FC<DocHeaderProps> = ({
         <VisibilityIcon className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
         <CustomSelect
           value={doc.visibility}
-          onChange={val => onVisibilityChange(val as DocVisibility, val === 'team' ? doc.team_id : null)}
-          options={[
-            { value: 'workspace', label: 'Everyone in the workspace' },
-            { value: 'team', label: 'One team only' },
-            { value: 'private', label: 'Only me' },
-          ]}
+          onChange={handleVisibilitySelect}
+          options={visibilityOptions}
+          disabled={!canEdit}
           size="sm"
           className="w-56"
         />
@@ -160,17 +192,25 @@ export const DocHeader: React.FC<DocHeaderProps> = ({
         {doc.visibility === 'team' && (
           <CustomSelect
             value={doc.team_id || ''}
-            onChange={val => onVisibilityChange('team', val || null)}
+            onChange={val => val && onVisibilityChange('team', val)}
             options={teams.map(t => ({ value: t.id, label: t.name }))}
+            disabled={!canEdit}
             size="sm"
             className="w-44"
           />
         )}
       </div>
 
-      {doc.visibility === 'team' && !doc.team_id && (
-        <p className="text-[11px] text-status-warning">
-          Pick a team — until you do, this document is visible to nobody but you.
+      {canEdit && teams.length === 0 && doc.visibility !== 'team' && (
+        <p className="text-[11px] text-text-tertiary">
+          You are not in a team yet, so this document can only be shared with the whole
+          workspace.
+        </p>
+      )}
+
+      {canEdit && !isAuthor && doc.visibility !== 'private' && (
+        <p className="text-[11px] text-text-tertiary">
+          Only the author can make this document private.
         </p>
       )}
 

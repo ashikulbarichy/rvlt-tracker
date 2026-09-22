@@ -154,6 +154,12 @@ export function useDocs({ includeDeleted = false }: UseDocsOptions = {}) {
       queryClient.setQueriesData<Doc[]>({ queryKey: ['docs'] }, prev =>
         (prev || []).map(d => (d.id === variables.id ? { ...d, ...variables } : d))
       );
+      // The editor route reads ['doc', id], not the tree, and nothing patched or
+      // invalidated it. A saved change therefore never reached the open document —
+      // which is what made the visibility control look like it did not work.
+      queryClient.setQueryData<Doc | null>(['doc', variables.id], prev =>
+        prev ? { ...prev, ...variables } : prev
+      );
     },
   });
 

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 
 import { useApp } from '../../context/AppContext';
@@ -33,6 +34,7 @@ export const DocPane: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser, userRole } = useApp();
   const { teams } = useTeams();
+  const queryClient = useQueryClient();
 
   const { doc, isLoading, error: loadError } = useDoc(docId);
   const { docs, saveDoc, trashDoc } = useDocs();
@@ -146,8 +148,26 @@ export const DocPane: React.FC = () => {
     navigate(`/${workspaceSlug}/docs`);
   };
 
-  const handleVisibility = (visibility: DocVisibility, teamId: string | null) => {
+  /**
+   * Visibility saves immediately rather than through the autosave debounce.
+   *
+   * It is a deliberate, one-click decision about who can see the document, and the
+   * write is the one most likely to be rejected by RLS — waiting seconds to find out
+   * reads as the setting silently not sticking.
+   */
+  const handleVisibility = async (visibility: DocVisibility, teamId: string | null) => {
     queue({ visibility, team_id: visibility === 'team' ? teamId : null });
+    if (timerRef.current) clearTimeout(timerRef.current);
+    await flush();
+
+    // Re-read rather than trust the optimistic patch. An UPDATE that RLS refuses on its
+    // USING clause changes no rows and raises NO error, so a rejected change would
+    // otherwise be reported as saved and displayed as applied. This is the one setting
+    // where showing a value the database did not store is not acceptable.
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['doc', docId] }),
+      queryClient.invalidateQueries({ queryKey: ['docs'] }),
+    ]);
   };
 
   return (
@@ -159,6 +179,7 @@ export const DocPane: React.FC = () => {
             ancestors={ancestors}
             teams={teams || []}
             canEdit={canEdit}
+            isAuthor={doc.created_by === currentUser?.id}
             saveState={saveState}
             saveError={saveError}
             onTitleChange={title => queue({ title })}
