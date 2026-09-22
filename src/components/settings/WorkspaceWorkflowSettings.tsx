@@ -76,7 +76,7 @@ export const WorkspaceWorkflowSettings: React.FC<WorkspaceWorkflowSettingsProps>
         {workflowStates.map((state) => (
           <div
             key={state.id}
-            className="flex items-center justify-between p-3 bg-bg-surface-raised border border-transparent rounded-lg"
+            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-bg-surface-raised border border-transparent rounded-lg"
           >
             <div className="flex items-center space-x-3">
               <div

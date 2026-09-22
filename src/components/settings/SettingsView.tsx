@@ -21,12 +21,13 @@ export const SettingsView: React.FC = () => {
   ];
 
   return (
-    <div className="flex-1 flex bg-transparent h-full overflow-hidden font-sans">
+    <div className="flex-1 flex flex-col lg:flex-row bg-transparent h-full overflow-hidden font-sans">
       
       {/* Settings Navigation Sidebar */}
-      <div className="w-[200px] bg-transparent border-r border-border shrink-0 p-4">
-        <h1 className="flex items-center gap-2.5 text-base font-karla font-semibold text-text-primary mb-4"><SidebarToggle />Settings</h1>
-        <nav className="space-y-0.5">
+      <div className="lg:w-[200px] bg-transparent border-b lg:border-b-0 lg:border-r border-border shrink-0 p-3 lg:p-4">
+        <h1 className="flex items-center gap-2.5 text-base font-karla font-semibold text-text-primary mb-3 lg:mb-4"><SidebarToggle />Settings</h1>
+        {/* Horizontal, scrollable strip below lg so the tabs cost no layout width. */}
+        <nav className="flex lg:flex-col gap-1 lg:gap-0 lg:space-y-0.5 overflow-x-auto no-scrollbar scrollbar-none">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeSettingsTab === tab.id;
@@ -34,7 +35,7 @@ export const SettingsView: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveSettingsTab(tab.id as any)}
-                className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-sm text-xs transition-colors whitespace-nowrap ${
+                className={`shrink-0 lg:w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-sm text-xs transition-colors whitespace-nowrap ${
                   isActive
                     ? 'bg-bg-surface text-text-primary font-medium'
                     : 'text-text-secondary hover:bg-bg-surface/50 hover:text-text-primary'
@@ -49,7 +50,7 @@ export const SettingsView: React.FC = () => {
       </div>
 
       {/* Settings Content Area */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="max-w-3xl">
           {activeSettingsTab === 'profile' && <ProfileSettings />}
           {activeSettingsTab === 'security' && <SecuritySettings />}

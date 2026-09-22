@@ -163,7 +163,7 @@ export const WorkspaceSettings: React.FC = () => {
               Customize the prefix used to generate unique human-readable keys for tickets and test cases.
             </p>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-medium text-text-primary mb-1">
                   Default Ticket Prefix

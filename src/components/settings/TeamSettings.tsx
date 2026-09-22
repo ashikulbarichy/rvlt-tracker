@@ -269,7 +269,7 @@ export const TeamSettings: React.FC = () => {
                   placeholder="Filter team members..."
                   value={searchMemberQuery}
                   onChange={e => setSearchMemberQuery(e.target.value)}
-                  className="w-56 pl-8 pr-3 py-1 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
+                  className="w-full sm:w-56 pl-8 pr-3 py-1 text-xs bg-bg-surface-raised border border-transparent rounded-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary focus:ring-1 focus:ring-text-secondary"
                 />
               </div>
             )}
@@ -303,7 +303,7 @@ export const TeamSettings: React.FC = () => {
                 return (
                   <div
                     key={m.user_id}
-                    className="p-3.5 bg-bg-surface-raised hover:bg-bg-surface-hover border border-transparent rounded-lg shadow-xs transition-all flex items-center justify-between gap-3"
+                    className="p-3.5 bg-bg-surface-raised hover:bg-bg-surface-hover border border-transparent rounded-lg shadow-xs transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
                   >
                     <div className="flex items-center space-x-3 min-w-0">
                       <div className="relative shrink-0">
