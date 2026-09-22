@@ -7,6 +7,7 @@ import { useApp } from '../../context/AppContext';
 import { useTeams } from '../../hooks/useTeams';
 import { useDoc, useDocs } from '../../hooks/useDocs';
 import { useDocShares } from '../../hooks/useDocShares';
+import { useShareableTeams } from '../../hooks/useShareableTeams';
 import { useWorkspaceMembers } from '../../hooks/useWorkspaceMembers';
 import { Doc, DocVisibility } from '../../types/database';
 import { DocEditor, DocHeading } from './DocEditor';
@@ -36,9 +37,14 @@ export const DocPane: React.FC = () => {
   const { docId, workspaceSlug } = useParams<{ docId: string; workspaceSlug: string }>();
   const navigate = useNavigate();
   const { currentUser, userRole, currentWorkspace } = useApp();
+  // Two team lists, and they must not be confused. `teams` is RLS-filtered to the ones
+  // this person belongs to and is what canEdit below reads; `shareableTeams` is every
+  // team in the workspace and is only ever offered as a sharing target.
+  //
   // useTeams returns [] without a workspace id, so the bare call this used to make left
   // the team list permanently empty -- sharing by team had nothing to offer.
   const { teams } = useTeams(currentWorkspace?.id);
+  const { shareableTeams } = useShareableTeams(currentWorkspace?.id);
   const queryClient = useQueryClient();
 
   const { doc, isLoading, error: loadError } = useDoc(docId);
@@ -78,7 +84,9 @@ export const DocPane: React.FC = () => {
     if (!doc) return false;
     if (doc.visibility === 'workspace') return true;
     if (isAuthor || isAdmin) return true;
-    // 'restricted': an edit-level share, granted to me or to a team I am in. Viewer
+    // 'restricted': an edit-level share, granted to me or to a team I am in. `teams`,
+    // never shareableTeams -- the latter lists teams I am NOT on, and reading it here
+    // would grant edit rights on every team-shared document in the workspace. Viewer
     // shares deliberately fall through to false.
     return (shares || []).some(
       s =>
@@ -218,7 +226,7 @@ export const DocPane: React.FC = () => {
                   isLoading={sharesLoading}
                   loadError={sharesError ? (sharesError as Error).message : null}
                   members={members || []}
-                  teams={teams || []}
+                  teams={shareableTeams || []}
                   authorId={doc.created_by}
                   onGrant={(principal, canEditShare) =>
                     grantShare({ docId: doc.id, ...principal, canEdit: canEditShare })
