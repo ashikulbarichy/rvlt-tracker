@@ -16,7 +16,9 @@
     
     <!-- PWA Manifest and Icons -->
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
+    <!-- PNG, not SVG: iOS ignores an SVG apple-touch-icon and falls back to a page
+         screenshot. Full-bleed and opaque, because iOS rounds the corners itself. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

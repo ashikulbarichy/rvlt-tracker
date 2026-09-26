@@ -1,4 +1,7 @@
-const CACHE_NAME = 'reevolt-tasks-v2';
+// Bumped for the new logo. The fetch handler below is cache-first with a background
+// refresh, so without a new name an installed app would keep showing the old mark until
+// a second load; a new name makes activate() drop the old cache outright.
+const CACHE_NAME = 'reevolt-tasks-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -8,7 +11,12 @@ const STATIC_ASSETS = [
   '/icons/icon-192.svg',
   '/icons/icon-512.svg',
   '/icons/icon-maskable-192.svg',
-  '/icons/icon-maskable-512.svg'
+  '/icons/icon-maskable-512.svg',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/icon-maskable-192.png',
+  '/icons/icon-maskable-512.png',
+  '/icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {
