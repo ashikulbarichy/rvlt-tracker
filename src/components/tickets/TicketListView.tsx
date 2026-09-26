@@ -25,7 +25,8 @@ import {
   ArchiveRestore,
   RotateCcw,
   Trash2,
-  X
+  X,
+  Timer
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { SidebarToggle } from '../../components/layout/SidebarToggle';
@@ -42,6 +43,7 @@ import { stripHtml } from '../../utils/htmlUtils';
 import { StatusBadge } from '../common/StatusBadge';
 import { StatusPicker } from '../common/StatusPicker';
 import { TypePicker } from '../common/TypePicker';
+import { sprintLabel } from '../../hooks/useSprints';
 import { ConfirmModal } from '../common/ConfirmModal';
 
 interface TicketListViewProps {
@@ -852,6 +854,18 @@ export const TicketListView: React.FC<TicketListViewProps> = ({ onlyMine = false
                     {ticket.title}
                   </h3>
 
+                  {ticket.sprint && (
+                    <span
+                      title="Sprint"
+                      className={`hidden sm:inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded-full bg-bg-surface-hover text-[10px] shrink-0 ${
+                        ticket.sprint.status === 'completed' ? 'text-text-tertiary' : 'text-text-secondary'
+                      }`}
+                    >
+                      <Timer className="w-3 h-3" />
+                      {sprintLabel(ticket.sprint)}
+                    </span>
+                  )}
+
                   {ticket.description && !isCompact && (
                     <p className="text-xs text-text-secondary truncate hidden lg:inline pl-2 max-w-[200px] xl:max-w-[400px]">
                       {stripHtml(ticket.description)}
@@ -1022,6 +1036,18 @@ export const TicketListView: React.FC<TicketListViewProps> = ({ onlyMine = false
                     <h3 className="text-sm font-semibold text-text-primary line-clamp-2">
                       {ticket.title}
                     </h3>
+
+                    {ticket.sprint && (
+                      <span
+                        title="Sprint"
+                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-bg-surface-hover text-[10px] w-fit ${
+                          ticket.sprint.status === 'completed' ? 'text-text-tertiary' : 'text-text-secondary'
+                        }`}
+                      >
+                        <Timer className="w-3 h-3" />
+                        {sprintLabel(ticket.sprint)}
+                      </span>
+                    )}
 
                     {ticket.description && (
                       <p className="text-xs text-text-secondary line-clamp-2">

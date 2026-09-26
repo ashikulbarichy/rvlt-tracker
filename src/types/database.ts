@@ -112,6 +112,46 @@ export interface RoadmapItem {
   project?: Project;
 }
 
+export type SprintStatus = 'planned' | 'active' | 'completed';
+
+/**
+ * A time-boxed commitment of one team's tickets. Added in migration 20260930090000.
+ *
+ * Owned by a team, never a project: which projects a sprint advanced is derived from its
+ * tickets. `number` is assigned by a trigger per team; `name` optionally overrides the
+ * "Sprint <number>" label. Status changes only through start_sprint / complete_sprint.
+ */
+export interface Sprint {
+  id: string;
+  workspace_id: string;
+  team_id: string;
+  number: number;
+  name: string | null;
+  goal: string | null;
+  /** yyyy-mm-dd, inclusive. */
+  start_date: string;
+  /** yyyy-mm-dd, inclusive. */
+  end_date: string;
+  status: SprintStatus;
+  started_at: string | null;
+  completed_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SprintOutcome = 'completed' | 'canceled' | 'carried_over' | 'returned_to_backlog';
+
+/** One ticket's outcome, snapshotted by complete_sprint(). Read-only to clients. */
+export interface SprintResult {
+  sprint_id: string;
+  ticket_id: string;
+  workspace_id: string;
+  outcome: SprintOutcome;
+  carried_to_sprint_id: string | null;
+  recorded_at: string;
+}
+
 /**
  * 'restricted' means the author plus whoever is listed in doc_shares. It replaced
  * 'team' in migration 20260927090000 -- one team only is just a restricted document
@@ -269,6 +309,12 @@ export interface Ticket {
   /** Soft delete. Non-null means the ticket is in the trash. */
   deleted_at: string | null;
   deleted_by: string | null;
+  /**
+   * The team sprint this ticket is committed to, if any. A trigger keeps it within the
+   * ticket's own team and clears it when the ticket changes team.
+   */
+  sprint_id: string | null;
+  sprint?: Pick<Sprint, 'id' | 'number' | 'name' | 'status'>;
   state?: WorkflowState;
   status?: WorkflowState;
   type?: TicketType;

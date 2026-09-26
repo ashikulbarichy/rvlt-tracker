@@ -21,6 +21,8 @@ import { MemberSettings } from './components/settings/MemberSettings';
 import { TeamSettings } from './components/settings/TeamSettings';
 const DocsView = lazy(() => import('./components/docs/DocsView').then(m => ({ default: m.DocsView })));
 const DocPane = lazy(() => import('./components/docs/DocPane').then(m => ({ default: m.DocPane })));
+const SprintsView = lazy(() => import('./components/sprints/SprintsView').then(m => ({ default: m.SprintsView })));
+const SprintDetail = lazy(() => import('./components/sprints/SprintDetail').then(m => ({ default: m.SprintDetail })));
 import { HomeInboxView } from './components/home/HomeInboxView';
 import { ProjectsView } from './components/projects/ProjectsView';
 import { RoadmapView } from './components/roadmap/RoadmapView';
@@ -63,6 +65,8 @@ const LegacyIssueRedirect: React.FC<{ scope?: 'mine' | 'team' }> = ({ scope }) =
               <Route path="my-tickets" element={<TicketListView onlyMine={true} />} />
               <Route path="projects" element={<ProjectsView />} />
               <Route path="roadmap" element={<RoadmapView />} />
+              <Route path="sprints" element={<SprintsView />} />
+              <Route path="sprints/:sprintId" element={<SprintDetail />} />
               <Route path="tickets" element={<TicketListView onlyMine={false} />} />
               <Route path="issues" element={<LegacyIssueRedirect />} />
               <Route path="my-issues" element={<LegacyIssueRedirect scope="mine" />} />
@@ -84,6 +88,7 @@ const LegacyIssueRedirect: React.FC<{ scope?: 'mine' | 'team' }> = ({ scope }) =
               {/* Team specific routes */}
               <Route path="teams/:teamId/projects" element={<ProjectsView />} />
               <Route path="teams/:teamId/tickets" element={<TicketListView onlyMine={false} />} />
+              <Route path="teams/:teamId/sprints" element={<SprintsView />} />
               <Route path="teams/:teamId/issues" element={<LegacyIssueRedirect scope="team" />} />
               <Route path="teams/:teamId/members" element={
                 <div className="flex-1 overflow-y-auto p-6">

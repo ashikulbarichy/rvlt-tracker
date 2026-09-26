@@ -16,7 +16,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Bell,
-  Map as MapIcon
+  Map as MapIcon,
+  Timer
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
@@ -430,6 +431,22 @@ export const Sidebar: React.FC = () => {
             <button
               onClick={() => {
                 setCurrentTeam(null);
+                handleNav(`/${currentWorkspace?.slug || ''}/sprints`);
+              }}
+              className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                // The list and a sprint's own page, but not a team's sprint list.
+                /\/sprints(\/|$)/.test(path) && !path.includes('/teams/')
+                  ? 'bg-bg-surface-hover text-text-primary'
+                  : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
+              }`}
+            >
+              <Timer className="w-3.5 h-3.5 text-text-secondary" />
+              <span>Sprints</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setCurrentTeam(null);
                 handleNav(`/${currentWorkspace?.slug || ''}/tickets`);
               }}
               className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
@@ -555,6 +572,20 @@ export const Sidebar: React.FC = () => {
                     >
                       <Ticket className="w-3.5 h-3.5" />
                       <span>Tickets</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCurrentTeam(team);
+                        handleNav(`/${currentWorkspace?.slug || ''}/teams/${team.id}/sprints`);
+                      }}
+                      className={`w-full flex items-center space-x-2 px-3 py-1 rounded-full text-[11px] font-medium transition-colors ${
+                        path.endsWith('/sprints') && currentTeam?.id === team.id
+                          ? 'bg-bg-surface-hover text-text-primary'
+                          : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
+                      }`}
+                    >
+                      <Timer className="w-3.5 h-3.5" />
+                      <span>Sprints</span>
                     </button>
                     <button
                       onClick={() => {

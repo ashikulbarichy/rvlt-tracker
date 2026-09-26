@@ -8,6 +8,7 @@ import { useTickets } from '../../hooks/useTickets';
 import { useTeams } from '../../hooks/useTeams';
 import { useTeamMembers } from '../../hooks/useTeamMembers';
 import { useProjects } from '../../hooks/useProjects';
+import { SprintPicker } from '../common/SprintPicker';
 import { useProfiles } from '../../hooks/useProfiles';
 import { useWorkflowStates } from '../../hooks/useWorkflowStates';
 import { useTicketTypes } from '../../hooks/useTicketTypes';
@@ -31,6 +32,12 @@ export const NewTicketModal: React.FC = () => {
   const [description, setDescription] = useState('');
   const [teamId, setTeamId] = useState('');
   const [projectId, setProjectId] = useState('');
+  // A sprint belongs to one team, so the choice is remembered together with the team it
+  // was made for and derived away when the team changes -- no effect needed to clear it.
+  const [sprintChoice, setSprintChoice] = useState<{ teamId: string; sprintId: string | null }>({
+    teamId: '',
+    sprintId: null,
+  });
   const [statusId, setStatusId] = useState('');
   const [priority, setPriority] = useState<TicketPriority>('medium');
   const [typeId, setTypeId] = useState('');
@@ -62,6 +69,7 @@ export const NewTicketModal: React.FC = () => {
     : (userAssignedTeams.length > 0 ? userAssignedTeams : (teams || []));
   
   const { projects } = useProjects(teamId || undefined);
+  const sprintId = sprintChoice.teamId === teamId ? sprintChoice.sprintId : null;
   const { workflowStates } = useWorkflowStates();
   const { ticketTypes, defaultTicketType } = useTicketTypes();
 
@@ -153,6 +161,7 @@ export const NewTicketModal: React.FC = () => {
         description: description.trim(),
         team_id: teamId || (selectableTeams[0]?.id || undefined),
         project_id: projectId || null,
+        sprint_id: sprintId,
         state_id: statusId || (workflowStates && workflowStates[0]?.id) || undefined,
         priority,
         type_id: typeId || defaultTicketType?.id,
@@ -166,6 +175,7 @@ export const NewTicketModal: React.FC = () => {
           setDescription('');
           setDueDate('');
           setTypeId('');
+          setSprintChoice({ teamId: '', sprintId: null });
           setSelectedAssigneeIds(currentUser?.id ? [currentUser.id] : []);
           setErrorMessage(null);
           setIsSubmitting(false);
@@ -278,6 +288,17 @@ export const NewTicketModal: React.FC = () => {
                 options={[{ value: '', label: 'No Project' }, ...(projects?.map(p => ({ value: p.id, label: p.name })) || [])]}
                 size="sm"
                 className="w-full"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-medium text-text-secondary mb-0.5">
+                Sprint
+              </label>
+              <SprintPicker
+                teamId={teamId || undefined}
+                value={sprintId}
+                onChange={next => setSprintChoice({ teamId, sprintId: next })}
               />
             </div>
 

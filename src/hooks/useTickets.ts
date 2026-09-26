@@ -87,6 +87,7 @@ export function useTickets(options: UseTicketsOptions) {
           type:type_id(id, name, color, position, counts_toward_progress),
           team:team_id(id, name, key),
           project:project_id(id, name, key),
+          sprint:sprint_id(id, number, name, status),
           workspace:workspace_id(id, name, ticket_prefix)
         `, { count: 'exact' })
         .eq('workspace_id', workspaceId);
@@ -306,6 +307,8 @@ export function useTickets(options: UseTicketsOptions) {
         priority: newTicket.priority || 'medium',
         assignee_id: primaryAssigneeId,
         project_id: newTicket.project_id || null,
+        // Must be a sprint of finalTeamId; the tickets_sprint_guard trigger refuses any other.
+        sprint_id: newTicket.sprint_id || null,
         reporter_id: finalReporterId,
         due_date: newTicket.due_date || null,
       };
@@ -573,6 +576,8 @@ export function useTickets(options: UseTicketsOptions) {
     error,
     createTicket: createMutation.mutate,
     updateTicket: updateMutation.mutate,
+    /** Awaitable, for callers that surface the database's refusal (e.g. a completed sprint). */
+    updateTicketAsync: updateMutation.mutateAsync,
     /**
      * Soft delete, not a hard one. Existing callers keep working and their deletions
      * became recoverable; permanent removal is `deleteTicketPermanently` (admins only).

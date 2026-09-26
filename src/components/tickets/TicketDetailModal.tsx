@@ -18,6 +18,7 @@ import { formatTicketIdentifier } from '../../lib/identifier';
 import { formatRelativeTime } from '../../lib/time';
 import { useImagePaste } from '../../hooks/useImagePaste';
 import { ConfirmModal } from '../common/ConfirmModal';
+import { SprintPicker } from '../common/SprintPicker';
 
 export const TicketDetailModal: React.FC = () => {
   const {
@@ -57,7 +58,7 @@ export const TicketDetailModal: React.FC = () => {
 
   const activeTicket = selectedTicket || displayedTicket;
 
-  const { updateTicket, deleteTicket } = useTickets({ workspaceId: currentWorkspace?.id });
+  const { updateTicket, updateTicketAsync, deleteTicket } = useTickets({ workspaceId: currentWorkspace?.id });
   const { workflowStates } = useWorkflowStates();
   const { ticketTypes } = useTicketTypes();
   const { profiles } = useProfiles();
@@ -319,6 +320,18 @@ export const TicketDetailModal: React.FC = () => {
     updateTicket({ id: activeTicket.id, workspace_id: activeTicket.workspace_id, [field]: value });
     setSelectedTicket({ ...activeTicket, [field]: value });
     setDisplayedTicket({ ...activeTicket, [field]: value });
+  };
+
+  /**
+   * Unlike handleUpdateField this awaits the write and lets it reject: the database
+   * refuses a sprint of another team or a completed one, and SprintPicker shows why.
+   * Local state changes only after the write succeeds.
+   */
+  const handleSetSprint = async (sprintId: string | null) => {
+    if (!activeTicket) return;
+    await updateTicketAsync({ id: activeTicket.id, workspace_id: activeTicket.workspace_id, sprint_id: sprintId });
+    setSelectedTicket({ ...activeTicket, sprint_id: sprintId });
+    setDisplayedTicket({ ...activeTicket, sprint_id: sprintId });
   };
 
   const handleToggleAssignee = (userId: string) => {
@@ -736,6 +749,19 @@ export const TicketDetailModal: React.FC = () => {
                 ]}
                 size="sm"
                 className="w-full"
+              />
+            </div>
+
+            {/* Sprint */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-text-secondary">
+                Sprint
+              </label>
+              <SprintPicker
+                teamId={activeTicket.team_id}
+                value={activeTicket.sprint_id ?? null}
+                current={activeTicket.sprint}
+                onChange={handleSetSprint}
               />
             </div>
 
