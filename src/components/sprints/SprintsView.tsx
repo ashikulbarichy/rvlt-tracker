@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { VelocityChart } from './VelocityChart';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronDown, ChevronRight, Loader2, Plus, Timer } from 'lucide-react';
+import { ChevronDown, ChevronRight, ListOrdered, Loader2, Plus, Timer } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useTeams } from '../../hooks/useTeams';
-import { SprintProgress, sprintLabel, useSprints, useSprintTicketCounts } from '../../hooks/useSprints';
+import { isSprintArchived, SprintProgress, sprintLabel, useSprints, useSprintTicketCounts, useVelocityHistory } from '../../hooks/useSprints';
 import { Sprint, Team } from '../../types/database';
 import { SidebarToggle } from '../layout/SidebarToggle';
 import { SprintFormModal } from './SprintFormModal';
@@ -53,6 +54,7 @@ export const SprintsView: React.FC = () => {
       sprints={sprints || []}
       progressBySprint={bySprint}
       onOpen={sprint => navigate(`/${workspaceSlug}/sprints/${sprint.id}`)}
+      onBacklog={team => navigate(`/${workspaceSlug}/teams/${team.id}/backlog`)}
       onCreate={async (team, values) => {
         const created = await createSprint({ team_id: team.id, ...values });
         navigate(`/${workspaceSlug}/sprints/${created.id}`);
@@ -67,15 +69,16 @@ interface SprintsListProps {
   sprints: Sprint[];
   progressBySprint: Map<string, SprintProgress>;
   onOpen: (sprint: Sprint) => void;
+  onBacklog: (team: Team) => void;
   onCreate: (team: Team, values: { name: string; goal: string; start_date: string; end_date: string }) => Promise<void>;
 }
 
-const SprintsList: React.FC<SprintsListProps> = ({ title, teams, sprints, progressBySprint, onOpen, onCreate }) => {
+const SprintsList: React.FC<SprintsListProps> = ({ title, teams, sprints, progressBySprint, onOpen, onBacklog, onCreate }) => {
   const [creatingFor, setCreatingFor] = useState<Team | null>(null);
 
   return (
     <div className="flex-1 overflow-y-auto no-scrollbar">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-8">
+      <div className="px-3 sm:px-6 pt-2.5 sm:pt-3 pb-8 space-y-8">
         <div className="flex items-center gap-2.5">
           <SidebarToggle />
           <h1 className="text-xl font-semibold text-text-primary">{title}</h1>
@@ -96,6 +99,7 @@ const SprintsList: React.FC<SprintsListProps> = ({ title, teams, sprints, progre
               progressBySprint={progressBySprint}
               onOpen={onOpen}
               onNew={() => setCreatingFor(team)}
+              onBacklog={() => onBacklog(team)}
             />
           ))
         )}
@@ -113,27 +117,55 @@ const SprintsList: React.FC<SprintsListProps> = ({ title, teams, sprints, progre
   );
 };
 
+/** Committed against completed points for the team's last sprints with estimates. */
+const TeamVelocityCard: React.FC<{ teamId: string }> = ({ teamId }) => {
+  const { history, isLoading, error } = useVelocityHistory(teamId);
+  if (isLoading || (!error && history.length === 0)) return null;
+  return (
+    <div className="bg-bg-surface-raised rounded-lg p-4 space-y-3">
+      <span className="text-xs font-semibold uppercase tracking-wider text-text-primary">Velocity</span>
+      {error ? (
+        <p className="text-xs text-status-error">{(error as Error).message}</p>
+      ) : (
+        <VelocityChart history={history} />
+      )}
+    </div>
+  );
+};
+
 const TeamSprints: React.FC<{
   team: Team;
   sprints: Sprint[];
   progressBySprint: Map<string, SprintProgress>;
   onOpen: (sprint: Sprint) => void;
   onNew: () => void;
-}> = ({ team, sprints, progressBySprint, onOpen, onNew }) => {
+  onBacklog: () => void;
+}> = ({ team, sprints, progressBySprint, onOpen, onNew, onBacklog }) => {
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const active = sprints.filter(s => s.status === 'active');
   const planned = sprints
     .filter(s => s.status === 'planned')
     .sort((a, b) => a.start_date.localeCompare(b.start_date));
-  const completed = sprints
+  const finished = sprints
     .filter(s => s.status === 'completed')
     .sort((a, b) => b.start_date.localeCompare(a.start_date));
+  const completed = finished.filter(s => !isSprintArchived(s));
+  const archived = finished.filter(s => isSprintArchived(s));
 
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold text-text-primary truncate">{team.name}</h2>
+        <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          type="button"
+          onClick={onBacklog}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-bg-surface-raised hover:bg-bg-surface-hover text-text-secondary hover:text-text-primary text-xs font-medium transition-colors focus:outline-none"
+        >
+          <ListOrdered className="w-3.5 h-3.5" /> Backlog
+        </button>
         <button
           type="button"
           onClick={onNew}
@@ -141,41 +173,71 @@ const TeamSprints: React.FC<{
         >
           <Plus className="w-3.5 h-3.5" /> New sprint
         </button>
+        </div>
       </div>
 
       {sprints.length === 0 ? (
         <p className="text-xs text-text-tertiary px-1">No sprints yet.</p>
       ) : (
-        <div className="space-y-2">
-          {active.map(s => (
-            <SprintRow key={s.id} sprint={s} progress={progressBySprint.get(s.id)} onOpen={onOpen} emphasis />
-          ))}
+        // Two columns on wide screens: what is running now beside what is next and done.
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+          <div className="space-y-2 min-w-0">
+            {active.map(s => (
+              <SprintRow key={s.id} sprint={s} progress={progressBySprint.get(s.id)} onOpen={onOpen} emphasis />
+            ))}
+            {active.length === 0 && (
+              <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-xs text-text-tertiary">
+                No sprint running.
+              </p>
+            )}
+            {finished.length > 0 && <TeamVelocityCard teamId={team.id} />}
+          </div>
 
-          {planned.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-[11px] font-medium text-text-tertiary px-1">Upcoming</p>
-              {planned.map(s => (
-                <SprintRow key={s.id} sprint={s} progress={progressBySprint.get(s.id)} onOpen={onOpen} />
-              ))}
-            </div>
-          )}
-
-          {completed.length > 0 && (
-            <div className="space-y-1.5">
-              <button
-                type="button"
-                onClick={() => setShowCompleted(v => !v)}
-                className="flex items-center gap-1 text-[11px] font-medium text-text-tertiary hover:text-text-secondary px-1 focus:outline-none"
-              >
-                {showCompleted ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                Completed · {completed.length}
-              </button>
-              {showCompleted &&
-                completed.map(s => (
+          <div className="space-y-4 min-w-0">
+            {planned.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-medium text-text-tertiary px-1">Upcoming</p>
+                {planned.map(s => (
                   <SprintRow key={s.id} sprint={s} progress={progressBySprint.get(s.id)} onOpen={onOpen} />
                 ))}
-            </div>
-          )}
+              </div>
+            )}
+
+            {completed.length > 0 && (
+              <div className="space-y-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowCompleted(v => !v)}
+                  className="flex items-center gap-1 text-[11px] font-medium text-text-tertiary hover:text-text-secondary px-1 focus:outline-none"
+                >
+                  {showCompleted ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                  Completed · {completed.length}
+                </button>
+                {showCompleted &&
+                  completed.map(s => (
+                    <SprintRow key={s.id} sprint={s} progress={progressBySprint.get(s.id)} onOpen={onOpen} />
+                  ))}
+              </div>
+            )}
+
+            {archived.length > 0 && (
+              <div className="space-y-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowArchived(v => !v)}
+                  className="flex items-center gap-1 text-[11px] font-medium text-text-tertiary hover:text-text-secondary px-1 focus:outline-none"
+                  title="Completed sprints archive themselves 7 days after completing"
+                >
+                  {showArchived ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                  Archived · {archived.length}
+                </button>
+                {showArchived &&
+                  archived.map(s => (
+                    <SprintRow key={s.id} sprint={s} progress={progressBySprint.get(s.id)} onOpen={onOpen} />
+                  ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </section>
@@ -213,7 +275,9 @@ const SprintRow: React.FC<{
             ? 'No tickets'
             : sprint.status === 'completed'
               ? `${progress?.done ?? 0} delivered`
-              : `${progress?.done ?? 0}/${total - (progress?.canceled ?? 0)} · ${progress?.percent ?? 0}%`}
+              : `${progress?.done ?? 0}/${total - (progress?.canceled ?? 0)} · ${progress?.percent ?? 0}%${
+                  progress && progress.points.total > 0 ? ` · ${progress.points.done}/${progress.points.total - progress.points.canceled} pts` : ''
+                }`}
         </span>
       </div>
 

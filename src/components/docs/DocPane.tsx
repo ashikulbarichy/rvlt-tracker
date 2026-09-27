@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useDocWidth } from '../../hooks/useDocWidth';
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, Loader2 } from 'lucide-react';
+import { ChevronLeft, Loader2, Maximize2, Minimize2 } from 'lucide-react';
 
 import { useApp } from '../../context/AppContext';
 import { useTeams } from '../../hooks/useTeams';
@@ -42,6 +43,7 @@ export const DocPane: React.FC = () => {
   const location = useLocation();
   const onWhiteboardsRoute = location.pathname.includes('/whiteboards/');
   const { currentUser, userRole, currentWorkspace } = useApp();
+  const { width: docWidth, setWidth: setDocWidth } = useDocWidth();
   // Two team lists, and they must not be confused. `teams` is RLS-filtered to the ones
   // this person belongs to and is what canEdit below reads; `shareableTeams` is every
   // team in the workspace and is only ever offered as a sharing target.
@@ -305,7 +307,39 @@ export const DocPane: React.FC = () => {
   return (
     <div className="flex-1 flex min-w-0">
       <div ref={scrollRef} className="flex-1 min-w-0 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-6 sm:px-10 py-8">
+        <div className="px-3 sm:px-6 py-2.5 sm:py-3 flex items-center gap-2.5">
+          {/* Phones and tablets: the way back to the list. At lg+ the list is beside it. */}
+          <button
+            type="button"
+            onClick={() => navigate(`/${workspaceSlug}/docs`)}
+            className="lg:hidden -ml-1 inline-flex items-center gap-0.5 text-xs text-text-secondary hover:text-text-primary transition-colors focus:outline-none"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Docs
+          </button>
+          {/* Reading width. Phones are always full width, so desktop only. */}
+          <div className="hidden lg:flex ml-auto rounded-full bg-bg-surface-raised p-0.5 text-[11px] font-medium" role="radiogroup" aria-label="Page width">
+            {([
+              ['compact', 'Compact', Minimize2],
+              ['full', 'Full page', Maximize2],
+            ] as const).map(([value, label, Icon]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={docWidth === value}
+                onClick={() => setDocWidth(value)}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full transition-colors focus:outline-none ${
+                  docWidth === value ? 'bg-bg-surface-hover text-text-primary' : 'text-text-tertiary hover:text-text-primary'
+                }`}
+              >
+                <Icon className="w-3 h-3" />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className={`${docWidth === 'full' ? 'max-w-none' : 'max-w-3xl'} mx-auto px-4 sm:px-10 pb-8 pt-1 sm:pt-2`}>
           {header(false)}
 
           <div className="mt-6">

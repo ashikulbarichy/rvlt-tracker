@@ -642,10 +642,11 @@ export const Sidebar: React.FC = () => {
           <div className="px-2.5 py-1 text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1">
             Docs
           </div>
+          <div className="space-y-0.5">
           <button
             onClick={() => handleNav(`/${currentWorkspace?.slug || ''}/docs`)}
             className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              path.endsWith('/docs')
+              /\/docs(\/|$)/.test(path)
                 ? 'bg-bg-surface-hover text-text-primary'
                 : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
             }`}
@@ -664,6 +665,7 @@ export const Sidebar: React.FC = () => {
             <Shapes className="w-3.5 h-3.5 text-text-secondary" />
             <span>Whiteboards</span>
           </button>
+          </div>
         </div>
       </div>
 

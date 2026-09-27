@@ -9,7 +9,10 @@ import { useApp } from '../../context/AppContext';
  * While the sidebar is collapsed its "New ticket" button goes with it, so a copy sits
  * beside the toggle -- every page header already renders this component.
  */
-export const SidebarToggle: React.FC = () => {
+export const SidebarToggle: React.FC<{
+  /** False where the page has its own create button (Docs), so there are not two. */
+  showNewTicket?: boolean;
+}> = ({ showNewTicket = true }) => {
   const { isSidebarCollapsed, toggleSidebar, setIsNewTicketModalOpen, currentWorkspace } = useApp();
 
   return (
@@ -26,7 +29,7 @@ export const SidebarToggle: React.FC = () => {
         <PanelLeftClose className="w-4 h-4" />
       )}
     </button>
-    {isSidebarCollapsed && currentWorkspace && (
+    {showNewTicket && isSidebarCollapsed && currentWorkspace && (
       <button
         onClick={() => setIsNewTicketModalOpen(true)}
         className="hidden lg:inline-flex w-8 h-8 shrink-0 text-text-secondary hover:text-text-primary bg-bg-surface-raised hover:bg-bg-surface-hover rounded-full transition-colors items-center justify-center"

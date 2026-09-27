@@ -1,11 +1,14 @@
 import React, { useMemo, useState } from 'react';
+import { SprintCeremonies } from './SprintCeremonies';
+import { SprintInsights } from './SprintInsights';
+import { formatPoints } from '../../lib/storyPoints';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CalendarRange, CheckCircle2, ListChecks, Loader2, Pencil, Play, Trash2 } from 'lucide-react';
+import { Archive, ArchiveRestore, ArrowLeft, CalendarRange, CheckCircle2, ListChecks, Loader2, Pencil, Play, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useTeams } from '../../hooks/useTeams';
 import {
   CATEGORY_LABEL, CATEGORY_ORDER, computeSprintProgress, daysRemaining, describeDaysRemaining,
-  groupByProject, parseDate, sprintLabel, useSprintResults, useSprints, useSprintTickets,
+  groupByProject, isSprintArchived, parseDate, sprintLabel, useSprintResults, useSprints, useSprintTickets,
 } from '../../hooks/useSprints';
 import { Sprint, SprintResult, SprintStatus, Team, Ticket } from '../../types/database';
 import { formatTicketIdentifier } from '../../lib/identifier';
@@ -117,6 +120,13 @@ export const SprintDetail: React.FC = () => {
         await deleteSprint(sprint.id);
         backToList();
       }}
+      onArchive={archive =>
+        updateSprint(
+          archive
+            ? { id: sprint.id, archived_at: new Date().toISOString() }
+            : { id: sprint.id, archived_at: null, unarchived_at: new Date().toISOString() },
+        )
+      }
     />
   );
 };
@@ -137,20 +147,27 @@ interface SprintDetailBodyProps {
   onStart: () => Promise<void>;
   onComplete: (carryTo: string | null) => Promise<void>;
   onDelete: () => Promise<void>;
+  /** true archives, false unarchives (which also exempts it from auto-archiving). */
+  onArchive: (archive: boolean) => Promise<void>;
 }
 
 const SprintDetailBody: React.FC<SprintDetailBodyProps> = ({
   sprint, team, teamSprints, tickets, ticketsLoading, ticketsError, results, isAdmin,
-  workspace, onBack, onOpenTicket, onUpdate, onStart, onComplete, onDelete,
+  workspace, onBack, onOpenTicket, onUpdate, onStart, onComplete, onDelete, onArchive,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isPlanning, setIsPlanning] = useState(false);
-  const [busy, setBusy] = useState<'start' | 'delete' | null>(null);
+  const [busy, setBusy] = useState<'start' | 'delete' | 'archive' | null>(null);
+  const archived = isSprintArchived(sprint);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const progress = useMemo(() => computeSprintProgress(tickets), [tickets]);
+  // From the frozen record, so it matches velocity even after re-estimates.
+  const deliveredPoints = results.reduce(
+    (sum, r) => sum + (r.outcome === 'completed' ? r.story_points ?? 0 : 0), 0,
+  );
   const projects = useMemo(() => groupByProject(tickets), [tickets]);
   const byCategory = useMemo(() => {
     const groups = new Map<string, Ticket[]>();
@@ -167,7 +184,7 @@ const SprintDetailBody: React.FC<SprintDetailBodyProps> = ({
     return counts;
   }, [results]);
 
-  const run = async (kind: 'start' | 'delete', action: () => Promise<void>) => {
+  const run = async (kind: 'start' | 'delete' | 'archive', action: () => Promise<void>) => {
     setBusy(kind);
     setActionError(null);
     try {
@@ -184,7 +201,7 @@ const SprintDetailBody: React.FC<SprintDetailBodyProps> = ({
 
   return (
     <div className="flex-1 overflow-y-auto no-scrollbar">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-8 space-y-6">
+      <div className="px-3 sm:px-6 pt-2.5 sm:pt-3 pb-8 space-y-6">
         {/* Header */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -203,6 +220,11 @@ const SprintDetailBody: React.FC<SprintDetailBodyProps> = ({
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl font-semibold text-text-primary truncate">{sprintLabel(sprint)}</h1>
                 <SprintStatusPill status={sprint.status} />
+                {archived && (
+                  <span className="px-2 py-0.5 rounded-full bg-bg-surface-hover text-[10px] font-medium text-text-tertiary">
+                    Archived{!sprint.archived_at ? ' automatically' : ''}
+                  </span>
+                )}
               </div>
               <p className="flex items-center gap-1.5 text-xs text-text-tertiary">
                 <CalendarRange className="w-3.5 h-3.5 shrink-0" />
@@ -218,6 +240,7 @@ const SprintDetailBody: React.FC<SprintDetailBodyProps> = ({
               >
                 <Pencil className="w-3.5 h-3.5" /> Edit
               </button>
+              <SprintCeremonies sprint={sprint} onError={setActionError} />
               {canPlan && (
                 <button
                   type="button"
@@ -229,7 +252,18 @@ const SprintDetailBody: React.FC<SprintDetailBodyProps> = ({
                   <ListChecks className="w-3.5 h-3.5" /> {isPlanning ? 'Done planning' : 'Plan'}
                 </button>
               )}
-              {isAdmin && sprint.status === 'planned' && (
+              {sprint.status === 'completed' && (
+                <button
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => run('archive', () => onArchive(!archived))}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors focus:outline-none disabled:opacity-50"
+                >
+                  {busy === 'archive' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : archived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+                  {archived ? 'Unarchive' : 'Archive'}
+                </button>
+              )}
+              {isAdmin && (sprint.status === 'planned' || sprint.status === 'completed') && (
                 <button
                   type="button"
                   onClick={() => setIsConfirmingDelete(true)}
@@ -276,7 +310,8 @@ const SprintDetailBody: React.FC<SprintDetailBodyProps> = ({
         {/* Planning */}
         {isPlanning && canPlan && <SprintPlanning sprint={sprint} sprintTickets={tickets} />}
 
-        {/* Progress */}
+        {/* Progress, burndown and report side by side on wide screens */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
         <div className="bg-bg-surface-raised rounded-lg p-4 sm:p-5 space-y-4">
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-text-primary">Progress</span>
@@ -293,6 +328,20 @@ const SprintDetailBody: React.FC<SprintDetailBodyProps> = ({
               <span className="text-text-tertiary"> · {progress.canceled} canceled, not counted</span>
             )}
           </p>
+
+          {(progress.points.total > 0 || progress.points.unestimated > 0 || sprint.committed_points != null) && (
+            <p className="text-xs text-text-secondary tabular-nums">
+              {sprint.status === 'completed'
+                ? `${formatPoints(deliveredPoints)} delivered`
+                : `${progress.points.done} of ${formatPoints(progress.points.total - progress.points.canceled)} done (${progress.points.percent}%)`}
+              {sprint.committed_points != null && (
+                <span className="text-text-tertiary"> · {formatPoints(sprint.committed_points)} committed at start</span>
+              )}
+              {sprint.status !== 'completed' && progress.points.unestimated > 0 && (
+                <span className="text-status-warning"> · {progress.points.unestimated} not estimated</span>
+              )}
+            </p>
+          )}
 
           {progress.byType.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -324,6 +373,10 @@ const SprintDetailBody: React.FC<SprintDetailBodyProps> = ({
               </p>
             </div>
           )}
+        </div>
+
+        {/* Burndown, and the report once finished */}
+        <SprintInsights sprint={sprint} tickets={tickets} workspace={workspace ?? null} />
         </div>
 
         {/* Projects (derived) */}
@@ -433,9 +486,11 @@ const SprintDetailBody: React.FC<SprintDetailBodyProps> = ({
         isOpen={isConfirmingDelete}
         title={`Delete ${sprintLabel(sprint)}?`}
         message={
-          tickets.length > 0
-            ? `Its ${tickets.length} ticket${tickets.length === 1 ? '' : 's'} go back to the team backlog. The tickets themselves are not deleted.`
-            : 'It has no tickets. This cannot be undone.'
+          sprint.status === 'completed'
+            ? 'Its report, history and share of the team’s velocity are deleted. Its finished tickets are kept, with no sprint. This cannot be undone.'
+            : tickets.length > 0
+              ? `Its ${tickets.length} ticket${tickets.length === 1 ? '' : 's'} go back to the team backlog. The tickets themselves are not deleted.`
+              : 'It has no tickets. This cannot be undone.'
         }
         confirmText="Delete sprint"
         variant="danger"

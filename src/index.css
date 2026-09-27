@@ -345,16 +345,27 @@
 .doc-prose table,
 .doc-table {
   border-collapse: collapse;
-  width: 100%;
   table-layout: fixed;
   overflow: hidden;
+  /* A table always fits its frame, whatever widths it was saved with. Column widths are
+     proportions (FitTableView); this keeps the table itself from growing past the page,
+     including mid-drag while the resize plugin writes pixel widths. */
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100%;
 }
+/* Read-only documents render without the editor's table view, so their saved pixel
+   widths are dropped here; the editable view sizes columns in percentages instead. */
+.doc-prose[contenteditable="false"] table col { width: auto !important; }
+.doc-prose .tableWrapper { max-width: 100%; overflow-x: hidden; }
 .doc-prose th,
 .doc-prose td {
   border: 1px solid var(--color-border);
   padding: 0.45rem 0.6rem;
   vertical-align: top;
   position: relative;
+  /* Columns share the frame's width, so long words wrap instead of widening a column. */
+  overflow-wrap: anywhere;
 }
 .doc-prose th { background: var(--color-bg-surface-raised); font-weight: 600; text-align: left; }
 .doc-prose .selectedCell::after {

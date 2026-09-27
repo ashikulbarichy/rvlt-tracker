@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { ProjectEpic } from './ProjectEpic';
 import {
   FolderKanban, Plus, Search, Calendar, User, Trash2, X, AlertCircle, Folder, Edit2,
   LayoutGrid, LayoutList, ArrowUpDown, Check, Filter, CheckCircle2, Clock, ArrowLeft,
@@ -1067,6 +1068,9 @@ export const ProjectsView: React.FC = () => {
                   className="w-full bg-bg-surface-raised border border-transparent rounded-md p-4 text-xs text-text-primary leading-relaxed whitespace-pre-wrap resize-y focus:outline-none focus:border-text-secondary placeholder:text-text-tertiary"
                 />
               </div>
+
+              {/* The project as an epic: points and burn-up */}
+              <ProjectEpic projectId={selectedProject.id} targetDate={selectedProject.target_date} />
 
               {/* Tickets in this project */}
               <div className="space-y-3 pt-2">

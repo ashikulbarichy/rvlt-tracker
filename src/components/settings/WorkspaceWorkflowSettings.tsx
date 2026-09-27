@@ -55,6 +55,20 @@ export const WorkspaceWorkflowSettings: React.FC<WorkspaceWorkflowSettingsProps>
     }
   };
 
+  const handleLimitChange = async (state: WorkflowState, raw: string) => {
+    if (!canEdit) return;
+    const next = raw.trim() ? Math.max(1, Math.floor(Number(raw))) : null;
+    if (next !== null && !Number.isFinite(next)) return;
+    if (next === state.wip_limit) return;
+    setError(null);
+    try {
+      await updateWorkflowState(state.id, { wip_limit: next });
+    } catch (err: unknown) {
+      const e = err as { message?: string } | null;
+      setError(e?.message || 'Failed to update the column limit.');
+    }
+  };
+
   return (
     <div className="space-y-3 font-sans mt-8 pt-8 border-t border-border">
       <div>
@@ -91,7 +105,22 @@ export const WorkspaceWorkflowSettings: React.FC<WorkspaceWorkflowSettingsProps>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-text-tertiary" title="Most tickets this column should hold on a sprint board. Empty for no limit.">
+                Limit
+                <input
+                  type="number"
+                  min={1}
+                  defaultValue={state.wip_limit ?? ''}
+                  key={`${state.id}:${state.wip_limit ?? ''}`}
+                  disabled={!canEdit}
+                  placeholder="—"
+                  onBlur={e => void handleLimitChange(state, e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                  className="w-14 bg-bg-surface border border-border rounded px-1.5 py-0.5 text-xs text-text-primary normal-case tracking-normal focus:outline-none disabled:opacity-60"
+                />
+              </label>
+              <div className="flex items-center space-x-2">
               {predefinedColors.map((color) => (
                 <button
                   key={color}
@@ -106,6 +135,7 @@ export const WorkspaceWorkflowSettings: React.FC<WorkspaceWorkflowSettingsProps>
                   title={color}
                 />
               ))}
+            </div>
             </div>
           </div>
         ))}

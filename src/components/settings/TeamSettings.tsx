@@ -179,7 +179,7 @@ export const TeamSettings: React.FC = () => {
     const TeamIconComponent = iconForTeam(selectedTeam.icon);
 
     return (
-      <div className="max-w-4xl font-sans space-y-6">
+      <div className="font-sans space-y-6">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center justify-between">
           <button
@@ -250,6 +250,41 @@ export const TeamSettings: React.FC = () => {
               </button>
             )}
           </div>
+        </div>
+
+        {/* Sprint cadence: starting a sprint plans the next one this long */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-bg-surface-raised px-4 py-3">
+          <div>
+            <h2 className="text-sm font-karla font-semibold text-text-primary">Repeating sprints</h2>
+            <p className="text-xs text-text-secondary">
+              When a sprint starts, the next one is planned right after it, this long.
+            </p>
+          </div>
+          <select
+            value={selectedTeam.sprint_length_days ?? ''}
+            disabled={!isAdmin || isSaving}
+            onChange={e => {
+              const days = e.target.value ? Number(e.target.value) : null;
+              setIsSaving(true);
+              setStatusMessage(null);
+              updateTeam(
+                { id: selectedTeam.id, sprint_length_days: days },
+                {
+                  onSuccess: updated => { if (updated) setSelectedTeam(updated); },
+                  onError: (err: unknown) =>
+                    setStatusMessage({ type: 'error', text: (err as { message?: string })?.message || 'Could not save the sprint length.' }),
+                  onSettled: () => setIsSaving(false),
+                },
+              );
+            }}
+            className="bg-bg-surface border border-border rounded-md px-2.5 py-1.5 text-xs text-text-primary focus:outline-none disabled:opacity-60"
+          >
+            <option value="">Off</option>
+            <option value="7">1 week</option>
+            <option value="14">2 weeks</option>
+            <option value="21">3 weeks</option>
+            <option value="28">4 weeks</option>
+          </select>
         </div>
 
         {/* Members Section */}
@@ -550,7 +585,7 @@ export const TeamSettings: React.FC = () => {
   // View 2: All Teams Cards List
   // -------------------------------------------------------------
   return (
-    <div className="max-w-4xl font-sans space-y-5">
+    <div className="font-sans space-y-5">
       {/* Header section */}
       <div className="flex items-start justify-between">
         <div>

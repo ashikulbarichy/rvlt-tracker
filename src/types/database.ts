@@ -53,6 +53,8 @@ export interface Team {
   icon: string;
   description: string | null;
   ticket_counter: number;
+  /** When set, starting a sprint plans the next one right after it, this many days long. */
+  sprint_length_days: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -74,6 +76,8 @@ export interface WorkflowState {
   position: number;
   category: StateCategory;
   is_default: boolean;
+  /** Advisory cap for this column on the sprint board. Null means no limit. */
+  wip_limit: number | null;
   created_at: string;
 }
 
@@ -134,10 +138,52 @@ export interface Sprint {
   end_date: string;
   status: SprintStatus;
   started_at: string | null;
+  /** Points and tickets in the sprint when it started. Null if started before migration 014. */
+  committed_points: number | null;
+  committed_count: number | null;
+  /** The sprint's retrospective whiteboard, once one is started. */
+  retro_doc_id: string | null;
+  /** Archived by hand. Completed sprints also count as archived 7 days after completing. */
+  archived_at: string | null;
+  /** Set on unarchive; exempts the sprint from the 7-day rule. */
+  unarchived_at: string | null;
   completed_at: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export type StoryPoints = 1 | 2 | 3 | 5 | 8 | 13;
+
+/** "blocker_id blocks blocked_id". */
+export interface TicketBlock {
+  blocker_id: string;
+  blocked_id: string;
+  workspace_id: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface AcceptanceCriterion {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+/**
+ * A ticket's standing in a sprint at one moment, written by a trigger on every change.
+ * Replaying the latest row per ticket gives the sprint's state at any time.
+ */
+export interface SprintTicketEvent {
+  id: number;
+  sprint_id: string;
+  ticket_id: string;
+  workspace_id: string;
+  in_sprint: boolean;
+  story_points: number | null;
+  category: StateCategory;
+  occurred_at: string;
+  actor_id: string | null;
 }
 
 export type SprintOutcome = 'completed' | 'canceled' | 'carried_over' | 'returned_to_backlog';
@@ -149,6 +195,8 @@ export interface SprintResult {
   workspace_id: string;
   outcome: SprintOutcome;
   carried_to_sprint_id: string | null;
+  /** The ticket's points when the sprint completed. */
+  story_points: number | null;
   recorded_at: string;
 }
 
@@ -303,6 +351,8 @@ export interface TicketType {
   counts_toward_progress: boolean;
   /** The type new tickets get. At most one per workspace. */
   is_default: boolean;
+  /** Whether tickets of this type are estimated in story points. False for Bug. */
+  takes_story_points: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -357,6 +407,21 @@ export interface Ticket {
    * ticket's own team and clears it when the ticket changes team.
    */
   sprint_id: string | null;
+  /**
+   * 1, 2, 3, 5, 8 or 13; null when unestimated. A trigger clears it for types without
+   * points and lets only workspace admins change it.
+   */
+  story_points: StoryPoints | null;
+  /**
+   * The story this is a sub-task of. One level only, same team; a sub-task carries no
+   * story points and works in its story's sprint.
+   */
+  parent_id: string | null;
+  parent?: Pick<Ticket, 'id' | 'title' | 'ticket_number'> & { team?: Pick<Team, 'id' | 'key' | 'name'> };
+  /** The team's backlog order, lowest first. Only compared within one team. */
+  backlog_rank: number;
+  /** When the ticket counts as done. Always an array; empty when none are written. */
+  acceptance_criteria: AcceptanceCriterion[];
   sprint?: Pick<Sprint, 'id' | 'number' | 'name' | 'status'>;
   state?: WorkflowState;
   status?: WorkflowState;

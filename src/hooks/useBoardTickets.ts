@@ -8,7 +8,7 @@ import { Ticket } from '../types/database';
 const TICKET_SELECT = `
   *,
   status:state_id(id, name, color, position, category),
-  type:type_id(id, name, color, position, counts_toward_progress),
+  type:type_id(id, name, color, position, counts_toward_progress, takes_story_points),
   team:team_id(id, name, key),
   project:project_id(id, name, key),
   sprint:sprint_id(id, number, name, status),

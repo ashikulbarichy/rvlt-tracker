@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
-import { Plus, FileText, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { Plus, FileText } from 'lucide-react';
 
 import { useApp } from '../../context/AppContext';
 import { useDocs } from '../../hooks/useDocs';
@@ -11,23 +11,19 @@ import { DocTree } from './DocTree';
 import { TemplatePicker } from './TemplatePicker';
 
 /**
- * The docs shell: collection tree on the left, the open document on the right.
- *
- * A layout route rather than two sibling routes, so the tree keeps its expand state
- * when you move between documents.
+ * The docs shell. At lg+ two cards beside the app sidebar: the document list, and the
+ * open document. Below lg they are separate screens: the list at /docs, the document
+ * full screen at /docs/:docId with a back link.
  */
 export const DocsView: React.FC = () => {
   const navigate = useNavigate();
   const { workspaceSlug, docId } = useParams<{ workspaceSlug: string; docId?: string }>();
-  const { currentWorkspace, isSidebarCollapsed } = useApp();
+  const { currentWorkspace } = useApp();
 
   const { tree, isLoading, error, createDoc } = useDocs();
   const { collections } = useDocCollections();
 
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [isTreeOpen, setIsTreeOpen] = useState(
-    () => typeof window === 'undefined' || window.innerWidth >= 1024
-  );
   // Where a doc created from the picker will land.
   const [target, setTarget] = useState<{ collectionId: string | null; parentId: string | null }>({
     collectionId: null,
@@ -61,119 +57,65 @@ export const DocsView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex min-w-0 overflow-hidden">
-      {/* Backdrop: drawer-only, so it never appears at lg+ where the tree is in-flow. */}
-      {isTreeOpen && (
-        <div
-          onClick={() => setIsTreeOpen(false)}
-          className="lg:hidden fixed inset-0 z-20 bg-black/50"
-          aria-hidden="true"
-        />
-      )}
-
+    <div className="flex-1 flex min-w-0 overflow-hidden lg:gap-1.5">
+      {/* Card 2 of 3 (after the app sidebar): the document list. Below lg it is the
+          whole page at /docs and hidden once a document is open. */}
       <aside
-        aria-hidden={!isTreeOpen}
-        className={`shrink-0 bg-bg-surface overflow-hidden z-30
-          fixed inset-y-0 left-0 w-72 shadow-xl transition-transform
-          lg:static lg:shadow-none lg:transition-[width]
-          duration-200 ease-out motion-reduce:transition-none ${
-          isTreeOpen
-            ? 'translate-x-0 border-r border-border lg:w-64'
-            : '-translate-x-full lg:translate-x-0 lg:w-0 lg:border-r-0'
-        }`}
+        className={`${docId ? 'hidden lg:flex' : 'flex'} flex-col flex-1 lg:flex-none lg:w-64 min-w-0 bg-bg-surface lg:rounded-lg lg:shadow-sm overflow-hidden`}
       >
-        <div className="w-72 lg:w-64 h-full overflow-y-auto no-scrollbar">
-          <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-3 py-2.5 bg-bg-surface border-b border-border">
-              <span className="flex items-center gap-2 text-xs font-semibold text-text-primary">
-                <SidebarToggle />
-                Docs
-              </span>
-              <div className="flex items-center gap-0.5">
-                {canCreate && (
-                  <button
-                    type="button"
-                    title="New document"
-                    onClick={() => openPicker(null, null)}
-                    className="p-1 rounded text-text-tertiary hover:text-text-primary transition-colors focus:outline-none"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                <button
-                  type="button"
-                  title="Hide sidebar"
-                  tabIndex={isTreeOpen ? 0 : -1}
-                  onClick={() => setIsTreeOpen(false)}
-                  className="p-1 rounded text-text-tertiary hover:text-text-primary transition-colors focus:outline-none"
-                >
-                  <PanelLeftClose className="w-3.5 h-3.5" />
-                </button>
-              </div>
+        <div className="shrink-0 px-3 sm:px-6 lg:px-3 py-2.5 sm:py-3 flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <SidebarToggle showNewTicket={false} />
+            <h1 className="text-base font-karla font-semibold text-text-primary">Docs</h1>
+          </div>
+          {canCreate && (
+            <button
+              type="button"
+              title="New document"
+              onClick={() => openPicker(null, null)}
+              className="w-8 h-8 shrink-0 inline-flex items-center justify-center rounded-full text-text-secondary hover:text-text-primary bg-bg-surface-raised hover:bg-bg-surface-hover transition-colors focus:outline-none"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto no-scrollbar px-1 sm:px-3 lg:px-0 pb-6">
+          {error && (
+            <div className="m-2 text-xs text-status-error bg-status-error/10 border border-status-error/30 rounded-md px-3 py-2">
+              {(error as { message?: string }).message || 'Could not load documents.'}
             </div>
-
-            {error && (
-              <div className="m-2 text-xs text-status-error bg-status-error/10 border border-status-error/30 rounded-md px-3 py-2">
-                {(error as { message?: string }).message || 'Could not load documents.'}
-              </div>
-            )}
-
-            <DocTree
-              tree={tree}
-              collections={collections || []}
-              activeDocId={docId}
-              isLoading={isLoading}
-              canCreate={canCreate}
-              onSelect={id => {
-              navigate(`/${workspaceSlug}/docs/${id}`);
-              if (window.innerWidth < 1024) setIsTreeOpen(false);
-            }}
-              onCreate={openPicker}
-            />
+          )}
+          <DocTree
+            tree={tree}
+            collections={collections || []}
+            activeDocId={docId}
+            isLoading={isLoading}
+            canCreate={canCreate}
+            onSelect={id => navigate(`/${workspaceSlug}/docs/${id}`)}
+            onCreate={openPicker}
+          />
         </div>
       </aside>
 
-      <div
-        aria-hidden={isTreeOpen}
-        className={`self-start shrink-0 flex items-center gap-1 overflow-hidden transition-all duration-200 ease-out motion-reduce:transition-none ${
-          // Wider while the app sidebar is collapsed: SidebarToggle then adds a New ticket button.
-          isTreeOpen ? 'w-0 m-0 opacity-0' : `w-8 ${isSidebarCollapsed ? 'lg:w-[7.5rem]' : 'lg:w-20'} m-2 opacity-100`
-        }`}
+      {/* Card 3: the open document. */}
+      <section
+        className={`${docId ? 'flex' : 'hidden lg:flex'} flex-1 min-w-0 bg-bg-surface lg:rounded-lg lg:shadow-sm overflow-hidden`}
       >
-        <SidebarToggle />
-        <button
-          type="button"
-          title="Show documents"
-          tabIndex={isTreeOpen ? -1 : 0}
-          onClick={() => setIsTreeOpen(true)}
-          className="w-8 h-8 shrink-0 inline-flex items-center justify-center rounded-full text-text-secondary hover:text-text-primary bg-bg-surface-raised hover:bg-bg-surface-hover transition-colors focus:outline-none"
-        >
-          <PanelLeft className="w-4 h-4" />
-        </button>
-      </div>
-
-      {docId ? (
-        <Outlet />
-      ) : (
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center max-w-sm">
-            <FileText className="w-8 h-8 text-text-tertiary mx-auto mb-3" />
-            <h2 className="text-sm font-semibold text-text-primary">No document open</h2>
-            <p className="text-xs text-text-tertiary mt-1">
-              Pick one from the sidebar, or start a new page from a template.
-            </p>
-            {canCreate && (
-              <button
-                type="button"
-                onClick={() => openPicker(null, null)}
-                className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium bg-accent-primary text-white rounded-md px-3 py-1.5 hover:opacity-90 transition-opacity focus:outline-none"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                New document
-              </button>
-            )}
+        {docId ? (
+          <Outlet />
+        ) : (
+          <div className="flex-1 flex items-center justify-center p-8">
+            <div className="text-center max-w-sm">
+              <FileText className="w-8 h-8 text-text-tertiary mx-auto mb-3" />
+              <h2 className="text-sm font-semibold text-text-primary">No document open</h2>
+              <p className="text-xs text-text-tertiary mt-1">
+                Pick one from the list, or start a new page from a template.
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </section>
 
       <TemplatePicker
         isOpen={isPickerOpen}

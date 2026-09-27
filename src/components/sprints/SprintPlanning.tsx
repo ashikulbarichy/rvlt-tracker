@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ArrowRight, Loader2, Search } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Loader2, Search } from 'lucide-react';
 import { Sprint, Ticket } from '../../types/database';
 import { useApp } from '../../context/AppContext';
-import { useMoveTicketsToSprint, useTeamBacklog } from '../../hooks/useSprints';
+import { useMoveTicketsToSprint, useTeamBacklog, useTeamSubTaskCounts, useTeamVelocity } from '../../hooks/useSprints';
+import { formatPoints, OVERLOAD_RATIO, sumPoints } from '../../lib/storyPoints';
+import { PointsBadge } from '../tickets/PointsBadge';
+import { CriteriaBadge } from '../tickets/CriteriaBadge';
+import { SubTaskBadge } from '../tickets/SubTaskBadge';
+import { GROOMING_LABEL, groomingFlags } from '../../lib/grooming';
 import { formatTicketIdentifier } from '../../lib/identifier';
 
 interface SprintPlanningProps {
@@ -21,6 +26,8 @@ export const SprintPlanning: React.FC<SprintPlanningProps> = ({ sprint, sprintTi
   const { currentWorkspace } = useApp();
   const { tickets: backlog, isLoading: backlogLoading, error: backlogError } = useTeamBacklog(sprint.team_id);
   const { moveTickets, isMoving } = useMoveTicketsToSprint();
+  const { velocity, error: velocityError } = useTeamVelocity(sprint.team_id);
+  const { counts: subTaskCounts } = useTeamSubTaskCounts(sprint.team_id);
 
   const [query, setQuery] = useState('');
   const [pickedBacklog, setPickedBacklog] = useState<Set<string>>(new Set());
@@ -41,8 +48,15 @@ export const SprintPlanning: React.FC<SprintPlanningProps> = ({ sprint, sprintTi
   const visibleBacklog = backlog.filter(matches);
   // Closed tickets stay on the sprint as its record and are not moved back.
   const movableSprint = sprintTickets
+    // Sub-tasks move with their story, so only stories are listed.
+    .filter(t => !t.parent_id)
     .filter(t => t.status?.category !== 'completed' && t.status?.category !== 'canceled')
     .filter(matches);
+
+  // The sprint's load: everything in it except canceled work, which is not being done.
+  const load = sumPoints(sprintTickets.filter(t => t.status?.category !== 'canceled'));
+  const pickedBacklogPoints = sumPoints(backlog.filter(t => pickedBacklog.has(t.id))).points;
+  const overloaded = velocity.average != null && velocity.average > 0 && load.points > velocity.average * OVERLOAD_RATIO;
 
   const toggle = (set: Set<string>, setSet: (next: Set<string>) => void, id: string) => {
     const next = new Set(set);
@@ -87,10 +101,20 @@ export const SprintPlanning: React.FC<SprintPlanningProps> = ({ sprint, sprintTi
               title={ticket.status.name}
             />
           )}
+          <span className="ml-auto flex items-center gap-1">
+            <SubTaskBadge count={subTaskCounts.get(ticket.id)} />
+            <CriteriaBadge criteria={ticket.acceptance_criteria} />
+            <PointsBadge ticket={ticket} />
+          </span>
         </span>
         <span className="block text-xs text-text-primary truncate">{ticket.title}</span>
         {ticket.project && (
           <span className="block text-[10px] text-text-tertiary truncate">{ticket.project.name}</span>
+        )}
+        {groomingFlags(ticket).length > 0 && (
+          <span className="block text-[10px] text-status-warning truncate">
+            {groomingFlags(ticket).map(f => GROOMING_LABEL[f]).join(' · ')}
+          </span>
         )}
       </span>
     </label>
@@ -107,6 +131,28 @@ export const SprintPlanning: React.FC<SprintPlanningProps> = ({ sprint, sprintTi
           placeholder="Filter by title or identifier…"
           className="w-full pl-8 pr-3 py-1.5 text-xs bg-bg-surface-raised border border-transparent rounded-md text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary"
         />
+      </div>
+
+      {/* Load against what the team usually finishes */}
+      <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md px-3 py-2 text-[11px] ${
+        overloaded ? 'bg-status-warning/10 border border-status-warning/30' : 'bg-bg-surface-raised/50 border border-transparent'
+      }`}>
+        <span className="text-text-primary font-medium tabular-nums">{formatPoints(load.points)} planned</span>
+        <span className="text-text-secondary tabular-nums">
+          {velocityError
+            ? 'Velocity unavailable'
+            : velocity.average != null
+              ? `Average velocity ${formatPoints(velocity.average)} (last ${velocity.sprints.length})`
+              : 'No velocity yet: finish a sprint with estimates'}
+        </span>
+        {load.unestimated > 0 && (
+          <span className="text-status-warning">{load.unestimated} need{load.unestimated === 1 ? 's' : ''} an estimate</span>
+        )}
+        {overloaded && (
+          <span className="flex items-center gap-1 text-status-warning font-medium">
+            <AlertTriangle className="w-3 h-3" /> More than the team usually finishes
+          </span>
+        )}
       </div>
 
       {error && (
@@ -128,7 +174,7 @@ export const SprintPlanning: React.FC<SprintPlanningProps> = ({ sprint, sprintTi
               onClick={() => move(Array.from(pickedBacklog), sprint.id, () => setPickedBacklog(new Set()))}
               className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors focus:outline-none disabled:opacity-40 disabled:hover:bg-transparent"
             >
-              Add {pickedBacklog.size || ''} <ArrowRight className="w-3 h-3" />
+              Add {pickedBacklog.size || ''}{pickedBacklogPoints > 0 ? ` (${formatPoints(pickedBacklogPoints)})` : ''} <ArrowRight className="w-3 h-3" />
             </button>
           </div>
           <div className="p-1.5 max-h-[50vh] overflow-y-auto space-y-0.5">

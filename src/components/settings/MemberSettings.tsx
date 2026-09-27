@@ -168,7 +168,7 @@ export const MemberSettings: React.FC = () => {
   };
 
   return (
-    <div className="max-w-3xl font-sans">
+    <div className="font-sans">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-karla font-semibold text-text-primary mb-0.5">Members</h2>

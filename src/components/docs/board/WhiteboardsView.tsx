@@ -100,7 +100,7 @@ export const WhiteboardsView: React.FC = () => {
 
   return (
     <div className="flex-1 min-w-0 overflow-y-auto">
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6">
+      <div className="px-3 sm:px-6 pt-2.5 sm:pt-3 pb-6">
         <div className="flex items-center gap-3 flex-wrap">
           <SidebarToggle />
           <h1 className="text-lg font-semibold text-text-primary">Whiteboards</h1>

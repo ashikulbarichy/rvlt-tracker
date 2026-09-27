@@ -153,6 +153,25 @@ export const WorkspaceTicketTypeSettings: React.FC<WorkspaceTicketTypeSettingsPr
                     />
                     Counts toward progress
                   </label>
+                  <label
+                    className={`flex items-center gap-1.5 mt-0.5 text-[10px] uppercase tracking-wider text-text-tertiary ${
+                      canEdit ? 'cursor-pointer hover:text-text-secondary' : ''
+                    }`}
+                    title="Tickets of this type are estimated in story points. Turning it off clears their points the next time the ticket's type is saved."
+                  >
+                    <input
+                      type="checkbox"
+                      checked={type.takes_story_points}
+                      disabled={!canEdit || isBusy}
+                      onChange={e =>
+                        run(type.id, () =>
+                          updateTicketType(type.id, { takes_story_points: e.target.checked })
+                        )
+                      }
+                      className="accent-accent-primary w-3 h-3"
+                    />
+                    Story points
+                  </label>
                 </div>
               </div>
 

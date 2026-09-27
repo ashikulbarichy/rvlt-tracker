@@ -7,10 +7,11 @@ import {
   X, Trash2, Send, Edit3, MessageSquare, Plus, Check, Users, ArrowLeft, Calendar, Clock, AlertTriangle
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { TicketPriority } from '../../types/database';
+import { AcceptanceCriterion, StoryPoints, TicketPriority } from '../../types/database';
 import { useTickets } from '../../hooks/useTickets';
 import { useWorkflowStates } from '../../hooks/useWorkflowStates';
 import { useTicketTypes } from '../../hooks/useTicketTypes';
+import { useProjects } from '../../hooks/useProjects';
 import { useProfiles } from '../../hooks/useProfiles';
 import { useComments } from '../../hooks/useComments';
 import { useTeamMembers } from '../../hooks/useTeamMembers';
@@ -19,6 +20,10 @@ import { formatRelativeTime } from '../../lib/time';
 import { useImagePaste } from '../../hooks/useImagePaste';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { SprintPicker } from '../common/SprintPicker';
+import { StoryPointPicker } from './StoryPointPicker';
+import { AcceptanceCriteria } from './AcceptanceCriteria';
+import { SubTasks } from './SubTasks';
+import { TicketBlocks } from './TicketBlocks';
 
 export const TicketDetailModal: React.FC = () => {
   const {
@@ -61,6 +66,7 @@ export const TicketDetailModal: React.FC = () => {
   const { updateTicket, updateTicketAsync, deleteTicket } = useTickets({ workspaceId: currentWorkspace?.id });
   const { workflowStates } = useWorkflowStates();
   const { ticketTypes } = useTicketTypes();
+  const { projects: teamProjects } = useProjects({ teamId: activeTicket?.team_id });
   const { profiles } = useProfiles();
   const { comments, addComment, updateComment, deleteComment } = useComments(activeTicket?.id);
 
@@ -334,6 +340,32 @@ export const TicketDetailModal: React.FC = () => {
     setDisplayedTicket({ ...activeTicket, sprint_id: sprintId });
   };
 
+  /** Awaited so a refusal from the database (non-admin) reaches the picker. */
+  const handleSetPoints = async (points: StoryPoints | null) => {
+    if (!activeTicket) return;
+    await updateTicketAsync({ id: activeTicket.id, workspace_id: activeTicket.workspace_id, story_points: points });
+    setSelectedTicket({ ...activeTicket, story_points: points });
+    setDisplayedTicket({ ...activeTicket, story_points: points });
+  };
+
+  const handleSetCriteria = async (criteria: AcceptanceCriterion[]) => {
+    if (!activeTicket) return;
+    await updateTicketAsync({ id: activeTicket.id, workspace_id: activeTicket.workspace_id, acceptance_criteria: criteria });
+    setSelectedTicket({ ...activeTicket, acceptance_criteria: criteria });
+    setDisplayedTicket({ ...activeTicket, acceptance_criteria: criteria });
+  };
+
+  /** Moving to another project of the same team, or out of any project. */
+  const handleSetProject = (projectId: string) => {
+    if (!activeTicket) return;
+    const next = projectId || null;
+    const project = (teamProjects || []).find(p => p.id === next);
+    updateTicket({ id: activeTicket.id, workspace_id: activeTicket.workspace_id, project_id: next });
+    const patch = { project_id: next, project };
+    setSelectedTicket({ ...activeTicket, ...patch });
+    setDisplayedTicket({ ...activeTicket, ...patch });
+  };
+
   const handleToggleAssignee = (userId: string) => {
     if (!activeTicket) return;
     let newAssigneeIds: string[];
@@ -467,7 +499,7 @@ export const TicketDetailModal: React.FC = () => {
           {/* Left Column: Description & Comments (Expanded) */}
           <div className="flex-1 min-w-0 p-4 sm:p-6 md:p-8 space-y-6 overflow-y-auto no-scrollbar scrollbar-none">
             {/* Description Section - Full Length */}
-            <div className="space-y-3 min-h-[220px] lg:min-h-[calc(100vh-220px)] flex flex-col">
+            <div className="space-y-3 min-h-[220px] lg:min-h-[40vh] flex flex-col">
               <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider">
                 Description
               </h3>
@@ -495,6 +527,24 @@ export const TicketDetailModal: React.FC = () => {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Sub-tasks, or the story this one belongs to */}
+            <div className="pt-6 border-t border-border">
+              <SubTasks ticket={activeTicket} states={teamStates} workspace={currentWorkspace ?? null} />
+            </div>
+
+            {/* Blocked by / blocks */}
+            <div className="pt-6 border-t border-border">
+              <TicketBlocks ticket={activeTicket} workspace={currentWorkspace ?? null} />
+            </div>
+
+            {/* Acceptance criteria */}
+            <div className="pt-6 border-t border-border">
+              <AcceptanceCriteria
+                criteria={activeTicket.acceptance_criteria || []}
+                onChange={handleSetCriteria}
+              />
             </div>
 
             {/* Comments Thread (Scrolled Section with Heading) */}
@@ -725,8 +775,44 @@ export const TicketDetailModal: React.FC = () => {
               </label>
               <CustomSelect
                 value={activeTicket.type_id || ''}
-                onChange={val => handleUpdateField('type_id', val)}
+                onChange={val => {
+                  handleUpdateField('type_id', val);
+                  // The database clears points for a type without them; mirror it here.
+                  const nextType = (ticketTypes || []).find(tt => tt.id === val);
+                  if (nextType && !nextType.takes_story_points && activeTicket.story_points != null) {
+                    const patch = { type_id: val, story_points: null };
+                    setSelectedTicket({ ...activeTicket, ...patch });
+                    setDisplayedTicket({ ...activeTicket, ...patch });
+                  }
+                }}
                 options={(ticketTypes || []).map(tt => ({ value: tt.id, label: tt.name }))}
+                size="sm"
+                className="w-full"
+              />
+            </div>
+
+            {/* Story points */}
+            <StoryPointPicker
+              value={activeTicket.story_points ?? null}
+              takesPoints={!activeTicket.parent_id && (ticketTypes || []).find(tt => tt.id === activeTicket.type_id)?.takes_story_points !== false}
+              note={activeTicket.parent_id ? 'Sub-tasks aren’t estimated; points live on the parent ticket.' : undefined}
+              typeName={(ticketTypes || []).find(tt => tt.id === activeTicket.type_id)?.name}
+              canEdit={userRole === 'admin'}
+              onChange={handleSetPoints}
+            />
+
+            {/* Project */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-text-secondary">
+                Project
+              </label>
+              <CustomSelect
+                value={activeTicket.project_id || ''}
+                onChange={handleSetProject}
+                options={[
+                  { value: '', label: 'No project' },
+                  ...(teamProjects || []).map(p => ({ value: p.id, label: p.name })),
+                ]}
                 size="sm"
                 className="w-full"
               />

@@ -4,11 +4,13 @@ import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import { TableKit } from '@tiptap/extension-table';
+import { FitTableView, TableFitDrag } from './extensions/FitTableView';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
 import { Placeholder, CharacterCount } from '@tiptap/extensions';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code as CodeIcon, Link as LinkIcon,
+  ArrowUpToLine, ArrowDownToLine, ArrowLeftToLine, ArrowRightToLine, Trash2,
 } from 'lucide-react';
 
 import { lowlight } from './extensions/lowlightConfig';
@@ -125,8 +127,11 @@ export const DocEditor: React.FC<DocEditorProps> = ({
       Image.configure({
         HTMLAttributes: { class: 'rounded-md max-w-full my-4' },
       }),
+      TableFitDrag,
       TableKit.configure({
-        table: { resizable: true, HTMLAttributes: { class: 'doc-table' } },
+        // Resizable, but FitTableView shows the dragged widths as proportions, so a table
+        // always fits its frame.
+        table: { resizable: true, View: FitTableView, HTMLAttributes: { class: 'doc-table' } },
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
@@ -240,6 +245,34 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   }, [editor]);
 
+  // The table toolbar is for clicking around a table, not for typing in it: any edit
+  // hides it, and the next mouse press inside the editor brings it back.
+  const tableMenuQuiet = useRef(false);
+  useEffect(() => {
+    if (!editor) return;
+    const onTransaction = ({ transaction }: { transaction: { docChanged: boolean; getMeta: (key: string) => unknown } }) => {
+      if (transaction.docChanged && !transaction.getMeta('tableMenuAction')) tableMenuQuiet.current = true;
+    };
+    const dom = editor.view.dom;
+    const onPointer = () => {
+      if (!tableMenuQuiet.current) return;
+      tableMenuQuiet.current = false;
+      // An empty transaction so the menu re-checks shouldShow even if the click did not
+      // move the cursor.
+      requestAnimationFrame(() => {
+        if (!editor.isDestroyed) editor.view.dispatch(editor.state.tr.setMeta('tableMenuAction', true));
+      });
+    };
+    editor.on('transaction', onTransaction);
+    dom.addEventListener('mouseup', onPointer);
+    dom.addEventListener('touchend', onPointer);
+    return () => {
+      editor.off('transaction', onTransaction);
+      dom.removeEventListener('mouseup', onPointer);
+      dom.removeEventListener('touchend', onPointer);
+    };
+  }, [editor]);
+
   if (!editor) return null;
 
   return (
@@ -283,6 +316,53 @@ export const DocEditor: React.FC<DocEditorProps> = ({
           >
             <LinkIcon className="w-3.5 h-3.5" />
           </button>
+        </BubbleMenu>
+      )}
+
+      {editable && (
+        // Shown whenever the cursor is in a table, below it so it never covers the text
+        // formatting menu above a selection.
+        <BubbleMenu
+          editor={editor}
+          pluginKey="tableMenu"
+          shouldShow={({ editor: e }) => e.isEditable && e.isActive('table') && !tableMenuQuiet.current}
+          options={{ placement: 'bottom' }}
+          className="flex items-center gap-0.5 bg-bg-surface-raised border border-border rounded-md shadow-lg p-1 text-[11px]"
+        >
+          {([
+            ['Row above', ArrowUpToLine, () => editor.chain().focus().addRowBefore().setMeta('tableMenuAction', true).run()],
+            ['Row below', ArrowDownToLine, () => editor.chain().focus().addRowAfter().setMeta('tableMenuAction', true).run()],
+            ['Column left', ArrowLeftToLine, () => editor.chain().focus().addColumnBefore().setMeta('tableMenuAction', true).run()],
+            ['Column right', ArrowRightToLine, () => editor.chain().focus().addColumnAfter().setMeta('tableMenuAction', true).run()],
+          ] as const).map(([label, Icon, run]) => (
+            <button
+              key={label}
+              type="button"
+              title={`Add ${label.toLowerCase()}`}
+              onClick={run}
+              className="flex items-center gap-1 px-1.5 py-1 rounded text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors focus:outline-none"
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{label}</span>
+            </button>
+          ))}
+          <span className="w-px h-4 bg-border mx-0.5" />
+          {([
+            ['Delete row', () => editor.chain().focus().deleteRow().setMeta('tableMenuAction', true).run()],
+            ['Delete column', () => editor.chain().focus().deleteColumn().setMeta('tableMenuAction', true).run()],
+            ['Delete table', () => editor.chain().focus().deleteTable().run()],
+          ] as const).map(([label, run]) => (
+            <button
+              key={label}
+              type="button"
+              title={label}
+              onClick={run}
+              className="flex items-center gap-1 px-1.5 py-1 rounded text-text-secondary hover:text-status-error hover:bg-bg-surface-hover transition-colors focus:outline-none"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">{label.replace('Delete ', '')}</span>
+            </button>
+          ))}
         </BubbleMenu>
       )}
 

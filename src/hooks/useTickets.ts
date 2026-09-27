@@ -84,10 +84,11 @@ export function useTickets(options: UseTicketsOptions) {
         .select(`
           *,
           status:state_id(id, name, color, position, category),
-          type:type_id(id, name, color, position, counts_toward_progress),
+          type:type_id(id, name, color, position, counts_toward_progress, takes_story_points),
           team:team_id(id, name, key),
           project:project_id(id, name, key),
           sprint:sprint_id(id, number, name, status),
+          parent:parent_id(id, title, ticket_number, team:team_id(id, key, name)),
           workspace:workspace_id(id, name, ticket_prefix)
         `, { count: 'exact' })
         .eq('workspace_id', workspaceId);
@@ -311,6 +312,8 @@ export function useTickets(options: UseTicketsOptions) {
         sprint_id: newTicket.sprint_id || null,
         reporter_id: finalReporterId,
         due_date: newTicket.due_date || null,
+        // A sub-task's story. tickets_parent_guard checks the shape and sets its sprint.
+        parent_id: newTicket.parent_id || null,
       };
 
       if (finalStateId) {
@@ -329,7 +332,7 @@ export function useTickets(options: UseTicketsOptions) {
         .select(`
           *,
           status:state_id(id, name, color, position, category),
-          type:type_id(id, name, color, position, counts_toward_progress)
+          type:type_id(id, name, color, position, counts_toward_progress, takes_story_points)
         `)
         .single();
       
@@ -575,6 +578,7 @@ export function useTickets(options: UseTicketsOptions) {
     isLoading,
     error,
     createTicket: createMutation.mutate,
+    createTicketAsync: createMutation.mutateAsync,
     updateTicket: updateMutation.mutate,
     /** Awaitable, for callers that surface the database's refusal (e.g. a completed sprint). */
     updateTicketAsync: updateMutation.mutateAsync,

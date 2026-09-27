@@ -5,6 +5,7 @@ import { supabase } from './lib/supabase';
 import { AppProvider, useApp } from './context/AppContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
+import { SidebarToggle } from './components/layout/SidebarToggle';
 import { NotificationDrawer } from './components/notifications/NotificationDrawer';
 import { LoginView } from './components/auth/LoginView';
 import { ResetPasswordView } from './components/auth/ResetPasswordView';
@@ -24,6 +25,9 @@ const TeamSettings = lazy(() => import('./components/settings/TeamSettings').the
 const HomeInboxView = lazy(() => import('./components/home/HomeInboxView').then(m => ({ default: m.HomeInboxView })));
 const ProjectsView = lazy(() => import('./components/projects/ProjectsView').then(m => ({ default: m.ProjectsView })));
 const RoadmapView = lazy(() => import('./components/roadmap/RoadmapView').then(m => ({ default: m.RoadmapView })));
+const BacklogView = lazy(() => import('./components/sprints/BacklogView').then(m => ({ default: m.BacklogView })));
+const SprintBoardView = lazy(() => import('./components/sprints/SprintBoard').then(m => ({ default: m.SprintBoardView })));
+const SprintStandupView = lazy(() => import('./components/sprints/SprintBoard').then(m => ({ default: m.SprintStandupView })));
 const DocsView = lazy(() => import('./components/docs/DocsView').then(m => ({ default: m.DocsView })));
 const DocPane = lazy(() => import('./components/docs/DocPane').then(m => ({ default: m.DocPane })));
 const WhiteboardsView = lazy(() => import('./components/docs/board/WhiteboardsView').then(m => ({ default: m.WhiteboardsView })));
@@ -70,6 +74,7 @@ const LegacyIssueRedirect: React.FC<{ scope?: 'mine' | 'team' }> = ({ scope }) =
   // pathname counts: filter and ?query changes on the same page leave them open, and
   // nothing opens a ticket and navigates in the same step.
   const { pathname } = useLocation();
+  const isDocsRoute = /\/docs(\/|$)/.test(pathname);
   const lastPathRef = useRef(pathname);
   useEffect(() => {
     if (lastPathRef.current === pathname) return;
@@ -87,7 +92,10 @@ const LegacyIssueRedirect: React.FC<{ scope?: 'mine' | 'team' }> = ({ scope }) =
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col min-w-0 overflow-hidden bg-bg-surface rounded-none md:rounded-lg m-0 md:my-3 shadow-none md:shadow-sm relative pb-14 lg:pb-0 transition-[margin] duration-200 ease-out ${isSidebarCollapsed ? 'md:ml-3' : 'md:ml-1.5'} ${isNotificationOpen || isNewTicketModalOpen ? 'md:mr-1.5' : 'md:mr-3'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 overflow-hidden bg-bg-surface rounded-none md:rounded-lg m-0 md:my-3 shadow-none md:shadow-sm ${
+        // Docs draws its own two cards (list and document) at lg+, so this one steps back.
+        isDocsRoute ? 'lg:bg-transparent lg:shadow-none lg:rounded-none' : ''
+      } relative pb-14 lg:pb-0 transition-[margin] duration-200 ease-out ${isSidebarCollapsed ? 'md:ml-3' : 'md:ml-1.5'} ${isNotificationOpen || isNewTicketModalOpen ? 'md:mr-1.5' : 'md:mr-3'}`}>
         <Header />
 
         <main className="flex-1 flex min-w-0 overflow-hidden relative">
@@ -102,19 +110,25 @@ const LegacyIssueRedirect: React.FC<{ scope?: 'mine' | 'team' }> = ({ scope }) =
               <Route path="roadmap" element={<RoadmapView />} />
               <Route path="sprints" element={<SprintsView />} />
               <Route path="sprints/:sprintId" element={<SprintDetail />} />
+              <Route path="sprints/:sprintId/board" element={<SprintBoardView />} />
+              <Route path="sprints/:sprintId/standup" element={<SprintStandupView />} />
               <Route path="tickets" element={<TicketListView onlyMine={false} />} />
               <Route path="issues" element={<LegacyIssueRedirect />} />
               <Route path="my-issues" element={<LegacyIssueRedirect scope="mine" />} />
               <Route path="members" element={
                 <div className="flex-1 overflow-y-auto p-6">
-                  <div className="max-w-4xl mx-auto">
+                  {/* These pages have no header of their own; the toggle sits where other pages put it. */}
+                  <div className="hidden lg:block mb-3"><SidebarToggle /></div>
+                  <div>
                     <MemberSettings />
                   </div>
                 </div>
               } />
               <Route path="teams" element={
                 <div className="flex-1 overflow-y-auto p-6">
-                  <div className="max-w-4xl mx-auto">
+                  {/* These pages have no header of their own; the toggle sits where other pages put it. */}
+                  <div className="hidden lg:block mb-3"><SidebarToggle /></div>
+                  <div>
                     <TeamSettings />
                   </div>
                 </div>
@@ -124,10 +138,13 @@ const LegacyIssueRedirect: React.FC<{ scope?: 'mine' | 'team' }> = ({ scope }) =
               <Route path="teams/:teamId/projects" element={<ProjectsView />} />
               <Route path="teams/:teamId/tickets" element={<TicketListView onlyMine={false} />} />
               <Route path="teams/:teamId/sprints" element={<SprintsView />} />
+              <Route path="teams/:teamId/backlog" element={<BacklogView />} />
               <Route path="teams/:teamId/issues" element={<LegacyIssueRedirect scope="team" />} />
               <Route path="teams/:teamId/members" element={
                 <div className="flex-1 overflow-y-auto p-6">
-                  <div className="max-w-4xl mx-auto">
+                  {/* These pages have no header of their own; the toggle sits where other pages put it. */}
+                  <div className="hidden lg:block mb-3"><SidebarToggle /></div>
+                  <div>
                     <TeamSettings />
                   </div>
                 </div>

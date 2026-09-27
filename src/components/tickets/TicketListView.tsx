@@ -1,4 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { PointsBadge } from './PointsBadge';
+import { CriteriaBadge } from './CriteriaBadge';
+import { formatPoints, sumPoints } from '../../lib/storyPoints';
 import { useParams } from 'react-router-dom';
 import {
   Plus,
@@ -26,7 +29,8 @@ import {
   RotateCcw,
   Trash2,
   X,
-  Timer
+  Timer,
+  CornerUpLeft,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { SidebarToggle } from '../../components/layout/SidebarToggle';
@@ -866,6 +870,18 @@ export const TicketListView: React.FC<TicketListViewProps> = ({ onlyMine = false
                     </span>
                   )}
 
+                  {ticket.parent && (
+                    <span
+                      title={`Sub-task of ${ticket.parent.title}`}
+                      className="hidden sm:inline-flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded-full bg-bg-surface-hover text-[10px] text-text-tertiary shrink-0 max-w-[160px]"
+                    >
+                      <CornerUpLeft className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{ticket.parent.title}</span>
+                    </span>
+                  )}
+                  <CriteriaBadge criteria={ticket.acceptance_criteria} className="ml-2 hidden sm:inline-flex" />
+                  <PointsBadge ticket={ticket} className="ml-2 hidden sm:inline-flex" />
+
                   {ticket.description && !isCompact && (
                     <p className="text-xs text-text-secondary truncate hidden lg:inline pl-2 max-w-[200px] xl:max-w-[400px]">
                       {stripHtml(ticket.description)}
@@ -1049,6 +1065,11 @@ export const TicketListView: React.FC<TicketListViewProps> = ({ onlyMine = false
                       </span>
                     )}
 
+                    <span className="flex items-center gap-1.5">
+                      <PointsBadge ticket={ticket} />
+                      <CriteriaBadge criteria={ticket.acceptance_criteria} />
+                    </span>
+
                     {ticket.description && (
                       <p className="text-xs text-text-secondary line-clamp-2">
                         {stripHtml(ticket.description)}
@@ -1119,9 +1140,19 @@ export const TicketListView: React.FC<TicketListViewProps> = ({ onlyMine = false
                     <div className="flex items-center">
                       <StatusBadge name={column.name} color={(column as any).color} />
                     </div>
-                    <span className="min-w-[20px] px-1.5 py-0.5 text-[10px] font-mono bg-black/30 border border-transparent rounded-full text-text-secondary font-medium">
-                      {columnTickets.length}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {(() => {
+                        const { points } = sumPoints(columnTickets);
+                        return points > 0 ? (
+                          <span className="text-[10px] text-text-tertiary tabular-nums" title="Story points in this column">
+                            {formatPoints(points)}
+                          </span>
+                        ) : null;
+                      })()}
+                      <span className="min-w-[20px] px-1.5 py-0.5 text-[10px] font-mono bg-black/30 border border-transparent rounded-full text-text-secondary font-medium">
+                        {columnTickets.length}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Column Cards Container */}
@@ -1193,8 +1224,12 @@ export const TicketListView: React.FC<TicketListViewProps> = ({ onlyMine = false
                                 {formatTicketIdentifier(ticket, currentWorkspace)}
                               </span>
 
-                              <div className="flex items-center" title={`Priority: ${priorityInfo.label}`}>
-                                {priorityInfo.icon}
+                              <div className="flex items-center gap-1.5">
+                                <CriteriaBadge criteria={ticket.acceptance_criteria} />
+                                <PointsBadge ticket={ticket} />
+                                <span className="flex items-center" title={`Priority: ${priorityInfo.label}`}>
+                                  {priorityInfo.icon}
+                                </span>
                               </div>
                             </div>
 
