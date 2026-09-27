@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import * as Icons from 'lucide-react';
+import { Search } from 'lucide-react';
+import { TEAM_ICONS, TEAM_ICON_NAMES, teamIcon } from '../../lib/teamIcons';
 
 interface IconPickerProps {
   value: string;
@@ -7,19 +8,6 @@ interface IconPickerProps {
   className?: string;
 }
 
-const COMMON_ICONS = [
-  'Hexagon', 'Box', 'Layers', 'Code', 'Database', 'Server', 'Terminal', 'Cpu',
-  'Layout', 'Monitor', 'Smartphone', 'Globe', 'Cloud', 'Lock', 'Shield', 'Key',
-  'Briefcase', 'Building', 'Map', 'Compass', 'Target', 'Flag', 'Star', 'Heart',
-  'Zap', 'Flame', 'Droplet', 'Wind', 'Sun', 'Moon', 'CloudRain', 'Snowflake',
-  'Music', 'Video', 'Camera', 'Image', 'Book', 'File', 'FileText', 'Folder',
-  'Users', 'User', 'MessageSquare', 'MessageCircle', 'Mail', 'Phone', 'Bell',
-  'Activity', 'HeartPulse', 'Smile', 'Coffee', 'Package', 'Truck', 'ShoppingCart',
-  'Tool', 'Wrench', 'Hammer', 'Settings', 'Sliders', 'ToggleLeft', 'ToggleRight',
-  'CheckCircle', 'AlertCircle', 'Info', 'HelpCircle', 'PieChart', 'BarChart',
-  'TrendingUp', 'TrendingDown', 'List', 'Grid', 'Hash', 'AtSign', 'Link',
-  'Search', 'Command', 'PenTool', 'Edit', 'Paperclip', 'Scissors', 'Bookmark'
-];
 
 export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, className = '' }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,13 +27,12 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, classNa
   }, [isOpen]);
 
   const filteredIcons = useMemo(() => {
-    if (!search.trim()) return COMMON_ICONS;
+    if (!search.trim()) return TEAM_ICON_NAMES;
     const q = search.toLowerCase();
-    return COMMON_ICONS.filter(icon => icon.toLowerCase().includes(q));
+    return TEAM_ICON_NAMES.filter(icon => icon.toLowerCase().includes(q));
   }, [search]);
 
-  // @ts-ignore
-  const SelectedIcon = Icons[value] || Icons.Hexagon;
+  const SelectedIcon = teamIcon(value);
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
@@ -60,7 +47,7 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, classNa
       {isOpen && (
         <div className="absolute top-full mt-1.5 left-0 w-64 bg-bg-surface-raised border border-transparent rounded-lg shadow-lg z-50 p-2 font-sans overflow-hidden flex flex-col">
           <div className="relative mb-2">
-            <Icons.Search className="w-3.5 h-3.5 text-text-tertiary absolute left-2 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-text-tertiary absolute left-2 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search icons..."
@@ -77,8 +64,7 @@ export const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, classNa
               </div>
             ) : (
               filteredIcons.map((iconName) => {
-                // @ts-ignore
-                const IconComponent = Icons[iconName];
+                const IconComponent = TEAM_ICONS[iconName];
                 if (!IconComponent) return null;
                 const isSelected = value === iconName;
                 

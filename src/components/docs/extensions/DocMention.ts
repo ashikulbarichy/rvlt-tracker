@@ -4,15 +4,16 @@ import Suggestion from '@tiptap/suggestion';
 import { ReactRenderer } from '@tiptap/react';
 import { DocMentionMenu, DocMentionMenuRef } from '../DocMentionMenu';
 import { LinkableDoc } from './DocLink';
+import { MentionItem, MentionablePerson, buildMentionItems, toIsoDate } from './mentionItems';
 
 export interface DocMentionOptions {
   /** Read fresh on every keystroke; the list arrives from a query after mount. */
   getDocs: () => LinkableDoc[];
   /** Excluded from the results — a document linking to itself helps nobody. */
   getCurrentDocId: () => string | undefined;
+  /** Workspace members who can be tagged. */
+  getPeople: () => MentionablePerson[];
 }
-
-const MAX_RESULTS = 8;
 
 // Suggestion() defaults to a plugin key named 'suggestion'. ProseMirror rejects two
 // plugins sharing a key, so a second suggestion in the same editor throws at
@@ -21,13 +22,13 @@ const MAX_RESULTS = 8;
 const docMentionPluginKey = new PluginKey('docMention');
 
 /**
- * The `@` menu for linking another document.
+ * The `@` menu: tag a person, drop in a date, or link another document.
  *
  * Positioning and lifecycle are copied from SlashCommand rather than shared: the two
  * differ in what they insert and how they filter, and the ~40 lines they have in common
  * are TipTap's suggestion contract, which is not ours to abstract over.
  *
- * The candidate list is the RLS-filtered docs query, so it can only ever offer
+ * The document candidates are the RLS-filtered docs query, so it can only ever offer
  * documents the author can already read.
  */
 export const DocMention = Extension.create<DocMentionOptions>({
@@ -37,6 +38,7 @@ export const DocMention = Extension.create<DocMentionOptions>({
     return {
       getDocs: () => [],
       getCurrentDocId: () => undefined,
+      getPeople: () => [],
     };
   },
 
@@ -44,7 +46,7 @@ export const DocMention = Extension.create<DocMentionOptions>({
     const options = this.options;
 
     return [
-      Suggestion<LinkableDoc>({
+      Suggestion<MentionItem>({
         editor: this.editor,
         pluginKey: docMentionPluginKey,
         char: '@',
@@ -56,17 +58,29 @@ export const DocMention = Extension.create<DocMentionOptions>({
 
         items: ({ query }) => {
           const currentId = options.getCurrentDocId();
-          const q = query.trim().toLowerCase();
-
-          return options
-            .getDocs()
-            .filter(doc => doc.id !== currentId)
-            .filter(doc => !q || (doc.title || 'Untitled').toLowerCase().includes(q))
-            .slice(0, MAX_RESULTS);
+          return buildMentionItems({
+            query,
+            people: options.getPeople(),
+            docs: options.getDocs().filter(doc => doc.id !== currentId),
+          });
         },
 
         command: ({ editor, range, props }) => {
-          editor.chain().focus().deleteRange(range).insertDocLink(props.id).run();
+          const chain = editor.chain().focus().deleteRange(range);
+          switch (props.kind) {
+            case 'person':
+              chain.insertDocPerson({ id: props.person.id, name: props.person.name }).run();
+              break;
+            case 'date':
+              chain.insertDocDate(props.date).run();
+              break;
+            case 'pickDate':
+              chain.insertDocDate(toIsoDate(new Date()), { openPicker: true }).run();
+              break;
+            case 'doc':
+              chain.insertDocLink(props.doc.id).run();
+              break;
+          }
         },
 
         render: () => {
@@ -82,7 +96,10 @@ export const DocMention = Extension.create<DocMentionOptions>({
             const spaceBelow = window.innerHeight - r.bottom;
             const flip = spaceBelow < menuHeight + 16;
 
-            el.style.left = `${r.left}px`;
+            // Clamped so a caret near the right edge -- routine on a phone -- does not
+            // push the menu off screen.
+            const menuWidth = el.offsetWidth || 288;
+            el.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - menuWidth - 8))}px`;
             el.style.top = flip ? `${r.top - menuHeight - 8}px` : `${r.bottom + 8}px`;
           };
 
@@ -98,7 +115,7 @@ export const DocMention = Extension.create<DocMentionOptions>({
               component = new ReactRenderer(DocMentionMenu, {
                 props: {
                   items: props.items,
-                  command: (item: LinkableDoc) => props.command(item),
+                  command: (item: MentionItem) => props.command(item),
                 },
                 editor: props.editor,
               });
@@ -115,7 +132,7 @@ export const DocMention = Extension.create<DocMentionOptions>({
             onUpdate: props => {
               component?.updateProps({
                 items: props.items,
-                command: (item: LinkableDoc) => props.command(item),
+                command: (item: MentionItem) => props.command(item),
               });
               place(props.clientRect);
             },

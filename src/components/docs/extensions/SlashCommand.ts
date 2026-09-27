@@ -4,7 +4,7 @@ import Suggestion from '@tiptap/suggestion';
 import { ReactRenderer } from '@tiptap/react';
 import {
   Heading1, Heading2, Heading3, List, ListOrdered, ListChecks, Code2,
-  Quote, Minus, Table as TableIcon, Info, AlertTriangle, CheckCircle2, Type, Clapperboard,
+  Quote, Minus, Table as TableIcon, Info, AlertTriangle, CheckCircle2, Type, Clapperboard, Shapes,
 } from 'lucide-react';
 import { DocSlashMenu, DocSlashMenuRef, SlashItem } from '../DocSlashMenu';
 
@@ -34,6 +34,8 @@ const ITEMS: SlashItem[] = [
     run: ({ editor, range }) => editor.chain().focus().deleteRange(range).setHorizontalRule().run() },
   { title: 'Script', hint: 'Spoken lines, typewriter face', icon: Clapperboard,
     run: ({ editor, range }) => editor.chain().focus().deleteRange(range).setScriptBlock().run() },
+  { title: 'Whiteboard', hint: 'Embed a whiteboard card', icon: Shapes,
+    run: ({ editor, range }) => editor.chain().focus().deleteRange(range).insertBoardEmbed().run() },
   { title: 'Info callout', hint: 'Boxed aside', icon: Info,
     run: ({ editor, range }) => editor.chain().focus().deleteRange(range).setCallout('info').run() },
   { title: 'Warning callout', hint: 'Boxed warning', icon: AlertTriangle,

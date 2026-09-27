@@ -23,6 +23,13 @@ interface DocHeaderProps {
   sharePanel?: React.ReactNode;
   onTrash: () => void;
   onBreadcrumbClick: (docId: string) => void;
+  /**
+   * One slim row for whiteboards, where every pixel of height belongs to the canvas.
+   * Access settings move into a Share popover.
+   */
+  compact?: boolean;
+  /** Rendered first in the compact row, e.g. a back link to the whiteboard gallery. */
+  leading?: React.ReactNode;
 }
 
 const VISIBILITY_ICON: Record<DocVisibility, typeof Globe> = {
@@ -48,9 +55,22 @@ export const DocHeader: React.FC<DocHeaderProps> = ({
   sharePanel,
   onTrash,
   onBreadcrumbClick,
+  compact = false,
+  leading,
 }) => {
   const [isIconOpen, setIsIconOpen] = useState(false);
   const iconRef = useRef<HTMLDivElement>(null);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const shareRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isShareOpen) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (shareRef.current && !shareRef.current.contains(e.target as Node)) setIsShareOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [isShareOpen]);
 
   useEffect(() => {
     if (!isIconOpen) return;
@@ -81,6 +101,124 @@ export const DocHeader: React.FC<DocHeaderProps> = ({
     }
     return options;
   }, [doc.visibility, isAuthor]);
+
+  const iconPicker = isIconOpen && (
+    <div className="absolute left-0 top-full mt-1 z-50 w-56 grid grid-cols-7 gap-1 bg-bg-surface-raised border border-border rounded-md shadow-lg p-2">
+      {ICONS.map(icon => (
+        <button
+          key={icon}
+          type="button"
+          onClick={() => { onIconChange(icon); setIsIconOpen(false); }}
+          className="text-lg rounded hover:bg-bg-surface-hover transition-colors focus:outline-none"
+        >
+          {icon}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={() => { onIconChange(null); setIsIconOpen(false); }}
+        title="Clear icon"
+        className="col-span-7 mt-1 text-[10px] text-text-tertiary hover:text-text-secondary focus:outline-none"
+      >
+        Clear
+      </button>
+    </div>
+  );
+
+  if (compact) {
+    return (
+      <div className="shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-border bg-bg-surface min-w-0">
+        {leading}
+        {ancestors.length > 0 && (
+          <div className="hidden md:flex items-center gap-0.5 text-[11px] text-text-tertiary min-w-0 max-w-[30%]">
+            {ancestors.map(ancestor => (
+              <React.Fragment key={ancestor.id}>
+                <button
+                  type="button"
+                  onClick={() => onBreadcrumbClick(ancestor.id)}
+                  className="hover:text-text-secondary transition-colors focus:outline-none truncate"
+                >
+                  {ancestor.title}
+                </button>
+                <ChevronRight className="w-3 h-3 shrink-0" />
+              </React.Fragment>
+            ))}
+          </div>
+        )}
+
+        <div className="relative shrink-0" ref={iconRef}>
+          <button
+            type="button"
+            disabled={!canEdit}
+            onClick={() => setIsIconOpen(v => !v)}
+            title={canEdit ? 'Change icon' : undefined}
+            className="text-lg leading-none hover:opacity-70 transition-opacity focus:outline-none disabled:hover:opacity-100"
+          >
+            {doc.icon || '🧩'}
+          </button>
+          {iconPicker}
+        </div>
+
+        <input
+          key={doc.id}
+          type="text"
+          defaultValue={doc.title}
+          disabled={!canEdit}
+          onChange={e => onTitleChange(e.target.value)}
+          placeholder="Untitled whiteboard"
+          className="flex-1 min-w-0 bg-transparent text-sm font-semibold text-text-primary placeholder:text-text-tertiary focus:outline-none disabled:cursor-default"
+        />
+
+        <span className="text-[11px] text-text-tertiary flex items-center gap-1 shrink-0">
+          {saveState === 'saving' && <Loader2 className="w-3 h-3 animate-spin" />}
+          {saveState === 'error' && <span className="text-status-error" title={saveError || undefined}>Not saved</span>}
+        </span>
+
+        <div className="relative shrink-0" ref={shareRef}>
+          <button
+            type="button"
+            onClick={() => setIsShareOpen(v => !v)}
+            className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors focus:outline-none"
+          >
+            <VisibilityIcon className="w-3.5 h-3.5" />
+            Share
+          </button>
+          {isShareOpen && (
+            <div className="absolute right-0 top-full mt-1 z-50 w-80 max-w-[calc(100vw-24px)] space-y-3 bg-bg-surface border border-border rounded-lg shadow-xl p-3">
+              <div className="flex items-center gap-2">
+                <VisibilityIcon className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+                <CustomSelect
+                  value={doc.visibility}
+                  onChange={val => onVisibilityChange(val as DocVisibility)}
+                  options={visibilityOptions}
+                  disabled={!canManageAccess}
+                  size="sm"
+                  className="flex-1"
+                />
+              </div>
+              {doc.visibility === 'restricted' && sharePanel}
+              {!canManageAccess && (
+                <p className="text-[11px] text-text-tertiary">
+                  Only the author or a workspace admin can change who this whiteboard is shared with.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {canEdit && (
+          <button
+            type="button"
+            onClick={onTrash}
+            title="Move to trash"
+            className="p-1.5 rounded text-text-tertiary hover:text-status-error transition-colors focus:outline-none shrink-0"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -113,28 +251,7 @@ export const DocHeader: React.FC<DocHeaderProps> = ({
             {doc.icon || '📄'}
           </button>
 
-          {isIconOpen && (
-            <div className="absolute left-0 top-full mt-1 z-50 w-56 grid grid-cols-7 gap-1 bg-bg-surface-raised border border-border rounded-md shadow-lg p-2">
-              {ICONS.map(icon => (
-                <button
-                  key={icon}
-                  type="button"
-                  onClick={() => { onIconChange(icon); setIsIconOpen(false); }}
-                  className="text-lg rounded hover:bg-bg-surface-hover transition-colors focus:outline-none"
-                >
-                  {icon}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => { onIconChange(null); setIsIconOpen(false); }}
-                title="Clear icon"
-                className="col-span-7 mt-1 text-[10px] text-text-tertiary hover:text-text-secondary focus:outline-none"
-              >
-                Clear
-              </button>
-            </div>
-          )}
+          {iconPicker}
         </div>
 
         {/* Uncontrolled: a controlled input would fight the debounced save for the

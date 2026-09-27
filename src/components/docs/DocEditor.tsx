@@ -16,6 +16,10 @@ import { Callout } from './extensions/Callout';
 import { ScriptBlock } from './extensions/ScriptBlock';
 import { DocLink, LinkableDoc } from './extensions/DocLink';
 import { DocMention } from './extensions/DocMention';
+import { DocPerson } from './extensions/DocPerson';
+import { DocDate } from './extensions/DocDate';
+import { BoardEmbed } from './extensions/BoardEmbed';
+import { MentionablePerson } from './extensions/mentionItems';
 import { SlashCommand } from './extensions/SlashCommand';
 import { uploadImage } from '../../lib/uploadImage';
 
@@ -38,6 +42,10 @@ interface DocEditorProps {
   /** Excluded from the `@` menu. */
   currentDocId?: string;
   onOpenDoc?: (docId: string) => void;
+  /** Members who can be tagged with `@`, and whose current names label existing tags. */
+  mentionablePeople?: MentionablePerson[];
+  /** Tags of the reader themselves are highlighted. */
+  currentUserId?: string;
 }
 
 /** Stable slug for a heading, so the TOC can scroll to it. */
@@ -75,6 +83,8 @@ export const DocEditor: React.FC<DocEditorProps> = ({
   linkableDocs,
   currentDocId,
   onOpenDoc,
+  mentionablePeople,
+  currentUserId,
 }) => {
   // useEditor builds its extensions once, on mount, but these three arrive from queries
   // and from a router hook that changes identity. Refs let the extensions read the
@@ -87,6 +97,12 @@ export const DocEditor: React.FC<DocEditorProps> = ({
 
   const onOpenDocRef = useRef<((docId: string) => void) | undefined>(onOpenDoc);
   onOpenDocRef.current = onOpenDoc;
+
+  const peopleRef = useRef<MentionablePerson[]>(mentionablePeople || []);
+  peopleRef.current = mentionablePeople || [];
+
+  const currentUserIdRef = useRef<string | undefined>(currentUserId);
+  currentUserIdRef.current = currentUserId;
 
   const editor = useEditor({
     editable,
@@ -123,11 +139,21 @@ export const DocEditor: React.FC<DocEditorProps> = ({
       DocMention.configure({
         getDocs: () => linkableDocsRef.current,
         getCurrentDocId: () => currentDocIdRef.current,
+        getPeople: () => peopleRef.current,
+      }),
+      DocPerson.configure({
+        getPeople: () => peopleRef.current,
+        getCurrentUserId: () => currentUserIdRef.current,
+      }),
+      DocDate,
+      BoardEmbed.configure({
+        getDocs: () => linkableDocsRef.current,
+        onOpen: docId => onOpenDocRef.current?.(docId),
       }),
       SlashCommand,
       Placeholder.configure({
         placeholder: ({ node }) =>
-          node.type.name === 'heading' ? 'Heading' : "Write, or press '/' for blocks…",
+          node.type.name === 'heading' ? 'Heading' : "Write, press '/' for blocks or '@' to tag…",
       }),
       CharacterCount,
     ],
@@ -188,6 +214,19 @@ export const DocEditor: React.FC<DocEditorProps> = ({
   useEffect(() => {
     editor?.setEditable(editable);
   }, [editor, editable]);
+
+  // Chips resolve their labels from query data when they are drawn, and ProseMirror only
+  // redraws a node when the node itself changes. When the docs or member lists arrive
+  // (or change, or editability flips), redraw the chips so a link does not stay stuck on
+  // "No access" or a tag on a stale name.
+  useEffect(() => {
+    if (!editor) return;
+    for (const registry of [
+      editor.storage.docLink, editor.storage.docPerson, editor.storage.docDate, editor.storage.boardEmbed,
+    ]) {
+      registry.renderers.forEach(render => render());
+    }
+  }, [editor, linkableDocs, mentionablePeople, currentUserId, editable]);
 
   const setLink = useCallback(() => {
     if (!editor) return;

@@ -1,9 +1,12 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import type { NodeViewRegistry } from './DocPerson';
 
 export interface LinkableDoc {
   id: string;
   title: string;
   icon: string | null;
+  /** 'whiteboard' docs can also be embedded as a card. */
+  kind?: string;
 }
 
 export interface DocLinkOptions {
@@ -20,6 +23,9 @@ declare module '@tiptap/core' {
     docLink: {
       insertDocLink: (docId: string) => ReturnType;
     };
+  }
+  interface Storage {
+    docLink: NodeViewRegistry;
   }
 }
 
@@ -59,6 +65,10 @@ export const DocLink = Node.create<DocLinkOptions>({
     };
   },
 
+  addStorage() {
+    return { renderers: new Set<() => void>() };
+  },
+
   addAttributes() {
     return {
       docId: {
@@ -86,7 +96,10 @@ export const DocLink = Node.create<DocLinkOptions>({
       insertDocLink:
         (docId: string) =>
         ({ commands }) =>
-          commands.insertContent({ type: this.name, attrs: { docId } }),
+          commands.insertContent([
+            { type: this.name, attrs: { docId } },
+            { type: 'text', text: ' ' },
+          ]),
     };
   },
 
@@ -117,6 +130,7 @@ export const DocLink = Node.create<DocLinkOptions>({
       };
 
       render();
+      this.storage.renderers.add(render);
 
       dom.addEventListener('click', event => {
         event.preventDefault();
@@ -134,6 +148,9 @@ export const DocLink = Node.create<DocLinkOptions>({
           current = updated;
           render();
           return true;
+        },
+        destroy: () => {
+          this.storage.renderers.delete(render);
         },
       };
     };

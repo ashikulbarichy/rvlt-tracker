@@ -468,3 +468,170 @@
   font-style: italic;
   cursor: not-allowed;
 }
+
+/* Tagged people and dates, also from the `@` menu. Quieter than document links: they
+   label, they do not navigate. */
+.doc-prose .doc-person,
+.doc-prose .doc-date {
+  display: inline-block;
+  padding: 0.05em 0.35em;
+  border-radius: 0.25rem;
+  font-size: 0.95em;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.doc-prose .doc-person {
+  background: var(--color-accent-muted);
+  color: var(--color-accent-primary-hover);
+}
+
+/* Tags of the reader stand out, the way a mention of your name would. */
+.doc-prose .doc-person-me {
+  background: color-mix(in srgb, var(--color-warning) 18%, transparent);
+  color: var(--color-warning);
+}
+
+.doc-prose .doc-person-gone {
+  background: var(--color-bg-surface-hover);
+  color: var(--color-text-tertiary);
+}
+
+.doc-prose .doc-date {
+  background: var(--color-bg-surface-hover);
+  color: var(--color-text-secondary);
+}
+
+.doc-prose .doc-date::before {
+  content: '';
+  display: inline-block;
+  width: 0.4em;
+  height: 0.4em;
+  margin-right: 0.35em;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.6;
+  vertical-align: 0.12em;
+}
+
+.doc-prose .doc-date-today {
+  color: var(--color-success);
+}
+
+.doc-prose .doc-date-editable {
+  cursor: pointer;
+}
+
+.doc-prose .doc-date-editable:hover {
+  color: var(--color-text-primary);
+}
+
+.doc-prose .doc-person.ProseMirror-selectednode,
+.doc-prose .doc-date.ProseMirror-selectednode {
+  outline: 1px solid var(--color-accent-primary);
+}
+
+/* A whiteboard embedded in a page (the `/` Whiteboard block). */
+.doc-prose .board-embed {
+  display: flex;
+  align-items: stretch;
+  gap: 0.9rem;
+  margin: 1rem 0;
+  padding: 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.6rem;
+  background: var(--color-bg-surface-raised);
+}
+
+.doc-prose .board-embed.ProseMirror-selectednode {
+  outline: 2px solid var(--color-accent-primary);
+}
+
+.doc-prose .board-embed-thumb {
+  flex: 0 0 11rem;
+  height: 7rem;
+  border-radius: 0.4rem;
+  overflow: hidden;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doc-prose .board-embed-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  margin: 0;
+}
+
+.doc-prose .board-embed-thumb-empty {
+  background: var(--color-bg-surface-hover);
+  font-size: 2rem;
+}
+
+.doc-prose .board-embed-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.doc-prose .board-embed-title {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-prose .board-embed-muted,
+.doc-prose .board-embed-label {
+  font-size: 0.8rem;
+  color: var(--color-text-tertiary);
+}
+
+.doc-prose .board-embed-open {
+  align-self: flex-start;
+  margin-top: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.8rem;
+  border-radius: 0.35rem;
+  background: var(--color-accent-primary);
+  color: #ffffff;
+}
+
+.doc-prose .board-embed-open:hover {
+  background: var(--color-accent-primary-hover);
+}
+
+.doc-prose .board-embed-locked .board-embed-title {
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+.doc-prose .board-embed-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.doc-prose .board-embed-select {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+@media (max-width: 640px) {
+  .doc-prose .board-embed { flex-direction: column; }
+  .doc-prose .board-embed-thumb { flex-basis: auto; width: 100%; }
+}
+
+/* Our presence list replaces Excalidraw's: ours knows names from the workspace and
+   implements follow over our own channel. */
+.board-canvas .excalidraw .UserList__wrapper { display: none !important; }

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { ChevronLeft, Loader2 } from 'lucide-react';
 
 import { useApp } from '../../context/AppContext';
 import { useTeams } from '../../hooks/useTeams';
@@ -11,9 +11,12 @@ import { useShareableTeams } from '../../hooks/useShareableTeams';
 import { useWorkspaceMembers } from '../../hooks/useWorkspaceMembers';
 import { Doc, DocVisibility } from '../../types/database';
 import { DocEditor, DocHeading } from './DocEditor';
+import { MentionablePerson } from './extensions/mentionItems';
 import { DocHeader, SaveState } from './DocHeader';
 import { DocSharePanel } from './DocSharePanel';
 import { DocTableOfContents } from './DocTableOfContents';
+import { BoardPane } from './board/BoardPane';
+import { SidebarToggle } from '../layout/SidebarToggle';
 
 const AUTOSAVE_MS = 800;
 
@@ -36,6 +39,8 @@ function ancestorsOf(doc: Doc | null, all: Doc[]): Doc[] {
 export const DocPane: React.FC = () => {
   const { docId, workspaceSlug } = useParams<{ docId: string; workspaceSlug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const onWhiteboardsRoute = location.pathname.includes('/whiteboards/');
   const { currentUser, userRole, currentWorkspace } = useApp();
   // Two team lists, and they must not be confused. `teams` is RLS-filtered to the ones
   // this person belongs to and is what canEdit below reads; `shareableTeams` is every
@@ -50,6 +55,21 @@ export const DocPane: React.FC = () => {
   const { doc, isLoading, error: loadError } = useDoc(docId);
   const { docs, saveDoc, trashDoc } = useDocs();
   const { members } = useWorkspaceMembers(currentWorkspace?.id);
+
+  // Who `@` can tag. Pending invitees are left out: they are not members yet and cannot
+  // open the document they would be tagged in.
+  const mentionablePeople = useMemo<MentionablePerson[]>(
+    () =>
+      (members || [])
+        .filter(m => m.status !== 'pending')
+        .map(m => ({
+          id: m.user_id,
+          name: m.profile?.full_name || m.profile?.email || 'Unknown member',
+          email: m.profile?.email || '',
+          avatarUrl: m.profile?.avatar_url || null,
+        })),
+    [members]
+  );
   const {
     shares, isLoading: sharesLoading, error: sharesError, grantShare, revokeShare,
   } = useDocShares(docId);
@@ -177,9 +197,19 @@ export const DocPane: React.FC = () => {
     );
   }
 
+  // Each kind has its own home. A board reached through a docs URL (an @ link, an old
+  // bookmark) moves to the Whiteboards section, and a page reached through a whiteboard
+  // URL moves back, keeping any ?template= along the way.
+  if (doc.kind === 'whiteboard' && !onWhiteboardsRoute) {
+    return <Navigate to={`/${workspaceSlug}/whiteboards/${doc.id}${location.search}`} replace />;
+  }
+  if (doc.kind !== 'whiteboard' && onWhiteboardsRoute) {
+    return <Navigate to={`/${workspaceSlug}/docs/${doc.id}`} replace />;
+  }
+
   const handleTrash = async () => {
     await trashDoc({ id: doc.id });
-    navigate(`/${workspaceSlug}/docs`);
+    navigate(doc.kind === 'whiteboard' ? `/${workspaceSlug}/whiteboards` : `/${workspaceSlug}/docs`);
   };
 
   /**
@@ -204,44 +234,79 @@ export const DocPane: React.FC = () => {
     ]);
   };
 
+  const header = (compact: boolean) => (
+    <DocHeader
+      doc={doc}
+      ancestors={ancestors}
+      canEdit={canEdit}
+      isAuthor={isAuthor}
+      canManageAccess={canManageAccess}
+      saveState={saveState}
+      saveError={saveError}
+      compact={compact}
+      leading={compact ? (
+        <>
+          <SidebarToggle />
+          <button
+            type="button"
+            onClick={() => navigate(`/${workspaceSlug}/whiteboards`)}
+            className="shrink-0 inline-flex items-center gap-0.5 text-xs text-text-tertiary hover:text-text-primary transition-colors focus:outline-none"
+            title="All whiteboards"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Whiteboards</span>
+          </button>
+        </>
+      ) : undefined}
+      onTitleChange={title => queue({ title })}
+      onIconChange={icon => queue({ icon })}
+      onVisibilityChange={handleVisibility}
+      sharePanel={
+        canManageAccess ? (
+          <DocSharePanel
+            shares={shares || []}
+            isLoading={sharesLoading}
+            loadError={sharesError ? (sharesError as Error).message : null}
+            members={members || []}
+            teams={shareableTeams || []}
+            authorId={doc.created_by}
+            onGrant={(principal, canEditShare) =>
+              grantShare({ docId: doc.id, ...principal, canEdit: canEditShare })
+            }
+            onRevoke={shareId => revokeShare(shareId)}
+          />
+        ) : (
+          <p className="text-[11px] text-text-tertiary">
+            Shared with specific people and teams.
+          </p>
+        )
+      }
+      onTrash={handleTrash}
+      onBreadcrumbClick={id => navigate(`/${workspaceSlug}/docs/${id}`)}
+    />
+  );
+
+  // A whiteboard is the same document -- same access, sharing, trash and tree -- with a
+  // canvas where a page has its editor.
+  if (doc.kind === 'whiteboard') {
+    return (
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
+        {header(true)}
+        <BoardPane
+          doc={doc}
+          canEdit={canEdit}
+          people={mentionablePeople}
+          onSearchText={text => queue({ content_text: text })}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex min-w-0">
       <div ref={scrollRef} className="flex-1 min-w-0 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-6 sm:px-10 py-8">
-          <DocHeader
-            doc={doc}
-            ancestors={ancestors}
-            canEdit={canEdit}
-            isAuthor={isAuthor}
-            canManageAccess={canManageAccess}
-            saveState={saveState}
-            saveError={saveError}
-            onTitleChange={title => queue({ title })}
-            onIconChange={icon => queue({ icon })}
-            onVisibilityChange={handleVisibility}
-            sharePanel={
-              canManageAccess ? (
-                <DocSharePanel
-                  shares={shares || []}
-                  isLoading={sharesLoading}
-                  loadError={sharesError ? (sharesError as Error).message : null}
-                  members={members || []}
-                  teams={shareableTeams || []}
-                  authorId={doc.created_by}
-                  onGrant={(principal, canEditShare) =>
-                    grantShare({ docId: doc.id, ...principal, canEdit: canEditShare })
-                  }
-                  onRevoke={shareId => revokeShare(shareId)}
-                />
-              ) : (
-                <p className="text-[11px] text-text-tertiary">
-                  Shared with specific people and teams.
-                </p>
-              )
-            }
-            onTrash={handleTrash}
-            onBreadcrumbClick={id => navigate(`/${workspaceSlug}/docs/${id}`)}
-          />
+          {header(false)}
 
           <div className="mt-6">
             {/* Keyed on the document: DocEditor takes `content` as an initial value, so
@@ -253,6 +318,8 @@ export const DocPane: React.FC = () => {
               linkableDocs={docs || []}
               currentDocId={doc.id}
               onOpenDoc={id => navigate(`/${workspaceSlug}/docs/${id}`)}
+              mentionablePeople={mentionablePeople}
+              currentUserId={currentUser?.id}
               onChange={(html, text) => queue({ content: html, content_text: text })}
               onHeadingsChange={setHeadings}
               onCharacterCount={setCounts}

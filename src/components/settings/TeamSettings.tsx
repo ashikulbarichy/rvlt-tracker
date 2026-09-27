@@ -6,7 +6,7 @@ import { useWorkspaceMembers } from '../../hooks/useWorkspaceMembers';
 import { Team } from '../../types/database';
 import { IconPicker } from '../common/IconPicker';
 import { ConfirmModal } from '../common/ConfirmModal';
-import * as Icons from 'lucide-react';
+import { teamIcon as iconForTeam } from '../../lib/teamIcons';
 import {
   Users2,
   Plus,
@@ -176,7 +176,7 @@ export const TeamSettings: React.FC = () => {
       return name.includes(q) || email.includes(q);
     });
 
-    const TeamIconComponent = (Icons as any)[selectedTeam.icon || 'Hexagon'] || Icons.Hexagon;
+    const TeamIconComponent = iconForTeam(selectedTeam.icon);
 
     return (
       <div className="max-w-4xl font-sans space-y-6">
@@ -611,7 +611,7 @@ export const TeamSettings: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="w-7 h-7 rounded-sm bg-bg-surface-raised border border-transparent flex items-center justify-center text-text-primary shrink-0">
                       {(() => {
-                        const Icon = (Icons as any)[team.icon || 'Hexagon'] || Icons.Hexagon;
+                        const Icon = iconForTeam(team.icon);
                         return <Icon className="w-4 h-4" />;
                       })()}
                     </div>

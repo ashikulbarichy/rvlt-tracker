@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import {
   Workspace,
@@ -84,20 +84,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
   const userId = session?.user?.id;
   const { data: liveProfile } = useCurrentProfile(userId);
 
-  const fallbackUser: Profile | null = session?.user ? {
-    id: session.user.id,
-    email: session.user.email || '',
-    full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
-    avatar_url: session.user.user_metadata?.avatar_url || '',
-    created_at: session.user.created_at,
-    updated_at: session.user.updated_at || session.user.created_at
-  } : null;
-
-  const currentUser: Profile | null = liveProfile ? {
-    ...fallbackUser,
-    ...liveProfile,
-    email: liveProfile.email || fallbackUser?.email || ''
-  } : fallbackUser;
+  // Memoised, like everything below that goes into the context value: this provider
+  // re-renders on every navigation (it reads the location), and a fresh object here made
+  // every useApp() consumer in the app re-render with it.
+  const sessionUser = session?.user;
+  const currentUser: Profile | null = useMemo(() => {
+    const fallbackUser: Profile | null = sessionUser ? {
+      id: sessionUser.id,
+      email: sessionUser.email || '',
+      full_name: sessionUser.user_metadata?.full_name || sessionUser.email?.split('@')[0] || 'User',
+      avatar_url: sessionUser.user_metadata?.avatar_url || '',
+      created_at: sessionUser.created_at,
+      updated_at: sessionUser.updated_at || sessionUser.created_at
+    } : null;
+    return liveProfile ? {
+      ...fallbackUser,
+      ...liveProfile,
+      email: liveProfile.email || fallbackUser?.email || ''
+    } : fallbackUser;
+  }, [sessionUser, liveProfile]);
 
   // Workspaces query & dynamic currentWorkspace
   const { workspaces, isLoading: isLoadingWorkspaces, createWorkspace } = useWorkspaces();
@@ -152,12 +157,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
     }
   }, [isLoadingWorkspaces, workspaces, currentUser, createWorkspace]);
 
-  const setCurrentWorkspace = (ws: Workspace | null) => {
+  // Read through a ref so the setter keeps one identity across navigations.
+  const pathnameRef = React.useRef(location.pathname);
+  pathnameRef.current = location.pathname;
+  const setCurrentWorkspace = useCallback((ws: Workspace | null) => {
     setSelectedWorkspaceId(ws?.id || null);
-    if (ws && getSlugFromPath(location.pathname) !== ws.slug) {
+    if (ws && getSlugFromPath(pathnameRef.current) !== ws.slug) {
       navigate(`/${ws.slug}`);
     }
-  };
+  }, [navigate]);
 
   // Dynamic user role in the current workspace
   const { data: dynamicRole } = useUserWorkspaceRole(currentWorkspace?.id, currentUser?.id);
@@ -174,27 +182,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
   // and "Back to all teams" bounced straight into it. Null means null.
   const currentTeam: Team | null = (teams || []).find(t => t.id === selectedTeamId) || null;
 
-  const setCurrentTeam = (team: Team | null) => {
+  const setCurrentTeam = useCallback((team: Team | null) => {
     setSelectedTeamId(team?.id || null);
-  };
+  }, []);
 
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
-  const toggleMobileSidebar = () => setIsMobileSidebarOpen(prev => !prev);
+  const toggleMobileSidebar = useCallback(() => setIsMobileSidebarOpen(prev => !prev), []);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
-  const toggleSidebar = () => {
+  const toggleSidebar = useCallback(() => {
     // If mobile width, toggle mobile sidebar drawer; otherwise toggle desktop collapse
     if (window.innerWidth < 1024) {
       setIsMobileSidebarOpen(prev => !prev);
     } else {
       setIsSidebarCollapsed(prev => !prev);
     }
-  };
+  }, []);
 
   const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
-  const toggleNotifications = () => setIsNotificationOpen(prev => !prev);
+  const toggleNotifications = useCallback(() => setIsNotificationOpen(prev => !prev), []);
 
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState<boolean>(false);
@@ -302,45 +310,66 @@ export const AppProvider: React.FC<{ children: React.ReactNode, session?: Sessio
     };
   }, [currentWorkspace?.slug, navigate]);
 
-  return (
-    <AppContext.Provider
-      value={{
-        currentUser,
-        userRole,
-        currentWorkspace,
-        setCurrentWorkspace,
-        currentTeam,
-        setCurrentTeam,
-        currentProject,
-        setCurrentProject,
+  const value = useMemo<AppContextType>(() => ({
+    currentUser,
+    userRole,
+    currentWorkspace,
+    setCurrentWorkspace,
+    currentTeam,
+    setCurrentTeam,
+    currentProject,
+    setCurrentProject,
+    selectedTicket,
+    setSelectedTicket,
+    isMobileSidebarOpen,
+    setIsMobileSidebarOpen,
+    toggleMobileSidebar,
+    isSidebarCollapsed,
+    setIsSidebarCollapsed,
+    toggleSidebar,
+    isNotificationOpen,
+    setIsNotificationOpen,
+    toggleNotifications,
+    isNewTicketModalOpen,
+    setIsNewTicketModalOpen,
+    isNewTestCaseModalOpen,
+    setIsNewTestCaseModalOpen,
+    isSearchModalOpen,
+    setIsSearchModalOpen,
+    isShortcutsModalOpen,
+    setIsShortcutsModalOpen,
+    searchQuery,
+    setSearchQuery,
+    filterPriority,
+    setFilterPriority,
+    filterAssigneeId,
+    setFilterAssigneeId,
+  }), [
+    currentUser,
+    userRole,
+    currentWorkspace,
+    setCurrentWorkspace,
+    currentTeam,
+    setCurrentTeam,
+    currentProject,
+    selectedTicket,
+    isMobileSidebarOpen,
+    toggleMobileSidebar,
+    isSidebarCollapsed,
+    toggleSidebar,
+    isNotificationOpen,
+    toggleNotifications,
+    isNewTicketModalOpen,
+    isNewTestCaseModalOpen,
+    isSearchModalOpen,
+    isShortcutsModalOpen,
+    searchQuery,
+    filterPriority,
+    filterAssigneeId,
+  ]);
 
-        selectedTicket,
-        setSelectedTicket,
-        isMobileSidebarOpen,
-        setIsMobileSidebarOpen,
-        toggleMobileSidebar,
-        isSidebarCollapsed,
-        setIsSidebarCollapsed,
-        toggleSidebar,
-        isNotificationOpen,
-        setIsNotificationOpen,
-        toggleNotifications,
-        isNewTicketModalOpen,
-        setIsNewTicketModalOpen,
-        isNewTestCaseModalOpen,
-        setIsNewTestCaseModalOpen,
-        isSearchModalOpen,
-        setIsSearchModalOpen,
-        isShortcutsModalOpen,
-        setIsShortcutsModalOpen,
-        searchQuery,
-        setSearchQuery,
-        filterPriority,
-        setFilterPriority,
-        filterAssigneeId,
-        setFilterAssigneeId,
-      }}
-    >
+  return (
+    <AppContext.Provider value={value}>
       {children}
     </AppContext.Provider>
   );

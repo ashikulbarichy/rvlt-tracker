@@ -17,14 +17,17 @@ import {
   PanelLeftOpen,
   Bell,
   Map as MapIcon,
-  Timer
+  Timer,
+  Shapes,
+  Hash,
+  SquarePen
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useWorkspaces } from '../../hooks/useWorkspaces';
 import { useTeams } from '../../hooks/useTeams';
 import { useNotifications } from '../../hooks/useNotifications';
-import * as Icons from 'lucide-react';
+import { teamIcon } from '../../lib/teamIcons';
 
 export const Sidebar: React.FC = () => {
   const {
@@ -36,7 +39,8 @@ export const Sidebar: React.FC = () => {
     isMobileSidebarOpen,
     setIsMobileSidebarOpen,
     toggleNotifications,
-    isSidebarCollapsed
+    isSidebarCollapsed,
+    setIsNewTicketModalOpen
   } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
@@ -210,6 +214,21 @@ export const Sidebar: React.FC = () => {
             }`}
           />
         </button>
+
+        {/* New ticket: in the one row that is on screen on every page. */}
+        {currentWorkspace && (
+          <button
+            onClick={() => {
+              setIsNewTicketModalOpen(true);
+              setIsMobileSidebarOpen(false);
+            }}
+            className="hidden lg:flex w-8 h-8 shrink-0 items-center justify-center rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface/70 transition-colors"
+            title="New ticket (C)"
+            aria-label="New ticket"
+          >
+            <SquarePen className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Notifications */}
         <button
@@ -525,7 +544,7 @@ export const Sidebar: React.FC = () => {
             <div className="space-y-0.5">
               {teams && teams.map(team => {
             const isOpen = openTeams[team.id];
-            const DynamicIcon = (Icons as any)[team.icon] || Icons.Hash;
+            const DynamicIcon = teamIcon(team.icon, Hash);
             return (
               <div key={team.id} className="mb-0.5">
                 <button
@@ -633,6 +652,17 @@ export const Sidebar: React.FC = () => {
           >
             <FileText className="w-3.5 h-3.5 text-text-secondary" />
             <span>All Docs</span>
+          </button>
+          <button
+            onClick={() => handleNav(`/${currentWorkspace?.slug || ''}/whiteboards`)}
+            className={`w-full flex items-center space-x-2.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              path.includes('/whiteboards')
+                ? 'bg-bg-surface-hover text-text-primary'
+                : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'
+            }`}
+          >
+            <Shapes className="w-3.5 h-3.5 text-text-secondary" />
+            <span>Whiteboards</span>
           </button>
         </div>
       </div>

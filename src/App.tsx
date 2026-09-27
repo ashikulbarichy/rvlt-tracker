@@ -1,32 +1,46 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { AppProvider, useApp } from './context/AppContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
-import { GlobalSearchModal } from './components/layout/GlobalSearchModal';
-import { KeyboardShortcutsModal } from './components/layout/KeyboardShortcutsModal';
-import { TicketListView } from './components/tickets/TicketListView';
-import { TicketDetailModal } from './components/tickets/TicketDetailModal';
-import { NewTicketModal } from './components/tickets/NewTicketModal';
-import { TestCaseListView } from './components/testcases/TestCaseListView';
-import { NewTestCaseModal } from './components/testcases/NewTestCaseModal';
 import { NotificationDrawer } from './components/notifications/NotificationDrawer';
-import { DashboardView } from './components/dashboard/DashboardView';
 import { LoginView } from './components/auth/LoginView';
 import { ResetPasswordView } from './components/auth/ResetPasswordView';
-import { SettingsView } from './components/settings/SettingsView';
-import { MemberSettings } from './components/settings/MemberSettings';
-import { TeamSettings } from './components/settings/TeamSettings';
+// Every page is its own chunk: the entry bundle is just the shell (layout, sidebar,
+// login). Panels outside the routes load on first open -- see OnceOpened.
+const GlobalSearchModal = lazy(() => import('./components/layout/GlobalSearchModal').then(m => ({ default: m.GlobalSearchModal })));
+const KeyboardShortcutsModal = lazy(() => import('./components/layout/KeyboardShortcutsModal').then(m => ({ default: m.KeyboardShortcutsModal })));
+const TicketListView = lazy(() => import('./components/tickets/TicketListView').then(m => ({ default: m.TicketListView })));
+const TicketDetailModal = lazy(() => import('./components/tickets/TicketDetailModal').then(m => ({ default: m.TicketDetailModal })));
+const NewTicketModal = lazy(() => import('./components/tickets/NewTicketModal').then(m => ({ default: m.NewTicketModal })));
+const TestCaseListView = lazy(() => import('./components/testcases/TestCaseListView').then(m => ({ default: m.TestCaseListView })));
+const NewTestCaseModal = lazy(() => import('./components/testcases/NewTestCaseModal').then(m => ({ default: m.NewTestCaseModal })));
+const DashboardView = lazy(() => import('./components/dashboard/DashboardView').then(m => ({ default: m.DashboardView })));
+const SettingsView = lazy(() => import('./components/settings/SettingsView').then(m => ({ default: m.SettingsView })));
+const MemberSettings = lazy(() => import('./components/settings/MemberSettings').then(m => ({ default: m.MemberSettings })));
+const TeamSettings = lazy(() => import('./components/settings/TeamSettings').then(m => ({ default: m.TeamSettings })));
+const HomeInboxView = lazy(() => import('./components/home/HomeInboxView').then(m => ({ default: m.HomeInboxView })));
+const ProjectsView = lazy(() => import('./components/projects/ProjectsView').then(m => ({ default: m.ProjectsView })));
+const RoadmapView = lazy(() => import('./components/roadmap/RoadmapView').then(m => ({ default: m.RoadmapView })));
 const DocsView = lazy(() => import('./components/docs/DocsView').then(m => ({ default: m.DocsView })));
 const DocPane = lazy(() => import('./components/docs/DocPane').then(m => ({ default: m.DocPane })));
+const WhiteboardsView = lazy(() => import('./components/docs/board/WhiteboardsView').then(m => ({ default: m.WhiteboardsView })));
 const SprintsView = lazy(() => import('./components/sprints/SprintsView').then(m => ({ default: m.SprintsView })));
 const SprintDetail = lazy(() => import('./components/sprints/SprintDetail').then(m => ({ default: m.SprintDetail })));
-import { HomeInboxView } from './components/home/HomeInboxView';
-import { ProjectsView } from './components/projects/ProjectsView';
-import { RoadmapView } from './components/roadmap/RoadmapView';
 import { MobileNav } from './components/layout/MobileNav';
+
+/**
+ * Mounts a lazily-loaded panel the first time it is opened, then keeps it mounted so its
+ * state (a half-written ticket) and close animation survive. Until then its code is not
+ * even downloaded.
+ */
+const OnceOpened: React.FC<{ open: boolean; children: React.ReactNode }> = ({ open, children }) => {
+  const [opened, setOpened] = useState(open);
+  if (open && !opened) setOpened(true);
+  return opened ? <Suspense fallback={null}>{children}</Suspense> : null;
+};
 
 const MainLayout: React.FC = () => {
 /**
@@ -44,7 +58,28 @@ const LegacyIssueRedirect: React.FC<{ scope?: 'mine' | 'team' }> = ({ scope }) =
   return <Navigate to={path + search} replace />;
 };
 
-  const { isNotificationOpen, setIsNotificationOpen, isSidebarCollapsed } = useApp();
+  const {
+    isNotificationOpen, setIsNotificationOpen, isSidebarCollapsed, isNewTicketModalOpen,
+    selectedTicket, isNewTestCaseModalOpen, isSearchModalOpen, isShortcutsModalOpen,
+    setSelectedTicket, setIsNewTestCaseModalOpen, setIsSearchModalOpen, setIsShortcutsModalOpen,
+  } = useApp();
+
+  // The ticket and test-case panels cover the whole content area and live outside the
+  // routes, so without this a sidebar click changed the page underneath an open ticket
+  // and looked like it did nothing. Moving to a different page closes them. Only the
+  // pathname counts: filter and ?query changes on the same page leave them open, and
+  // nothing opens a ticket and navigates in the same step.
+  const { pathname } = useLocation();
+  const lastPathRef = useRef(pathname);
+  useEffect(() => {
+    if (lastPathRef.current === pathname) return;
+    lastPathRef.current = pathname;
+    setSelectedTicket(null);
+    setIsNewTestCaseModalOpen(false);
+    // Keyboard shortcuts ("g" then a letter) can change page with these still open.
+    setIsSearchModalOpen(false);
+    setIsShortcutsModalOpen(false);
+  }, [pathname, setSelectedTicket, setIsNewTestCaseModalOpen, setIsSearchModalOpen, setIsShortcutsModalOpen]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-bg-base text-text-primary font-sans antialiased">
@@ -52,7 +87,7 @@ const LegacyIssueRedirect: React.FC<{ scope?: 'mine' | 'team' }> = ({ scope }) =
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col min-w-0 overflow-hidden bg-bg-surface rounded-none md:rounded-lg m-0 md:my-3 shadow-none md:shadow-sm relative pb-14 lg:pb-0 transition-[margin] duration-200 ease-out ${isSidebarCollapsed ? 'md:ml-3' : 'md:ml-1.5'} ${isNotificationOpen ? 'md:mr-1.5' : 'md:mr-3'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 overflow-hidden bg-bg-surface rounded-none md:rounded-lg m-0 md:my-3 shadow-none md:shadow-sm relative pb-14 lg:pb-0 transition-[margin] duration-200 ease-out ${isSidebarCollapsed ? 'md:ml-3' : 'md:ml-1.5'} ${isNotificationOpen || isNewTicketModalOpen ? 'md:mr-1.5' : 'md:mr-3'}`}>
         <Header />
 
         <main className="flex-1 flex min-w-0 overflow-hidden relative">
@@ -103,6 +138,13 @@ const LegacyIssueRedirect: React.FC<{ scope?: 'mine' | 'team' }> = ({ scope }) =
               <Route path="docs" element={<DocsView />}>
                 <Route path=":docId" element={<DocPane />} />
               </Route>
+              {/* Whiteboards are docs underneath, shown in their own section. */}
+              <Route path="whiteboards" element={<WhiteboardsView />} />
+              <Route path="whiteboards/:docId" element={
+                <div className="flex-1 flex min-w-0 overflow-hidden">
+                  <DocPane />
+                </div>
+              } />
               <Route path="settings" element={<SettingsView />} />
               <Route path="dashboard" element={<DashboardView />} />
             </Route>
@@ -112,9 +154,12 @@ const LegacyIssueRedirect: React.FC<{ scope?: 'mine' | 'team' }> = ({ scope }) =
         </main>
 
         {/* Inline Ticket & TestCase Detail views within the right card container */}
-        <TicketDetailModal />
-        <NewTestCaseModal />
+        <OnceOpened open={!!selectedTicket}><TicketDetailModal /></OnceOpened>
+        <OnceOpened open={isNewTestCaseModalOpen}><NewTestCaseModal /></OnceOpened>
       </div>
+
+      {/* Right New Ticket Card -- a panel like Notifications, beside the page */}
+      <OnceOpened open={isNewTicketModalOpen}><NewTicketModal /></OnceOpened>
 
       {/* Right Notification Card (Desktop persistent / sliding card + Mobile drawer) */}
       <NotificationDrawer
@@ -123,9 +168,8 @@ const LegacyIssueRedirect: React.FC<{ scope?: 'mine' | 'team' }> = ({ scope }) =
       />
 
       {/* Modals and Drawers */}
-      <NewTicketModal />
-      <GlobalSearchModal />
-      <KeyboardShortcutsModal />
+      <OnceOpened open={isSearchModalOpen}><GlobalSearchModal /></OnceOpened>
+      <OnceOpened open={isShortcutsModalOpen}><KeyboardShortcutsModal /></OnceOpened>
 
       {/* Mobile Bottom Navigation Bar */}
       <MobileNav />

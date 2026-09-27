@@ -19,7 +19,7 @@ import { TemplatePicker } from './TemplatePicker';
 export const DocsView: React.FC = () => {
   const navigate = useNavigate();
   const { workspaceSlug, docId } = useParams<{ workspaceSlug: string; docId?: string }>();
-  const { currentWorkspace } = useApp();
+  const { currentWorkspace, isSidebarCollapsed } = useApp();
 
   const { tree, isLoading, error, createDoc } = useDocs();
   const { collections } = useDocCollections();
@@ -135,7 +135,8 @@ export const DocsView: React.FC = () => {
       <div
         aria-hidden={isTreeOpen}
         className={`self-start shrink-0 flex items-center gap-1 overflow-hidden transition-all duration-200 ease-out motion-reduce:transition-none ${
-          isTreeOpen ? 'w-0 m-0 opacity-0' : 'w-8 lg:w-20 m-2 opacity-100'
+          // Wider while the app sidebar is collapsed: SidebarToggle then adds a New ticket button.
+          isTreeOpen ? 'w-0 m-0 opacity-0' : `w-8 ${isSidebarCollapsed ? 'lg:w-[7.5rem]' : 'lg:w-20'} m-2 opacity-100`
         }`}
       >
         <SidebarToggle />

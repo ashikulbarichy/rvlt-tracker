@@ -159,6 +159,8 @@ export interface SprintResult {
  */
 export type DocVisibility = 'workspace' | 'restricted' | 'private';
 export type DocStatus = 'draft' | 'published' | 'archived';
+/** Fixed at creation; a trigger refuses changes. Added in migration 20261001090000. */
+export type DocKind = 'page' | 'whiteboard';
 
 /** A top-level shelf in the docs tree (Company, Engineering, ...). Added in 005. */
 export interface DocCollection {
@@ -182,6 +184,8 @@ export interface Doc {
   /** Vestigial. The 'team' visibility it served folded into doc_shares; nothing writes it. */
   team_id: string | null;
   title: string;
+  /** 'whiteboard' docs keep their canvas in doc_board_elements; `content` stays empty. */
+  kind: DocKind;
   /** Sanitized HTML from the editor. */
   content: string;
   /** Plain-text mirror of `content`, written by the client, used for search. */
@@ -224,6 +228,45 @@ export interface DocShare {
   team_id: string | null;
   can_edit: boolean;
   created_by: string | null;
+  created_at: string;
+}
+
+/** A pinned comment, or a reply to one, on a whiteboard. Migration 20261001090000. */
+export interface BoardComment {
+  id: string;
+  doc_id: string;
+  /** Null on a thread's root comment; the root's id on a reply. */
+  parent_id: string | null;
+  /** Canvas coordinates; set on roots only. */
+  x: number | null;
+  y: number | null;
+  body: string;
+  author_id: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Per-board session state: the shared timer and dot voting. */
+export interface BoardSession {
+  doc_id: string;
+  timer_ends_at: string | null;
+  timer_paused_remaining: number | null;
+  timer_duration: number | null;
+  voting_open: boolean;
+  votes_per_person: number;
+  voting_round: number;
+  updated_by: string | null;
+  updated_at: string;
+}
+
+export interface BoardVote {
+  doc_id: string;
+  voting_round: number;
+  element_id: string;
+  user_id: string;
+  votes: number;
   created_at: string;
 }
 

@@ -2,16 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useTickets } from '../../hooks/useTickets';
-import { useNavigate } from 'react-router-dom';
 import { formatTicketIdentifier } from '../../lib/identifier';
 import { StatusBadge } from '../common/StatusBadge';
 
 export const GlobalSearchModal: React.FC = () => {
-  const { isSearchModalOpen, setIsSearchModalOpen, currentWorkspace } = useApp();
+  const { isSearchModalOpen, setIsSearchModalOpen, currentWorkspace, setSelectedTicket } = useApp();
   const [localQuery, setLocalQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const navigate = useNavigate();
 
   // Debounce the search query
   useEffect(() => {
@@ -104,7 +102,10 @@ export const GlobalSearchModal: React.FC = () => {
                 <button
                   key={ticket.id}
                   onClick={() => {
-                    navigate(`/${currentWorkspace?.slug || ''}/ticket/${formatTicketIdentifier(ticket)}`);
+                    // Opens the ticket panel over whatever page is showing, as the
+                    // notification drawer does. This used to navigate to /ticket/<id>,
+                    // a route that does not exist, and stranded you on "Loading workspace".
+                    setSelectedTicket(ticket);
                     setIsSearchModalOpen(false);
                   }}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-bg-surface-hover transition-colors text-left group"

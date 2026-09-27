@@ -112,6 +112,7 @@ export function useDocs({ includeDeleted = false }: UseDocsOptions = {}) {
           parent_id: input.parent_id ?? null,
           team_id: input.team_id ?? null,
           title: input.title?.trim() || 'Untitled',
+          kind: input.kind ?? 'page',
           content: input.content ?? '',
           content_text: input.content_text ?? '',
           icon: input.icon ?? null,
@@ -217,7 +218,9 @@ export function useDocs({ includeDeleted = false }: UseDocsOptions = {}) {
     onSuccess: invalidateDocs,
   });
 
-  const tree = buildDocTree(docs || []);
+  // Whiteboards have their own section and gallery; the docs tree is pages only. They stay
+  // in `docs` so pages can still @-link and embed them.
+  const tree = buildDocTree((docs || []).filter(d => d.kind !== 'whiteboard'));
 
   return {
     docs,

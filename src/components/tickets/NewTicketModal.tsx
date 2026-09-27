@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, AlertCircle, Users, Check, Plus } from 'lucide-react';
+import { X, AlertCircle, Check, Plus, SquarePen } from 'lucide-react';
 import { CustomSelect } from '../common/CustomSelect';
 import { DatePicker } from '../common/DatePicker';
 import { useApp } from '../../context/AppContext';
@@ -20,7 +20,9 @@ export const NewTicketModal: React.FC = () => {
     setIsNewTicketModalOpen,
     currentWorkspace,
     currentUser,
-    userRole
+    userRole,
+    isNotificationOpen,
+    setIsNotificationOpen
   } = useApp();
 
   const { profiles } = useProfiles();
@@ -95,44 +97,47 @@ export const NewTicketModal: React.FC = () => {
     }
   }, [currentUser?.id]);
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [isRendered, setIsRendered] = useState(false);
+  const isOpen = isNewTicketModalOpen;
+  const titleRef = React.useRef<HTMLInputElement>(null);
 
+  // A side panel like Notifications, not a modal: it stays mounted so a half-written
+  // ticket survives closing it, navigating, or checking something on the page beside it.
+  // Only one right-hand panel at a time -- two would squeeze the page to nothing.
   React.useEffect(() => {
-    if (isNewTicketModalOpen) {
-      setIsRendered(true);
-      const raf = requestAnimationFrame(() => {
-        setIsOpen(true);
-      });
-      return () => cancelAnimationFrame(raf);
-    } else {
-      setIsOpen(false);
-      const timer = setTimeout(() => {
-        setIsRendered(false);
-      }, 220);
-      return () => clearTimeout(timer);
-    }
-  }, [isNewTicketModalOpen]);
+    if (!isOpen) return;
+    setIsNotificationOpen(false);
+    // After the slide-in, so the caret lands in the title.
+    const t = setTimeout(() => titleRef.current?.focus(), 220);
+    return () => clearTimeout(t);
+  }, [isOpen, setIsNotificationOpen]);
+
+  // And the other way round: opening Notifications puts this panel away (draft kept).
+  // Only on the moment Notifications opens -- if it merely *is* open when this panel
+  // opens, the effect above is about to close it, and reacting here would close us too.
+  const wasNotificationOpenRef = React.useRef(isNotificationOpen);
+  React.useEffect(() => {
+    const justOpened = isNotificationOpen && !wasNotificationOpenRef.current;
+    wasNotificationOpenRef.current = isNotificationOpen;
+    if (justOpened) setIsNewTicketModalOpen(false);
+  }, [isNotificationOpen, setIsNewTicketModalOpen]);
 
   const handleClose = React.useCallback(() => {
-    setIsOpen(false);
-    setTimeout(() => {
-      setIsNewTicketModalOpen(false);
-    }, 220);
+    setIsNewTicketModalOpen(false);
   }, [setIsNewTicketModalOpen]);
 
-  // Close on Escape key
+  // Escape closes it, unless focus is in a field that uses Escape itself.
   React.useEffect(() => {
+    if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && (isNewTicketModalOpen || isOpen)) {
-        handleClose();
-      }
+      if (e.key !== 'Escape') return;
+      // The target can be window or document, which have no closest().
+      const target = e.target instanceof Element ? e.target : null;
+      if (target?.closest('.ProseMirror')) return;
+      handleClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isNewTicketModalOpen, isOpen, handleClose]);
-
-  if (!isRendered && !isNewTicketModalOpen) return null;
+  }, [isOpen, handleClose]);
 
   const toggleAssignee = (userId: string) => {
     if (selectedAssigneeIds.includes(userId)) {
@@ -193,30 +198,58 @@ export const NewTicketModal: React.FC = () => {
   const selectedProfiles = (profiles || []).filter(p => selectedAssigneeIds.includes(p.id));
 
   return (
-    <div 
-      className={`fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-[1px] transition-opacity duration-200 ease-out font-sans ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
-    >
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
-        <div className={`w-screen max-w-full sm:max-w-2xl lg:max-w-3xl xl:max-w-4xl bg-bg-surface border-l border-border shadow-2xl flex flex-col h-full overflow-hidden transform transition-transform duration-200 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+    <>
+      {/* Mobile backdrop, as for Notifications. On desktop the panel is a column beside
+          the page, so there is nothing to dim. */}
+      <div
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-200 ${
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={handleClose}
+        aria-hidden="true"
+      />
+
+      {/* Right card -- same shape, spacing and animation as the Notifications card. */}
+      <aside
+        aria-hidden={!isOpen}
+        aria-label="New ticket"
+        className={`bg-bg-surface border-border flex flex-col shrink-0 font-sans z-50 lg:z-20 transition-[width,margin,padding,border-color] duration-200 ease-out overflow-hidden shadow-2xl lg:shadow-sm
+          fixed inset-y-0 right-0 h-full border-l border-y-0 border-r-0 rounded-none
+          lg:static lg:h-[calc(100vh-24px)] lg:rounded-[12px]
+          ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+          ${
+            !isOpen
+              ? 'w-full sm:w-[420px] lg:w-0 lg:my-3 lg:ml-0 lg:mr-0 lg:p-0 lg:border-0 pointer-events-none'
+              : 'w-full sm:w-[420px] xl:w-[460px] lg:my-3 lg:mr-3 lg:ml-1.5 lg:border-0'
+          }
+        `}
+      >
+        {/* Sliding contents wrapper: fixed width, so the form never reflows mid-animation. */}
+        <div className={`flex flex-col h-full w-screen sm:w-[420px] xl:w-[460px] max-w-full shrink-0 transition-transform duration-200 ease-out ${!isOpen ? 'lg:translate-x-full' : 'translate-x-0'}`}>
           {/* Header */}
-          <div className="px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between shrink-0 bg-bg-surface">
-            <h2 className="text-sm font-semibold text-text-primary">
-              Create New Ticket
-            </h2>
+          <div className="h-14 px-4 flex items-center justify-between shrink-0">
+            <div className="flex items-center space-x-2.5 min-w-0">
+              <div className="p-1.5 rounded-full bg-accent-primary/10 text-accent-primary flex items-center justify-center shrink-0">
+                <SquarePen className="w-4 h-4" />
+              </div>
+              <span className="font-medium text-sm sm:text-base text-text-primary tracking-wide leading-tight truncate">
+                New ticket
+              </span>
+            </div>
             <button
+              type="button"
               onClick={handleClose}
+              tabIndex={isOpen ? 0 : -1}
               className="p-1.5 rounded-full text-text-secondary hover:text-text-primary hover:bg-bg-surface-hover transition-colors"
               title="Close (Esc)"
+              aria-label="Close"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 bg-bg-surface overflow-y-auto no-scrollbar scrollbar-none flex-1 flex flex-col justify-between">
+          <form onSubmit={handleSubmit} className="px-4 pb-4 space-y-4 overflow-y-auto no-scrollbar scrollbar-none flex-1 flex flex-col justify-between">
             <div className="space-y-4">
           {errorMessage && (
             <div className="p-2.5 bg-status-error/10 border border-transparent rounded-sm text-xs text-status-error flex items-center space-x-2">
@@ -232,6 +265,7 @@ export const NewTicketModal: React.FC = () => {
             <input
               type="text"
               required
+              ref={titleRef}
               placeholder="Ticket title..."
               value={title}
               onChange={e => setTitle(e.target.value)}
@@ -247,11 +281,11 @@ export const NewTicketModal: React.FC = () => {
               content={description}
               onChange={setDescription}
               placeholder="Add description... Formatting and image uploads supported."
-              minHeight="200px"
+              minHeight="160px"
             />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
+          <div className="grid grid-cols-2 gap-2.5">
             <div>
               <label className="block text-[11px] font-medium text-text-secondary mb-0.5">
                 Team
@@ -423,7 +457,7 @@ export const NewTicketModal: React.FC = () => {
             </div>
 
             {/* Footer Buttons */}
-            <div className="pt-4 mt-6 border-t border-border flex items-center justify-end space-x-2 shrink-0">
+            <div className="pt-4 mt-6 border-t border-border flex items-center justify-end space-x-2 shrink-0 sticky bottom-0 bg-bg-surface">
               <button
                 type="button"
                 disabled={isSubmitting}
@@ -442,7 +476,7 @@ export const NewTicketModal: React.FC = () => {
             </div>
           </form>
         </div>
-      </div>
-    </div>
+      </aside>
+    </>
   );
 };
