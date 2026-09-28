@@ -764,6 +764,14 @@ export function useTeamSubTaskCounts(teamId?: string) {
   return { counts, error };
 }
 
+/** A ticket by its identifier (XXX-DEV-01), for shareable /:workspaceSlug/tickets/:identifier links. */
+export async function fetchTicketByIdentifier(workspaceId: string, identifier: string): Promise<Ticket | null> {
+  const { data, error } = await supabase.from('tickets').select(SPRINT_TICKET_SELECT)
+    .eq('workspace_id', workspaceId).eq('identifier', identifier.toUpperCase()).is('deleted_at', null).maybeSingle();
+  if (error) throw error;
+  return (data as Ticket | null) ?? null;
+}
+
 /** One ticket in the shape the panels use, for jumping from a sub-task to its story. */
 export async function fetchTicketForPanel(id: string): Promise<Ticket> {
   const { data, error } = await supabase.from('tickets').select(SPRINT_TICKET_SELECT).eq('id', id).single();

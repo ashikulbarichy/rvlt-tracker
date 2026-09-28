@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocation, useNavigate } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { AppProvider, useApp } from './context/AppContext';
@@ -44,6 +44,30 @@ const OnceOpened: React.FC<{ open: boolean; children: React.ReactNode }> = ({ op
   const [opened, setOpened] = useState(open);
   if (open && !opened) setOpened(true);
   return opened ? <Suspense fallback={null}>{children}</Suspense> : null;
+};
+
+/**
+ * Shareable ticket link: /:workspaceSlug/tickets/:identifier (e.g. /acme/tickets/XXX-DEV-01).
+ * Shows the ticket list with that ticket's panel open. Unknown or inaccessible tickets fall
+ * back to the plain list. Used by links from other apps (comm).
+ */
+const TicketLink: React.FC = () => {
+  const { workspaceSlug, identifier } = useParams<{ workspaceSlug: string; identifier: string }>();
+  const { currentWorkspace, setSelectedTicket } = useApp();
+  const navigate = useNavigate();
+  // Wait until the workspace from the URL is the current one (it can briefly be the default).
+  const wsId = currentWorkspace && currentWorkspace.slug.toLowerCase() === workspaceSlug?.toLowerCase() ? currentWorkspace.id : null;
+  useEffect(() => {
+    if (!wsId || !identifier) return;
+    let alive = true;
+    // Loaded on demand so the entry bundle stays just the shell.
+    import('./hooks/useSprints').then((m) => m.fetchTicketByIdentifier(wsId, identifier)).then(
+      (t) => { if (!alive) return; if (t) setSelectedTicket(t); else navigate(`/${workspaceSlug}/tickets`, { replace: true }); },
+      () => { if (alive) navigate(`/${workspaceSlug}/tickets`, { replace: true }); },
+    );
+    return () => { alive = false; };
+  }, [wsId, identifier, workspaceSlug, setSelectedTicket, navigate]);
+  return <TicketListView onlyMine={false} />;
 };
 
 const MainLayout: React.FC = () => {
@@ -113,6 +137,7 @@ const LegacyIssueRedirect: React.FC<{ scope?: 'mine' | 'team' }> = ({ scope }) =
               <Route path="sprints/:sprintId/board" element={<SprintBoardView />} />
               <Route path="sprints/:sprintId/standup" element={<SprintStandupView />} />
               <Route path="tickets" element={<TicketListView onlyMine={false} />} />
+              <Route path="tickets/:identifier" element={<TicketLink />} />
               <Route path="issues" element={<LegacyIssueRedirect />} />
               <Route path="my-issues" element={<LegacyIssueRedirect scope="mine" />} />
               <Route path="members" element={
