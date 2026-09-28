@@ -1,7 +1,7 @@
-// Bumped for the new logo colour (#f07f33). The fetch handler below is cache-first with a background
+// Bumped for the icons with "Tasks" beside the mark. The fetch handler below is cache-first with a background
 // refresh, so without a new name an installed app would keep showing the old mark until
 // a second load; a new name makes activate() drop the old cache outright.
-const CACHE_NAME = 'reevolt-tasks-v4';
+const CACHE_NAME = 'reevolt-tasks-v5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BrandLockup } from '../common/BrandLockup';
 import { supabase } from '../../lib/supabase';
 import { Lock, Eye, EyeOff, CheckCircle2, ArrowRight } from 'lucide-react';
 
@@ -50,7 +51,7 @@ export const ResetPasswordView: React.FC<ResetPasswordViewProps> = ({ onComplete
         
         {/* Header */}
         <div className="text-center mb-8">
-          <img src="/logo.svg" alt="Reevolt Tasks logo" className="w-14 h-14 rounded-xl mx-auto drop-shadow-sm mb-4" />
+          <div className="flex justify-center mb-5"><BrandLockup size="lg" /></div>
           <h1 className="text-2xl sm:text-3xl font-karla font-bold tracking-tight text-text-primary mb-1.5">Reset Password</h1>
           <p className="text-xs sm:text-sm text-text-secondary">Enter your new secure password below</p>
         </div>

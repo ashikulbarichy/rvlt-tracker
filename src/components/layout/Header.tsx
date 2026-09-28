@@ -1,4 +1,5 @@
 import React from 'react';
+import { BrandLockup } from '../common/BrandLockup';
 import { Search, Menu } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -28,10 +29,12 @@ export const Header: React.FC = () => {
 
         {/* Mobile Workspace / Brand indicator */}
         <div className="flex items-center space-x-2">
-          <img src="/logo.svg" alt="Reevolt Tasks logo" className="w-5 h-5 rounded-sm" />
-          <span className="font-karla font-semibold text-sm text-text-primary truncate max-w-[140px] sm:max-w-[200px]">
-            {currentWorkspace?.name || 'Track'}
-          </span>
+          <BrandLockup size="sm" />
+          {currentWorkspace?.name && (
+            <span className="font-karla font-medium text-xs text-text-secondary truncate max-w-[120px] sm:max-w-[200px] border-l border-border pl-2">
+              {currentWorkspace.name}
+            </span>
+          )}
         </div>
       </div>
 
