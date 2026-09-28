@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { BrandLockup } from '../common/BrandLockup';
 import {
   Inbox,
   UserCheck,
@@ -201,9 +200,15 @@ export const Sidebar: React.FC = () => {
           className="flex flex-1 items-center p-1.5 -my-1.5 -ml-1.5 rounded-full hover:bg-bg-surface/70 transition-colors group text-left min-w-0"
           title="Switch workspace"
         >
-          <BrandLockup size="md" className="mr-2.5" />
-          <span className="font-karla font-medium text-xs text-text-secondary leading-tight truncate border-l border-border pl-2.5">
-            {currentWorkspace?.name || 'No workspace'}
+          {/* The mark spans both lines: "Tasks" on top, the workspace underneath. */}
+          <img src="/logo.svg" alt="" aria-hidden="true" className="w-8 h-8 shrink-0 mr-2.5" />
+          <span className="flex flex-col min-w-0 leading-tight">
+            <span className="font-karla font-semibold text-base tracking-tight text-text-primary leading-none">
+              Tasks<span className="sr-only"> by Reevolt</span>
+            </span>
+            <span className="mt-1 font-karla font-medium text-xs text-text-secondary truncate">
+              {currentWorkspace?.name || 'No workspace'}
+            </span>
           </span>
           <ChevronDown
             className={`w-4 h-4 text-text-secondary group-hover:text-text-primary transition-transform ml-1.5 shrink-0 ${
