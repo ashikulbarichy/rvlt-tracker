@@ -194,24 +194,17 @@ export const Sidebar: React.FC = () => {
         <div className={`flex flex-col h-full w-[260px] lg:w-[230px] shrink-0 transition-transform duration-200 ease-out ${isSidebarCollapsed ? 'lg:-translate-x-full' : 'translate-x-0'}`}>
         
         {/* Workspace Selector */}
-        <div className="h-14 pl-4 pr-11 lg:pr-3 flex items-center gap-1.5 relative shrink-0" ref={dropdownRef}>
+        <div className="h-14 pl-2.5 pr-11 lg:pr-2 flex items-center gap-1 relative shrink-0" ref={dropdownRef}>
+        {/* The logo is the workspace switcher: the arrow opens the workspace menu. */}
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex flex-1 items-center p-1.5 -my-1.5 -ml-1.5 rounded-full hover:bg-bg-surface/70 transition-colors group text-left min-w-0"
-          title="Switch workspace"
+          className="flex flex-1 items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-bg-surface/70 transition-colors group text-left min-w-0 overflow-hidden"
+          title={currentWorkspace ? `Switch workspace (${currentWorkspace.name})` : 'Switch workspace'}
+          aria-label="Switch workspace"
         >
-          {/* The mark spans both lines: "Tasks" on top, the workspace underneath. */}
-          <img src="/logo.svg" alt="" aria-hidden="true" className="w-8 h-8 shrink-0 mr-2.5" />
-          <span className="flex flex-col min-w-0 leading-tight">
-            <span className="font-karla font-semibold text-base tracking-tight text-text-primary leading-none">
-              Tasks<span className="sr-only"> by Reevolt</span>
-            </span>
-            <span className="mt-1 font-karla font-medium text-xs text-text-secondary truncate">
-              {currentWorkspace?.name || 'No workspace'}
-            </span>
-          </span>
+          <img src="/wordmark.svg" alt="Reevolt Tasks" className="h-[18px] w-auto min-w-0 max-w-full shrink" draggable={false} />
           <ChevronDown
-            className={`w-4 h-4 text-text-secondary group-hover:text-text-primary transition-transform ml-1.5 shrink-0 ${
+            className={`w-3.5 h-3.5 text-text-secondary group-hover:text-text-primary transition-transform shrink-0 ${
               isDropdownOpen ? 'rotate-180' : ''
             }`}
           />

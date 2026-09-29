@@ -1,13 +1,14 @@
-// Bumped for the favicon with the "t" badge. The fetch handler below is cache-first with a background
+// Bumped for the stacked app icons and the loading screen wordmark. The fetch handler below is cache-first with a background
 // refresh, so without a new name an installed app would keep showing the old mark until
 // a second load; a new name makes activate() drop the old cache outright.
-const CACHE_NAME = 'reevolt-tasks-v6';
+const CACHE_NAME = 'reevolt-tasks-v7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
   '/favicon.svg',
   '/logo.svg',
+  '/wordmark.svg',
   '/icons/icon-192.svg',
   '/icons/icon-512.svg',
   '/icons/icon-maskable-192.svg',

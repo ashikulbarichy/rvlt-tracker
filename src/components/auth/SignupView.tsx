@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { BrandLockup } from '../common/BrandLockup';
 import { supabase } from '../../lib/supabase';
 import { Mail, Lock, User, ArrowRight, CheckCircle2 } from 'lucide-react';
 
@@ -84,7 +83,7 @@ export const SignupView: React.FC<SignupViewProps> = ({ onSwitchToLogin }) => {
         
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="flex justify-center mb-5"><BrandLockup size="lg" /></div>
+          <div className="flex justify-center mb-6"><img src="/wordmark.svg" alt="Reevolt Tasks" className="h-10 w-auto" draggable={false} /></div>
           <h1 className="text-3xl font-karla text-text-primary mb-2">Create an account</h1>
           <p className="text-sm text-text-secondary">Join your workspace to start tracking tickets.</p>
         </div>

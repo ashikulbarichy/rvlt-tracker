@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Reevolt Tasks — Ticket &amp; Bug Tracking</title>
     
+    <link rel="preload" href="/wordmark.svg" as="image" type="image/svg+xml" />
+
     <!-- PWA & Mobile Web App Meta -->
     <meta name="theme-color" content="#121212" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -25,7 +27,9 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   </head>
   <body class="bg-bg-base text-text-primary antialiased font-sans min-h-screen selection:bg-accent-primary/20">
-    <div id="root"></div>
+    <!-- Loading screen until the app mounts (React replaces #root's contents). Inline
+         styles because the stylesheet has not loaded yet; mirrors components/common/Splash. -->
+    <div id="root"><div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000"><img src="/wordmark.svg" alt="Reevolt Tasks" style="height:44px;width:auto"><span style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%);width:40px;height:4px;border-radius:9999px;background:#535353"></span></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

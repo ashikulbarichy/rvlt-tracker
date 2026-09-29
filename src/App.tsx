@@ -6,6 +6,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { SidebarToggle } from './components/layout/SidebarToggle';
+import { Splash } from './components/common/Splash';
 import { NotificationDrawer } from './components/notifications/NotificationDrawer';
 import { LoginView } from './components/auth/LoginView';
 import { ResetPasswordView } from './components/auth/ResetPasswordView';
@@ -190,7 +191,7 @@ const LegacyIssueRedirect: React.FC<{ scope?: 'mine' | 'team' }> = ({ scope }) =
               <Route path="settings" element={<SettingsView />} />
               <Route path="dashboard" element={<DashboardView />} />
             </Route>
-            <Route path="*" element={<div className="flex items-center justify-center w-full h-full text-text-secondary">Loading workspace...</div>} />
+            <Route path="*" element={<Splash inline />} />
           </Routes>
           </Suspense>
         </main>
@@ -237,9 +238,38 @@ const checkIsRecovery = () => {
   return isRecovery;
 };
 
+/** How long the loading screen stays up when someone arrives. */
+const ARRIVAL_SPLASH_MS = 1500;
+
+/**
+ * True when this is an arrival rather than a reload: a new tab or window, a typed URL,
+ * a link. A reload keeps the tab's sessionStorage and reports itself as 'reload', so it
+ * skips the pause. Storage can be blocked; then only the navigation type decides.
+ */
+const isArrival = (): boolean => {
+  const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+  if (nav?.type === 'reload') return false;
+  try {
+    if (sessionStorage.getItem('arrival-splash-shown')) return false;
+    sessionStorage.setItem('arrival-splash-shown', '1');
+  } catch { /* storage blocked */ }
+  return true;
+};
+
+// Decided once per page load, at module scope: it writes to sessionStorage, and a state
+// initializer can run twice under StrictMode.
+const ARRIVED = isArrival();
+
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  // Shown for a moment on arrival, however fast the session check is; never on reload.
+  const [holdSplash, setHoldSplash] = useState(ARRIVED);
+  useEffect(() => {
+    if (!holdSplash) return;
+    const timer = window.setTimeout(() => setHoldSplash(false), ARRIVAL_SPLASH_MS);
+    return () => window.clearTimeout(timer);
+  }, [holdSplash]);
   const [isResettingPassword, setIsResettingPassword] = useState<boolean>(() => checkIsRecovery());
 
   useEffect(() => {
@@ -261,8 +291,8 @@ export function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (isInitializing) {
-    return <div className="min-h-screen bg-bg-base flex items-center justify-center font-sans text-text-secondary">Loading...</div>;
+  if (isInitializing || holdSplash) {
+    return <Splash />;
   }
 
   // Handle password recovery flow from email link

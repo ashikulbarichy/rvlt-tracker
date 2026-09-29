@@ -28,17 +28,12 @@ export const Header: React.FC = () => {
 
         {/* Mobile Workspace / Brand indicator */}
         <div className="flex items-center space-x-2">
-          <img src="/logo.svg" alt="" aria-hidden="true" className="w-7 h-7 shrink-0" />
-          <span className="flex flex-col min-w-0 leading-tight">
-            <span className="font-karla font-semibold text-sm tracking-tight text-text-primary leading-none">
-              Tasks<span className="sr-only"> by Reevolt</span>
+          <img src="/wordmark.svg" alt="Reevolt Tasks" className="h-5 w-auto shrink-0" draggable={false} />
+          {currentWorkspace?.name && (
+            <span className="font-karla font-medium text-[11px] text-text-secondary truncate max-w-[110px] sm:max-w-[220px] border-l border-border pl-2">
+              {currentWorkspace.name}
             </span>
-            {currentWorkspace?.name && (
-              <span className="mt-0.5 font-karla font-medium text-[11px] text-text-secondary truncate max-w-[160px] sm:max-w-[240px]">
-                {currentWorkspace.name}
-              </span>
-            )}
-          </span>
+          )}
         </div>
       </div>
 
