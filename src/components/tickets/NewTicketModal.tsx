@@ -50,6 +50,10 @@ export const NewTicketModal: React.FC = () => {
   const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Bumped after each ticket is created. The description editor only reads its content
+  // when it mounts, so clearing `description` alone left the last ticket's text on screen
+  // (and in the next ticket); a new key gives the next ticket a fresh, empty editor.
+  const [formKey, setFormKey] = useState(0);
   const assigneeSectionRef = React.useRef<HTMLDivElement>(null);
 
   // Close the assignee list when clicking outside of it
@@ -176,14 +180,21 @@ export const NewTicketModal: React.FC = () => {
       },
       {
         onSuccess: () => {
+          // Back to a blank ticket. The team is kept (people usually file several for the
+          // same team); status goes back to the default via the effect above.
           setTitle('');
           setDescription('');
+          setProjectId('');
+          setStatusId('');
+          setPriority('medium');
           setDueDate('');
           setTypeId('');
           setSprintChoice({ teamId: '', sprintId: null });
           setSelectedAssigneeIds(currentUser?.id ? [currentUser.id] : []);
+          setIsAssigneeDropdownOpen(false);
           setErrorMessage(null);
           setIsSubmitting(false);
+          setFormKey(k => k + 1);
           handleClose();
         },
         onError: (err: any) => {
@@ -278,6 +289,7 @@ export const NewTicketModal: React.FC = () => {
               Description
             </label>
             <RichTextEditor
+              key={formKey}
               content={description}
               onChange={setDescription}
               placeholder="Add description... Formatting and image uploads supported."
