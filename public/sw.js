@@ -1,7 +1,7 @@
-// Bumped for the stacked app icons and the loading screen wordmark. The fetch handler below is cache-first with a background
+// Bumped for push notifications. The fetch handler below is cache-first with a background
 // refresh, so without a new name an installed app would keep showing the old mark until
 // a second load; a new name makes activate() drop the old cache outright.
-const CACHE_NAME = 'reevolt-tasks-v7';
+const CACHE_NAME = 'reevolt-tasks-v8';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -85,4 +85,54 @@ self.addEventListener('fetch', (event) => {
       })
     );
   }
+});
+
+// ---------------------------------------------------------------------------
+// Push notifications (send-push Edge Function, migration 020). The payload is
+// { title, body, url, tag, urgent }; tapping opens the ticket, reusing an open tab.
+// ---------------------------------------------------------------------------
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: 'Reevolt Tasks', body: event.data ? event.data.text() : '' };
+  }
+  const title = data.title || 'Reevolt Tasks';
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || '',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: data.tag,
+      renotify: !!data.tag,
+      // Urgent ones stay until dismissed where the platform allows it.
+      requireInteraction: !!data.urgent,
+      data: { url: data.url || '/' },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+          return client.focus().then((c) => (c && 'navigate' in c ? c.navigate(target) : undefined));
+        }
+      }
+      return self.clients.openWindow(target);
+    })
+  );
+});
+
+// The browser can rotate a subscription; let open pages re-save it.
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      clients.forEach((client) => client.postMessage({ type: 'push-subscription-changed' }));
+    })
+  );
 });

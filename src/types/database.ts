@@ -11,7 +11,9 @@ export type TicketPriority = 'urgent' | 'high' | 'medium' | 'low' | 'none';
 export type StateCategory = 'backlog' | 'unstarted' | 'started' | 'completed' | 'canceled';
 export type ProjectStatus = 'planned' | 'in_progress' | 'paused' | 'completed' | 'canceled';
 export type TestCaseStatus = 'draft' | 'untested' | 'passed' | 'failed';
-export type NotificationType = 'assignment' | 'mention' | 'status_change' | 'comment' | 'workspace_invite';
+export type NotificationType =
+  | 'assignment' | 'mention' | 'status_change' | 'comment' | 'workspace_invite' | 'workspace_invitation'
+  | 'urgent' | 'due_soon';
 export type MemberStatus = 'pending' | 'accepted' | 'declined';
 
 export interface Profile {

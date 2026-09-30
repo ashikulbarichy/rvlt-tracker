@@ -356,26 +356,8 @@ export function useTickets(options: UseTicketsOptions) {
           console.warn('ticket_assignees insert notice:', e);
         }
 
-        // Notify assigned users
-        for (const uid of assigneesToSave) {
-          if (uid !== finalReporterId) {
-            try {
-              await supabase.from('notifications').insert([{
-                workspace_id: newTicket.workspace_id,
-                recipient_id: uid,
-                actor_id: finalReporterId,
-                type: 'assignment',
-                title: 'Task Assigned',
-                message: `You were assigned to task "${newTicket.title}"`,
-                entity_type: 'ticket',
-                entity_id: createdTicket.id,
-                is_read: false
-              }]);
-            } catch (notifErr) {
-              console.warn('Notification send note:', notifErr);
-            }
-          }
-        }
+        // The assignment notification (and its push) comes from the notify_on_assignee
+        // trigger in the database, for every way a person gets assigned.
       }
 
       return createdTicket;
@@ -392,17 +374,24 @@ export function useTickets(options: UseTicketsOptions) {
       // If assignee_ids is provided, update ticket_assignees table
       if (assignee_ids !== undefined) {
         try {
-          // Remove previous assignees
-          await supabase.from('ticket_assignees').delete().eq('ticket_id', id);
+          // Only the difference: removing and re-adding everyone would re-send the
+          // "assigned to you" notification (a database trigger) to people already on it.
+          const { data: currentRows } = await supabase
+            .from('ticket_assignees')
+            .select('user_id')
+            .eq('ticket_id', id);
+          const current = new Set((currentRows || []).map(r => r.user_id as string));
+          const wanted = new Set(assignee_ids);
+          const removed = [...current].filter(uid => !wanted.has(uid));
+          const added = assignee_ids.filter(uid => !current.has(uid));
 
-          // Add new assignees
-          if (assignee_ids.length > 0) {
-            const rows = assignee_ids.map(uid => ({
-              workspace_id,
-              ticket_id: id,
-              user_id: uid
-            }));
-            await supabase.from('ticket_assignees').insert(rows);
+          if (removed.length > 0) {
+            await supabase.from('ticket_assignees').delete().eq('ticket_id', id).in('user_id', removed);
+          }
+          if (added.length > 0) {
+            await supabase.from('ticket_assignees').insert(
+              added.map(uid => ({ workspace_id, ticket_id: id, user_id: uid })),
+            );
           }
 
           // Set primary assignee

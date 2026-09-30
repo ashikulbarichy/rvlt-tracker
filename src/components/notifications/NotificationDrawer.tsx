@@ -6,10 +6,13 @@ import {
   MessageSquare,
   UserCheck,
   AlertCircle,
-  Users
+  Users,
+  Flame,
+  Clock
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useNotifications } from '../../hooks/useNotifications';
+import { PushToggle } from './PushToggle';
 import { useTickets } from '../../hooks/useTickets';
 import { useWorkspaceMembers } from '../../hooks/useWorkspaceMembers';
 import { supabase } from '../../lib/supabase';
@@ -141,6 +144,8 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
             </div>
           </div>
 
+          <PushToggle />
+
           {/* List */}
           <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
             {(!notifications || notifications.length === 0) ? (
@@ -166,6 +171,8 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
                       {notif.type === 'comment' && <MessageSquare className="w-4 h-4 text-accent-secondary" />}
                       {notif.type === 'status_change' && <AlertCircle className="w-4 h-4 text-status-warning" />}
                       {(notif.type === 'mention' || notif.type === 'workspace_invite') && <Users className="w-4 h-4 text-accent-primary" />}
+                      {notif.type === 'urgent' && <Flame className="w-4 h-4 text-status-error" />}
+                      {notif.type === 'due_soon' && <Clock className="w-4 h-4 text-status-warning" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-xs text-text-primary font-medium mb-0.5">
