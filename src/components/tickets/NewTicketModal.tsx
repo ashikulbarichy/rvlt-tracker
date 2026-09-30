@@ -102,6 +102,23 @@ export const NewTicketModal: React.FC = () => {
   }, [currentUser?.id]);
 
   const isOpen = isNewTicketModalOpen;
+
+  // The chosen type's description template goes into an empty description, and follows
+  // a type change as long as the description is still exactly the template it was given
+  // (nobody has typed in it). Anything typed is never replaced.
+  const effectiveType = (ticketTypes || []).find(t => t.id === (typeId || defaultTicketType?.id));
+  const appliedTemplateRef = React.useRef('');
+  React.useEffect(() => {
+    if (!isOpen || !effectiveType) return;
+    const template = effectiveType.description_template || '';
+    const untouched = !description.replace(/<[^>]*>/g, '').trim() || description === appliedTemplateRef.current;
+    if (!untouched || template === description) return;
+    appliedTemplateRef.current = template;
+    setDescription(template);
+    // The editor reads its content only on mount.
+    setFormKey(k => k + 1);
+  }, [isOpen, effectiveType, description]);
+
   const titleRef = React.useRef<HTMLInputElement>(null);
 
   // A side panel like Notifications, not a modal: it stays mounted so a half-written
@@ -184,6 +201,7 @@ export const NewTicketModal: React.FC = () => {
           // same team); status goes back to the default via the effect above.
           setTitle('');
           setDescription('');
+          appliedTemplateRef.current = '';
           setProjectId('');
           setStatusId('');
           setPriority('medium');

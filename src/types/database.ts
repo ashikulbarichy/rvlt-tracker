@@ -353,6 +353,8 @@ export interface TicketType {
   is_default: boolean;
   /** Whether tickets of this type are estimated in story points. False for Bug. */
   takes_story_points: boolean;
+  /** HTML the New ticket panel puts in an empty description for this type. '' for none. */
+  description_template: string;
   created_at: string;
   updated_at: string;
 }

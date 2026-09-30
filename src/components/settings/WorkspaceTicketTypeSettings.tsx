@@ -1,5 +1,7 @@
 import React from 'react';
-import { Loader2, Plus, Trash2, Star } from 'lucide-react';
+import { FileText, Loader2, Plus, Trash2, Star } from 'lucide-react';
+import DOMPurify from 'dompurify';
+import { RichTextEditor } from '../common/RichTextEditor';
 import { useTicketTypes } from '../../hooks/useTicketTypes';
 import { TicketType } from '../../types/database';
 
@@ -42,6 +44,8 @@ export const WorkspaceTicketTypeSettings: React.FC<WorkspaceTicketTypeSettingsPr
 
   const [error, setError] = React.useState<string | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  // The type whose description template is open for editing, if any.
+  const [templateFor, setTemplateFor] = React.useState<string | null>(null);
   const [newName, setNewName] = React.useState('');
   const [newColor, setNewColor] = React.useState(PRESET_COLORS[7]);
   const [isCreating, setIsCreating] = React.useState(false);
@@ -100,11 +104,10 @@ export const WorkspaceTicketTypeSettings: React.FC<WorkspaceTicketTypeSettingsPr
       <div className="grid grid-cols-1 gap-3">
         {(ticketTypes || []).map((type: TicketType) => {
           const isBusy = busyId === type.id;
+          const isEditingTemplate = templateFor === type.id;
           return (
-            <div
-              key={type.id}
-              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-bg-surface-raised border border-transparent rounded-lg"
-            >
+            <div key={type.id} className="bg-bg-surface-raised border border-transparent rounded-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3">
               {/* Identity: colour dot, name, and the one long-labelled control, which
                   lives on the secondary line where the workflow rows put the category.
                   Keeping it out of the control cluster is what stops rows wrapping to
@@ -198,6 +201,17 @@ export const WorkspaceTicketTypeSettings: React.FC<WorkspaceTicketTypeSettingsPr
 
                 <button
                   type="button"
+                  title={type.description_template ? 'Edit the description template' : 'Add a description template'}
+                  onClick={() => setTemplateFor(isEditingTemplate ? null : type.id)}
+                  className={`p-1 rounded transition-colors focus:outline-none ${
+                    isEditingTemplate || type.description_template ? 'text-accent-primary' : 'text-text-tertiary hover:text-text-primary'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  type="button"
                   title={type.is_default ? 'Default type for new tickets' : 'Make default for new tickets'}
                   disabled={!canEdit || isBusy || type.is_default}
                   onClick={() => run(type.id, () => setDefaultTicketType(type.id))}
@@ -222,6 +236,15 @@ export const WorkspaceTicketTypeSettings: React.FC<WorkspaceTicketTypeSettingsPr
                   {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                 </button>
               </div>
+            </div>
+            {isEditingTemplate && (
+              <TypeTemplateEditor
+                type={type}
+                canEdit={canEdit}
+                onSave={html => run(type.id, () => updateTicketType(type.id, { description_template: html }))}
+                onClose={() => setTemplateFor(null)}
+              />
+            )}
             </div>
           );
         })}
@@ -283,6 +306,69 @@ export const WorkspaceTicketTypeSettings: React.FC<WorkspaceTicketTypeSettingsPr
       <p className="text-[11px] text-text-tertiary">
         A type that still has tickets cannot be deleted — reassign them first.
       </p>
+    </div>
+  );
+};
+
+/** True when the HTML has no text, only empty paragraphs and the like. */
+const isBlankHtml = (html: string) => !html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+
+/**
+ * The description a new ticket of this type starts with. Saved on "Save template"; an
+ * empty editor saves as no template.
+ */
+const TypeTemplateEditor: React.FC<{
+  type: TicketType;
+  canEdit: boolean;
+  onSave: (html: string) => Promise<void>;
+  onClose: () => void;
+}> = ({ type, canEdit, onSave, onClose }) => {
+  const [draft, setDraft] = React.useState(type.description_template);
+  const [saving, setSaving] = React.useState(false);
+  const changed = draft !== type.description_template;
+
+  const save = async () => {
+    setSaving(true);
+    await onSave(isBlankHtml(draft) ? '' : draft);
+    setSaving(false);
+  };
+
+  return (
+    <div className="px-3 pb-3 space-y-2 border-t border-border/60 pt-3">
+      <p className="text-[11px] text-text-tertiary">
+        New {type.name} tickets start with this description. Filled in only when the description is empty.
+      </p>
+      {canEdit ? (
+        <>
+          <div className="rounded-md bg-bg-surface border border-border">
+            <RichTextEditor content={draft} onChange={setDraft} placeholder="No template" minHeight="110px" />
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-1.5 rounded-full text-xs text-text-secondary hover:bg-bg-surface transition-colors"
+            >
+              {changed ? 'Cancel' : 'Close'}
+            </button>
+            <button
+              type="button"
+              disabled={!changed || saving}
+              onClick={save}
+              className="px-3 py-1.5 rounded-full bg-accent-primary hover:bg-accent-primary-hover text-button-text text-xs font-semibold transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Saving…' : 'Save template'}
+            </button>
+          </div>
+        </>
+      ) : isBlankHtml(type.description_template) ? (
+        <p className="text-xs text-text-tertiary">No template.</p>
+      ) : (
+        <div
+          className="prose prose-sm dark:prose-invert max-w-none text-xs text-text-secondary"
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(type.description_template) }}
+        />
+      )}
     </div>
   );
 };
